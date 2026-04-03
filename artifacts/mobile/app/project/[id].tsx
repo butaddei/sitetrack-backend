@@ -22,7 +22,7 @@ import { InputField } from "@/components/InputField";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAuth } from "@/context/AuthContext";
-import { Expense, Project, ProjectStatus, useData } from "@/context/DataContext";
+import { Expense, FieldEntry, Project, ProjectStatus, useData } from "@/context/DataContext";
 import { useColors } from "@/hooks/useColors";
 
 /* ─────────────────────────── constants ─────────────────────────── */
@@ -80,6 +80,7 @@ export default function ProjectDetailScreen() {
     projects, employees, timeLogs, expenses,
     updateProject, deleteProject,
     addExpense, deleteExpense,
+    addFieldEntry, deleteFieldEntry, getProjectFieldEntries,
     getProjectLaborCost, getProjectExpenses, getSessionLaborCost,
   } = useData();
 
@@ -87,10 +88,11 @@ export default function ProjectDetailScreen() {
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
   const project = projects.find((p) => p.id === id);
-  const [activeTab, setActiveTab] = useState<"info" | "finances" | "timelog" | "expenses">("info");
+  const [activeTab, setActiveTab] = useState<"info" | "updates" | "finances" | "timelog" | "expenses">("info");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showAddEntry, setShowAddEntry] = useState(false);
 
   if (!project) {
     return (
@@ -114,6 +116,7 @@ export default function ProjectDetailScreen() {
   const projectLogs = timeLogs.filter((l) => l.projectId === project.id);
   const projectExpenses = expenses.filter((e) => e.projectId === project.id);
   const assignedEmployees = employees.filter((e) => project.assignedEmployeeIds.includes(e.id));
+  const projectEntries = getProjectFieldEntries(project.id);
 
   const handleDelete = () => {
     Alert.alert(
@@ -136,10 +139,10 @@ export default function ProjectDetailScreen() {
   };
 
   const tabs = isAdmin
-    ? (["info", "finances", "timelog", "expenses"] as const)
-    : (["info", "timelog"] as const);
+    ? (["info", "updates", "timelog", "finances", "expenses"] as const)
+    : (["info", "updates", "timelog"] as const);
   const tabLabels: Record<string, string> = {
-    info: "Details", finances: "Finances", timelog: "Time Log", expenses: "Expenses",
+    info: "Details", updates: "Field Log", timelog: "Time Log", finances: "Finances", expenses: "Expenses",
   };
 
   return (
@@ -207,6 +210,20 @@ export default function ProjectDetailScreen() {
             onEdit={() => setShowEditModal(true)}
           />
         )}
+        {activeTab === "updates" && (
+          <FieldLogTab
+            entries={projectEntries}
+            employees={employees}
+            project={project}
+            currentUserId={user?.id ?? ""}
+            isAdmin={isAdmin}
+            onAdd={() => setShowAddEntry(true)}
+            onDelete={deleteFieldEntry}
+          />
+        )}
+        {activeTab === "timelog" && (
+          <TimeLogTab logs={projectLogs} employees={employees} getSessionLaborCost={getSessionLaborCost} isAdmin={isAdmin} />
+        )}
         {activeTab === "finances" && isAdmin && (
           <FinancesTab
             project={project} labor={labor} otherExp={otherExp} totalCost={totalCost}
@@ -215,9 +232,6 @@ export default function ProjectDetailScreen() {
             employees={employees} getSessionLaborCost={getSessionLaborCost}
             onAddExpense={() => setShowAddExpense(true)}
           />
-        )}
-        {activeTab === "timelog" && (
-          <TimeLogTab logs={projectLogs} employees={employees} getSessionLaborCost={getSessionLaborCost} isAdmin={isAdmin} />
         )}
         {activeTab === "expenses" && isAdmin && (
           <ExpensesTab expenses={projectExpenses} labor={labor} onAdd={() => setShowAddExpense(true)} onDelete={deleteExpense} />
@@ -269,6 +283,19 @@ export default function ProjectDetailScreen() {
             await addExpense({ ...data, projectId: project.id, createdBy: user?.id ?? "" });
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
             setShowAddExpense(false);
+          }}
+        />
+      ) : null}
+
+      {/* ── Add field entry modal ── */}
+      {showAddEntry ? (
+        <AddEntryModal
+          projectName={project.name}
+          onClose={() => setShowAddEntry(false)}
+          onSave={async (data) => {
+            await addFieldEntry({ ...data, projectId: project.id, employeeId: user?.id ?? "" });
+            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setShowAddEntry(false);
           }}
         />
       ) : null}
@@ -930,6 +957,338 @@ function EditSection({ title, icon, children }: { title: string; icon: string; c
 }
 
 /* ═══════════════════════════════════════════════════════════════════
+   FIELD LOG TAB  –  visible to admin AND assigned employees
+═══════════════════════════════════════════════════════════════════ */
+
+function FieldLogTab({ entries, employees, project, currentUserId, isAdmin, onAdd, onDelete }: {
+  entries: FieldEntry[];
+  employees: any[];
+  project: Project;
+  currentUserId: string;
+  isAdmin: boolean;
+  onAdd: () => void;
+  onDelete: (id: string) => void;
+}) {
+  const colors = useColors();
+  const noteCount = entries.filter((e) => e.type === "note").length;
+  const photoCount = entries.filter((e) => e.type === "photo").length;
+
+  const fmtDateTime = (iso: string) => {
+    const d = new Date(iso);
+    const date = d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+    const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return { date, time };
+  };
+
+  const handleDelete = (entry: FieldEntry) => {
+    const canDelete = isAdmin || entry.employeeId === currentUserId;
+    if (!canDelete) return;
+    Alert.alert("Delete Entry", "Remove this field log entry?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => onDelete(entry.id) },
+    ]);
+  };
+
+  return (
+    <View style={styles.tabContent}>
+      {/* ── Stats bar ── */}
+      <View style={[styles.flStatsRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={styles.flStat}>
+          <Text style={[styles.flStatValue, { color: colors.foreground }]}>{entries.length}</Text>
+          <Text style={[styles.flStatLabel, { color: colors.mutedForeground }]}>Total Entries</Text>
+        </View>
+        <View style={[styles.flStatDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.flStat}>
+          <Text style={[styles.flStatValue, { color: colors.primary }]}>{noteCount}</Text>
+          <Text style={[styles.flStatLabel, { color: colors.mutedForeground }]}>Notes</Text>
+        </View>
+        <View style={[styles.flStatDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.flStat}>
+          <Text style={[styles.flStatValue, { color: colors.warning }]}>{photoCount}</Text>
+          <Text style={[styles.flStatLabel, { color: colors.mutedForeground }]}>Photos</Text>
+        </View>
+      </View>
+
+      {/* ── Add button ── */}
+      <TouchableOpacity style={[styles.flAddBtn, { backgroundColor: colors.primary }]} onPress={onAdd}>
+        <Feather name="plus" size={16} color="#fff" />
+        <Text style={styles.flAddBtnText}>Add Note or Photo</Text>
+      </TouchableOpacity>
+
+      {/* ── Entry list ── */}
+      {entries.length === 0 ? (
+        <View style={[styles.flEmpty, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <Feather name="inbox" size={32} color={colors.mutedForeground} />
+          <Text style={[styles.flEmptyTitle, { color: colors.foreground }]}>No field logs yet</Text>
+          <Text style={[styles.flEmptyHint, { color: colors.mutedForeground }]}>
+            Tap "Add Note or Photo" to post your first update for this project.
+          </Text>
+        </View>
+      ) : (
+        entries.map((entry) => {
+          const emp = employees.find((e: any) => e.id === entry.employeeId);
+          const { date, time } = fmtDateTime(entry.createdAt);
+          const canDelete = isAdmin || entry.employeeId === currentUserId;
+          const isPhoto = entry.type === "photo";
+
+          return (
+            <View
+              key={entry.id}
+              style={[
+                styles.flCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderLeftColor: isPhoto ? colors.warning : colors.primary,
+                },
+              ]}
+            >
+              {/* ── Header row: avatar + name + date/time + delete ── */}
+              <View style={styles.flCardHeader}>
+                <View style={[styles.flAvatar, { backgroundColor: isPhoto ? colors.warning + "30" : colors.primary + "25" }]}>
+                  <Feather name={isPhoto ? "image" : "file-text"} size={14} color={isPhoto ? colors.warning : colors.primary} />
+                </View>
+                <View style={styles.flCardMeta}>
+                  <View style={styles.flCardMetaTop}>
+                    <Text style={[styles.flEmpName, { color: colors.foreground }]}>
+                      {emp?.name ?? "Unknown"}
+                    </Text>
+                    <View style={[styles.flTypeBadge, { backgroundColor: isPhoto ? colors.warning + "20" : colors.primary + "18" }]}>
+                      <Text style={[styles.flTypeText, { color: isPhoto ? colors.warning : colors.primary }]}>
+                        {isPhoto ? "Photo" : "Note"}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.flCardMetaBottom}>
+                    <Feather name="map-pin" size={10} color={colors.mutedForeground} />
+                    <Text style={[styles.flProjectName, { color: colors.mutedForeground }]} numberOfLines={1}>
+                      {project.name}
+                    </Text>
+                    <Text style={[styles.flDot, { color: colors.mutedForeground }]}>·</Text>
+                    <Feather name="calendar" size={10} color={colors.mutedForeground} />
+                    <Text style={[styles.flDate, { color: colors.mutedForeground }]}>{date}</Text>
+                    <Text style={[styles.flDot, { color: colors.mutedForeground }]}>·</Text>
+                    <Feather name="clock" size={10} color={colors.mutedForeground} />
+                    <Text style={[styles.flTime, { color: colors.mutedForeground }]}>{time}</Text>
+                  </View>
+                </View>
+                {canDelete ? (
+                  <TouchableOpacity onPress={() => handleDelete(entry)} hitSlop={8}>
+                    <Feather name="trash-2" size={15} color={colors.destructive} />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              {/* ── Photo ── */}
+              {isPhoto && entry.uri ? (
+                <Image source={{ uri: entry.uri }} style={styles.flPhoto} resizeMode="cover" />
+              ) : null}
+
+              {/* ── Text / caption ── */}
+              {entry.text ? (
+                <Text style={[styles.flText, { color: colors.foreground }]}>{entry.text}</Text>
+              ) : null}
+            </View>
+          );
+        })
+      )}
+    </View>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ADD FIELD ENTRY MODAL
+═══════════════════════════════════════════════════════════════════ */
+
+function AddEntryModal({ projectName, onClose, onSave }: {
+  projectName: string;
+  onClose: () => void;
+  onSave: (data: { type: "note" | "photo"; text: string; uri?: string }) => Promise<void>;
+}) {
+  const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const [entryType, setEntryType] = useState<"note" | "photo">("note");
+  const [text, setText] = useState("");
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const pickPhoto = async () => {
+    setError("");
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission needed", "Allow access to your photo library to attach a photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      quality: 0.75,
+      allowsMultipleSelection: false,
+    });
+    if (!result.canceled) setPhotoUri(result.assets[0].uri);
+  };
+
+  const takePhoto = async () => {
+    setError("");
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission needed", "Allow camera access to take a photo.");
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.75 });
+    if (!result.canceled) setPhotoUri(result.assets[0].uri);
+  };
+
+  const handleSave = async () => {
+    setError("");
+    if (entryType === "note" && !text.trim()) { setError("Please write a note before submitting."); return; }
+    if (entryType === "photo" && !photoUri) { setError("Please select or take a photo."); return; }
+    setSaving(true);
+    try {
+      await onSave({ type: entryType, text: text.trim(), uri: photoUri ?? undefined });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal visible animationType="slide" presentationStyle="pageSheet">
+      <View style={[styles.modal, { backgroundColor: colors.background }]}>
+        {/* Header */}
+        <View style={[styles.editModalHeader, { paddingTop: insets.top + 16, borderBottomColor: colors.border }]}>
+          <TouchableOpacity onPress={onClose} style={styles.editHeaderBtn}>
+            <Text style={[styles.editHeaderCancel, { color: colors.mutedForeground }]}>Cancel</Text>
+          </TouchableOpacity>
+          <Text style={[styles.editModalTitle, { color: colors.foreground }]}>Field Log Entry</Text>
+          <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.editHeaderBtn}>
+            <Text style={[styles.editHeaderSave, { color: colors.primary, opacity: saving ? 0.5 : 1 }]}>
+              {saving ? "Posting…" : "Post"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.aeContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* Project label */}
+          <View style={[styles.aeProjectBadge, { backgroundColor: colors.accent + "20", borderColor: colors.accent + "30" }]}>
+            <Feather name="map-pin" size={13} color={colors.primary} />
+            <Text style={[styles.aeProjectName, { color: colors.foreground }]} numberOfLines={1}>{projectName}</Text>
+          </View>
+
+          {/* Type selector */}
+          <View style={[styles.aeTypeRow, { backgroundColor: colors.muted, borderRadius: 12 }]}>
+            <TouchableOpacity
+              style={[styles.aeTypeBtn, { backgroundColor: entryType === "note" ? colors.card : "transparent" }]}
+              onPress={() => { setEntryType("note"); setPhotoUri(null); }}
+            >
+              <Feather name="file-text" size={16} color={entryType === "note" ? colors.primary : colors.mutedForeground} />
+              <Text style={[styles.aeTypeBtnText, { color: entryType === "note" ? colors.primary : colors.mutedForeground }]}>
+                Observation Note
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.aeTypeBtn, { backgroundColor: entryType === "photo" ? colors.card : "transparent" }]}
+              onPress={() => { setEntryType("photo"); setText(""); }}
+            >
+              <Feather name="camera" size={16} color={entryType === "photo" ? colors.warning : colors.mutedForeground} />
+              <Text style={[styles.aeTypeBtnText, { color: entryType === "photo" ? colors.warning : colors.mutedForeground }]}>
+                Photo
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Note input */}
+          {entryType === "note" ? (
+            <View style={styles.aeNoteSection}>
+              <Text style={[styles.aeFieldLabel, { color: colors.mutedForeground }]}>Daily Observation *</Text>
+              <TextInput
+                style={[styles.aeNoteInput, { backgroundColor: colors.surface, borderColor: error && !text.trim() ? colors.destructive : colors.border, color: colors.foreground }]}
+                placeholder="Describe what was done today, any issues, site conditions, materials used…"
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+                value={text}
+                onChangeText={setText}
+                autoFocus
+              />
+              <Text style={[styles.aeCharCount, { color: colors.mutedForeground }]}>{text.length} characters</Text>
+            </View>
+          ) : null}
+
+          {/* Photo input */}
+          {entryType === "photo" ? (
+            <View style={styles.aePhotoSection}>
+              {photoUri ? (
+                <View style={styles.aePhotoPreviewWrap}>
+                  <Image source={{ uri: photoUri }} style={styles.aePhotoPreview} resizeMode="cover" />
+                  <TouchableOpacity
+                    style={[styles.aePhotoChange, { backgroundColor: colors.accent }]}
+                    onPress={pickPhoto}
+                  >
+                    <Feather name="refresh-cw" size={14} color="#fff" />
+                    <Text style={styles.aePhotoChangeText}>Change Photo</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.aePhotoPickRow}>
+                  <TouchableOpacity
+                    style={[styles.aePhotoPickBtn, { backgroundColor: colors.muted, borderColor: colors.border }]}
+                    onPress={takePhoto}
+                  >
+                    <Feather name="camera" size={28} color={colors.warning} />
+                    <Text style={[styles.aePhotoPickLabel, { color: colors.foreground }]}>Take Photo</Text>
+                    <Text style={[styles.aePhotoPickHint, { color: colors.mutedForeground }]}>Use camera</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.aePhotoPickBtn, { backgroundColor: colors.muted, borderColor: colors.border }]}
+                    onPress={pickPhoto}
+                  >
+                    <Feather name="image" size={28} color={colors.primary} />
+                    <Text style={[styles.aePhotoPickLabel, { color: colors.foreground }]}>Choose Photo</Text>
+                    <Text style={[styles.aePhotoPickHint, { color: colors.mutedForeground }]}>From library</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Optional caption */}
+              <Text style={[styles.aeFieldLabel, { color: colors.mutedForeground }]}>Caption (optional)</Text>
+              <TextInput
+                style={[styles.aeCaptionInput, { backgroundColor: colors.surface, borderColor: colors.border, color: colors.foreground }]}
+                placeholder="Describe what this photo shows…"
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+                value={text}
+                onChangeText={setText}
+              />
+            </View>
+          ) : null}
+
+          {/* Error */}
+          {error ? (
+            <View style={[styles.errorBanner, { backgroundColor: colors.destructive + "15", borderColor: colors.destructive + "30" }]}>
+              <Feather name="alert-circle" size={14} color={colors.destructive} />
+              <Text style={[styles.errorBannerText, { color: colors.destructive }]}>{error}</Text>
+            </View>
+          ) : null}
+
+          {/* Timestamp preview */}
+          <View style={[styles.aeTimestampRow, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+            <Feather name="info" size={13} color={colors.mutedForeground} />
+            <Text style={[styles.aeTimestampText, { color: colors.mutedForeground }]}>
+              Your name, project, date and time will be recorded automatically.
+            </Text>
+          </View>
+
+          <PrimaryButton label={saving ? "Posting…" : entryType === "photo" ? "Post Photo" : "Post Note"} onPress={handleSave} loading={saving} />
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════
    FINANCES TAB
 ═══════════════════════════════════════════════════════════════════ */
 
@@ -1562,4 +1921,55 @@ const styles = StyleSheet.create({
 
   // Status picker (main modal)
   statusOption: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", padding: 16, borderBottomWidth: 1 },
+
+  // Field Log tab
+  flStatsRow: { flexDirection: "row", borderRadius: 14, padding: 16, borderWidth: 1 },
+  flStat: { flex: 1, alignItems: "center", gap: 2 },
+  flStatDivider: { width: 1, marginVertical: 4 },
+  flStatValue: { fontSize: 22, fontWeight: "800" },
+  flStatLabel: { fontSize: 11, fontWeight: "500" },
+  flAddBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: 12 },
+  flAddBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  flEmpty: { borderRadius: 14, padding: 28, borderWidth: 1, alignItems: "center", gap: 10 },
+  flEmptyTitle: { fontSize: 16, fontWeight: "700" },
+  flEmptyHint: { fontSize: 13, textAlign: "center", lineHeight: 20 },
+  flCard: { borderRadius: 14, borderWidth: 1, borderLeftWidth: 3, overflow: "hidden" },
+  flCardHeader: { flexDirection: "row", alignItems: "flex-start", gap: 10, padding: 14, paddingBottom: 10 },
+  flAvatar: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  flCardMeta: { flex: 1, gap: 4 },
+  flCardMetaTop: { flexDirection: "row", alignItems: "center", gap: 8 },
+  flEmpName: { fontSize: 14, fontWeight: "700" },
+  flTypeBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 100 },
+  flTypeText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.4 },
+  flCardMetaBottom: { flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" },
+  flProjectName: { fontSize: 11, maxWidth: 140 },
+  flDot: { fontSize: 10 },
+  flDate: { fontSize: 11 },
+  flTime: { fontSize: 11 },
+  flPhoto: { width: "100%", height: 200 },
+  flText: { fontSize: 14, lineHeight: 21, paddingHorizontal: 14, paddingBottom: 14 },
+
+  // Add Entry Modal
+  aeContent: { padding: 16, gap: 16, paddingBottom: 40 },
+  aeProjectBadge: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1 },
+  aeProjectName: { fontSize: 13, fontWeight: "600", flex: 1 },
+  aeTypeRow: { flexDirection: "row", padding: 4, gap: 4 },
+  aeTypeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 12, borderRadius: 10 },
+  aeTypeBtnText: { fontSize: 13, fontWeight: "700" },
+  aeNoteSection: { gap: 8 },
+  aeFieldLabel: { fontSize: 13, fontWeight: "600" },
+  aeNoteInput: { borderWidth: 1, borderRadius: 12, padding: 14, fontSize: 14, minHeight: 130 },
+  aeCharCount: { fontSize: 11, textAlign: "right" },
+  aePhotoSection: { gap: 12 },
+  aePhotoPickRow: { flexDirection: "row", gap: 12 },
+  aePhotoPickBtn: { flex: 1, alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 28, borderRadius: 14, borderWidth: 1 },
+  aePhotoPickLabel: { fontSize: 13, fontWeight: "700" },
+  aePhotoPickHint: { fontSize: 11 },
+  aePhotoPreviewWrap: { borderRadius: 14, overflow: "hidden", gap: 0 },
+  aePhotoPreview: { width: "100%", height: 220 },
+  aePhotoChange: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 12 },
+  aePhotoChangeText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  aeCaptionInput: { borderWidth: 1, borderRadius: 12, padding: 14, fontSize: 14, minHeight: 80 },
+  aeTimestampRow: { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 12, borderRadius: 10, borderWidth: 1 },
+  aeTimestampText: { fontSize: 12, flex: 1, lineHeight: 17 },
 });
