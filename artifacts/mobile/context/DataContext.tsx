@@ -67,7 +67,7 @@ interface DataContextType {
   addEmployee: (e: Omit<Employee, "id">) => Promise<void>;
   updateEmployee: (id: string, updates: Partial<Employee>) => Promise<void>;
   deleteEmployee: (id: string) => Promise<void>;
-  clockIn: (employeeId: string, projectId: string) => Promise<TimeLog>;
+  clockIn: (employeeId: string, projectId: string) => Promise<{ success: boolean; error?: string; log?: TimeLog }>;
   clockOut: (logId: string, notes?: string) => Promise<void>;
   getActiveTimeLog: (employeeId: string) => TimeLog | undefined;
   addExpense: (e: Omit<Expense, "id">) => Promise<void>;
@@ -75,6 +75,12 @@ interface DataContextType {
   getProjectLaborCost: (projectId: string) => number;
   getProjectExpenses: (projectId: string) => number;
   getEmployeeTotalHours: (employeeId: string, projectId?: string) => number;
+  getEmployeeDailyHours: (employeeId: string, dateStr?: string) => number;
+  getEmployeeWeeklyHours: (employeeId: string) => number;
+  getEmployeeDailyLaborCost: (employeeId: string, dateStr?: string) => number;
+  getEmployeeWeeklyLaborCost: (employeeId: string) => number;
+  getEmployeeDailyLogs: (employeeId: string, dateStr?: string) => TimeLog[];
+  getSessionLaborCost: (log: TimeLog) => number;
   refresh: () => Promise<void>;
 }
 
@@ -89,6 +95,18 @@ const KEYS = {
 
 function genId() {
   return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+}
+
+function todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function weekStartStr() {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(now.setDate(diff));
+  return monday.toISOString().split("T")[0];
 }
 
 const SEED_EMPLOYEES: (Employee & { password: string })[] = [
@@ -199,9 +217,9 @@ const SEED_PROJECTS: Project[] = [
   },
 ];
 
-const today = new Date();
+const _today = new Date();
 const fmtDate = (d: Date) => d.toISOString().split("T")[0];
-const hoursAgo = (h: number) => new Date(today.getTime() - h * 3600000).toISOString();
+const hoursAgo = (h: number) => new Date(_today.getTime() - h * 3600000).toISOString();
 
 const SEED_TIME_LOGS: TimeLog[] = [
   {
@@ -212,7 +230,7 @@ const SEED_TIME_LOGS: TimeLog[] = [
     clockOut: hoursAgo(192),
     totalMinutes: 480,
     notes: "Completed exterior north wall",
-    date: fmtDate(new Date(today.getTime() - 200 * 3600000)),
+    date: fmtDate(new Date(_today.getTime() - 200 * 3600000)),
   },
   {
     id: "log2",
@@ -222,7 +240,7 @@ const SEED_TIME_LOGS: TimeLog[] = [
     clockOut: hoursAgo(194),
     totalMinutes: 360,
     notes: "Primed interior walls",
-    date: fmtDate(new Date(today.getTime() - 200 * 3600000)),
+    date: fmtDate(new Date(_today.getTime() - 200 * 3600000)),
   },
   {
     id: "log3",
@@ -232,7 +250,7 @@ const SEED_TIME_LOGS: TimeLog[] = [
     clockOut: hoursAgo(40),
     totalMinutes: 480,
     notes: "Started floors 3-4",
-    date: fmtDate(new Date(today.getTime() - 48 * 3600000)),
+    date: fmtDate(new Date(_today.getTime() - 48 * 3600000)),
   },
   {
     id: "log4",
@@ -242,7 +260,7 @@ const SEED_TIME_LOGS: TimeLog[] = [
     clockOut: hoursAgo(42),
     totalMinutes: 360,
     notes: "Floor 2 complete",
-    date: fmtDate(new Date(today.getTime() - 48 * 3600000)),
+    date: fmtDate(new Date(_today.getTime() - 48 * 3600000)),
   },
   {
     id: "log5",
@@ -252,7 +270,7 @@ const SEED_TIME_LOGS: TimeLog[] = [
     clockOut: hoursAgo(16),
     totalMinutes: 480,
     notes: "Floor 5 in progress",
-    date: fmtDate(new Date(today.getTime() - 24 * 3600000)),
+    date: fmtDate(new Date(_today.getTime() - 24 * 3600000)),
   },
 ];
 
@@ -396,17 +414,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     await saveEmployees(employees.filter((e) => e.id !== id));
   };
 
-  const clockIn = async (employeeId: string, projectId: string): Promise<TimeLog> => {
+  const clockIn = async (
+    employeeId: string,
+    projectId: string
+  ): Promise<{ success: boolean; error?: string; log?: TimeLog }> => {
+    const existing = timeLogs.find((l) => l.employeeId === employeeId && !l.clockOut);
+    if (existing) {
+      return {
+        success: false,
+        error: "You already have an active session. Please clock out first.",
+      };
+    }
+
+    const now = new Date();
     const log: TimeLog = {
       id: genId(),
       employeeId,
       projectId,
-      clockIn: new Date().toISOString(),
+      clockIn: now.toISOString(),
       notes: "",
-      date: fmtDate(new Date()),
+      date: fmtDate(now),
     };
     await saveTimeLogs([...timeLogs, log]);
-    return log;
+    return { success: true, log };
   };
 
   const clockOut = async (logId: string, notes?: string) => {
@@ -455,6 +485,43 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return logs.reduce((s, l) => s + (l.totalMinutes ?? 0) / 60, 0);
   };
 
+  const getEmployeeDailyLogs = (employeeId: string, dateStr?: string) => {
+    const target = dateStr ?? todayStr();
+    return timeLogs.filter((l) => l.employeeId === employeeId && l.date === target);
+  };
+
+  const getEmployeeDailyHours = (employeeId: string, dateStr?: string) => {
+    const logs = getEmployeeDailyLogs(employeeId, dateStr).filter((l) => l.totalMinutes);
+    return logs.reduce((s, l) => s + (l.totalMinutes ?? 0) / 60, 0);
+  };
+
+  const getEmployeeWeeklyHours = (employeeId: string) => {
+    const weekStart = weekStartStr();
+    const logs = timeLogs.filter(
+      (l) => l.employeeId === employeeId && l.totalMinutes && l.date >= weekStart
+    );
+    return logs.reduce((s, l) => s + (l.totalMinutes ?? 0) / 60, 0);
+  };
+
+  const getSessionLaborCost = (log: TimeLog) => {
+    const emp = employees.find((e) => e.id === log.employeeId);
+    const hours = (log.totalMinutes ?? 0) / 60;
+    return hours * (emp?.hourlyRate ?? 0);
+  };
+
+  const getEmployeeDailyLaborCost = (employeeId: string, dateStr?: string) => {
+    const logs = getEmployeeDailyLogs(employeeId, dateStr).filter((l) => l.totalMinutes);
+    return logs.reduce((s, l) => s + getSessionLaborCost(l), 0);
+  };
+
+  const getEmployeeWeeklyLaborCost = (employeeId: string) => {
+    const weekStart = weekStartStr();
+    const logs = timeLogs.filter(
+      (l) => l.employeeId === employeeId && l.totalMinutes && l.date >= weekStart
+    );
+    return logs.reduce((s, l) => s + getSessionLaborCost(l), 0);
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -477,6 +544,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         getProjectLaborCost,
         getProjectExpenses,
         getEmployeeTotalHours,
+        getEmployeeDailyHours,
+        getEmployeeWeeklyHours,
+        getEmployeeDailyLaborCost,
+        getEmployeeWeeklyLaborCost,
+        getEmployeeDailyLogs,
+        getSessionLaborCost,
         refresh: load,
       }}
     >
