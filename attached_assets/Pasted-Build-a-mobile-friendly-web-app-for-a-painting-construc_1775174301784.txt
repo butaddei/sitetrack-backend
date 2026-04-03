@@ -1,0 +1,98 @@
+Build a mobile-friendly web app for a painting/construction business with two user roles: Admin and Employee.
+
+Main goal:
+The app must help manage painting jobs, employees, worked hours, labor cost, project cost control, and project information.
+
+User roles:
+
+1. Admin
+Admin must have full access to everything:
+- Create, edit and delete projects
+- Create, edit and delete employees
+- Assign employees to projects
+- View all hours worked by each employee
+- View which project each employee worked on
+- Calculate labor cost automatically based on hourly rate and worked hours
+- Deduct labor cost from the total project value
+- View project financial summary
+- View dashboard with project status, duration, total value, labor cost, other expenses, and estimated profit
+- Add and manage project details such as:
+  - project name
+  - project address
+  - client contact
+  - project total value
+  - start date
+  - expected end date
+  - project status
+  - paint colors used
+  - notes
+  - uploaded photos
+  - uploaded floor plans / documents
+
+2. Employee
+Employee must have limited access:
+- Login securely
+- Only view projects assigned to them
+- View project information
+- View project photos
+- View project floor plans/documents if available
+- View paint colors used in the project
+- Start work using a "Start" button
+- Stop work using a "Stop" button
+- The system must track work time automatically
+- Employee can add notes/observations
+- Employee can upload photos related to the project
+
+Core features:
+- Authentication system with role-based access (Admin and Employee)
+- Time tracking per employee per project
+- Store clock in and clock out times
+- Calculate total worked hours per day
+- Calculate labor cost automatically using employee hourly rate
+- Show cost breakdown by project
+- Show total labor cost for each project
+- Allow admin to add other expenses manually (materials, equipment, transport, etc.)
+- Show project remaining balance based on total project value minus labor and other costs
+- Dashboard with cards and summaries
+- Employee management page
+- Project management page
+- Timesheet page
+- Expense tracking page
+- Reports page
+
+Important business logic:
+- Each employee has an hourly rate
+- Employees may work on different projects
+- Labor cost must be calculated per project based on actual hours worked
+- The project financial view must automatically update when hours are logged
+- Employees must not access admin-only data
+- Admin should see both daily and total cost views
+
+UI / UX:
+- Clean, modern, simple, professional
+- Mobile-first design, easy to use on phone
+- Easy navigation
+- Clear buttons for Start and Stop
+- Dashboard should be visual and easy to understand
+
+Technical requirements:
+- Use a modern full-stack web app structure
+- Use a database for storing users, employees, projects, time logs, notes, expenses, and files
+- Include sample seed data for testing
+- Make the code organized and scalable
+- Create a clear sidebar or navigation menu
+- Add basic validation and error handling
+
+Pages suggested:
+- Login
+- Admin Dashboard
+- Employee Dashboard
+- Projects
+- Project Details
+- Employees
+- Time Logs
+- Expenses
+- Reports
+
+Please first generate the full app structure, database schema, core pages, and the main logic for authentication and time tracking.
+Then create a clean working MVP version before add

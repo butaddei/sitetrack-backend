@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "sHZA3LpfLNqEYKY7JL8pX"
+uri = "file://artifacts/mobile/assets/images/icon.png"
+type = "image"
+title = "paintpro app icon"
