@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   StyleSheet,
   Text,
@@ -6,7 +6,6 @@ import {
   TextInputProps,
   View,
 } from "react-native";
-
 import { useColors } from "@/hooks/useColors";
 
 interface InputFieldProps extends TextInputProps {
@@ -16,30 +15,21 @@ interface InputFieldProps extends TextInputProps {
 
 export function InputField({ label, error, style, ...props }: InputFieldProps) {
   const colors = useColors();
-  const [focused, setFocused] = useState(false);
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: focused ? colors.primary : colors.mutedForeground }]}>
-        {label}
-      </Text>
+      <Text style={[styles.label, { color: colors.mutedForeground }]}>{label}</Text>
       <TextInput
         style={[
           styles.input,
           {
-            backgroundColor: focused ? colors.card : colors.surface,
-            borderColor: error
-              ? colors.destructive
-              : focused
-              ? colors.primary
-              : colors.border,
+            backgroundColor: colors.surface,
+            borderColor: error ? colors.destructive : colors.border,
             color: colors.foreground,
           },
           style,
         ]}
         placeholderTextColor={colors.mutedForeground}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
         {...props}
       />
       {error ? (
@@ -56,17 +46,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: "600",
-    letterSpacing: 0.1,
   },
   input: {
-    borderWidth: 1.5,
-    borderRadius: 12,
+    borderWidth: 1,
+    borderRadius: 10,
     paddingHorizontal: 14,
-    paddingVertical: 13,
+    paddingVertical: 12,
     fontSize: 15,
   },
   error: {
     fontSize: 12,
-    fontWeight: "500",
   },
 });
