@@ -1,8 +1,6 @@
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { isLiquidGlassAvailable } from "expo-glass-effect";
 import { Redirect, Tabs } from "expo-router";
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 import { SymbolView } from "expo-symbols";
 import React from "react";
 import { Platform, StyleSheet, View, useColorScheme } from "react-native";
@@ -10,50 +8,30 @@ import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
 
-function NativeTabLayout({ isAdmin }: { isAdmin: boolean }) {
-  return (
-    <NativeTabs>
-      <NativeTabs.Trigger name="index">
-        <Icon sf={{ default: "house", selected: "house.fill" }} />
-        <Label>Dashboard</Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="projects">
-        <Icon sf={{ default: "folder", selected: "folder.fill" }} />
-        <Label>Projects</Label>
-      </NativeTabs.Trigger>
-      {isAdmin ? (
-        <NativeTabs.Trigger name="employees">
-          <Icon sf={{ default: "person.2", selected: "person.2.fill" }} />
-          <Label>Employees</Label>
-        </NativeTabs.Trigger>
-      ) : (
-        <NativeTabs.Trigger name="worklog">
-          <Icon sf={{ default: "clock", selected: "clock.fill" }} />
-          <Label>Work Log</Label>
-        </NativeTabs.Trigger>
-      )}
-      {isAdmin ? (
-        <NativeTabs.Trigger name="timesheets">
-          <Icon sf={{ default: "clock", selected: "clock.fill" }} />
-          <Label>Timesheets</Label>
-        </NativeTabs.Trigger>
-      ) : null}
-      {isAdmin ? (
-        <NativeTabs.Trigger name="reports">
-          <Icon sf={{ default: "chart.bar", selected: "chart.bar.fill" }} />
-          <Label>Reports</Label>
-        </NativeTabs.Trigger>
-      ) : null}
-    </NativeTabs>
-  );
+function hide() {
+  return { href: null as any };
 }
 
-function ClassicTabLayout({ isAdmin }: { isAdmin: boolean }) {
+export default function TabLayout() {
   const colors = useColors();
+  const { user, isLoading } = useAuth();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
+
+  if (isLoading) return null;
+  if (!user) return <Redirect href="/login" />;
+
+  const isAdmin = user.role === "admin";
+
+  const icon = (name: string, sfName?: string) =>
+    ({ color }: { color: string }) =>
+      isIOS && sfName ? (
+        <SymbolView name={sfName} tintColor={color} size={22} />
+      ) : (
+        <Feather name={name as any} size={22} color={color} />
+      );
 
   return (
     <Tabs
@@ -81,120 +59,84 @@ function ClassicTabLayout({ isAdmin }: { isAdmin: boolean }) {
           ) : null,
       }}
     >
+      {/* ─── ADMIN TABS ─── */}
       <Tabs.Screen
         name="index"
-        options={{
-          title: "Dashboard",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="house" tintColor={color} size={22} />
-            ) : (
-              <Feather name="home" size={22} color={color} />
-            ),
-        }}
+        options={
+          isAdmin
+            ? { title: "Dashboard", tabBarIcon: icon("home", "house") }
+            : hide()
+        }
       />
       <Tabs.Screen
         name="projects"
-        options={{
-          title: "Projects",
-          tabBarIcon: ({ color }) =>
-            isIOS ? (
-              <SymbolView name="folder" tintColor={color} size={22} />
-            ) : (
-              <Feather name="folder" size={22} color={color} />
-            ),
-        }}
+        options={
+          isAdmin
+            ? { title: "Projects", tabBarIcon: icon("folder", "folder") }
+            : hide()
+        }
       />
-      {isAdmin ? (
-        <Tabs.Screen
-          name="employees"
-          options={{
-            title: "Employees",
-            tabBarIcon: ({ color }) =>
-              isIOS ? (
-                <SymbolView name="person.2" tintColor={color} size={22} />
-              ) : (
-                <Feather name="users" size={22} color={color} />
-              ),
-          }}
-        />
-      ) : (
-        <Tabs.Screen
-          name="employees"
-          options={{ href: null }}
-        />
-      )}
-      {isAdmin ? (
-        <Tabs.Screen
-          name="timesheets"
-          options={{
-            title: "Time",
-            tabBarIcon: ({ color }) =>
-              isIOS ? (
-                <SymbolView name="clock" tintColor={color} size={22} />
-              ) : (
-                <Feather name="clock" size={22} color={color} />
-              ),
-          }}
-        />
-      ) : (
-        <Tabs.Screen
-          name="timesheets"
-          options={{ href: null }}
-        />
-      )}
-      {isAdmin ? (
-        <Tabs.Screen
-          name="reports"
-          options={{
-            title: "Reports",
-            tabBarIcon: ({ color }) =>
-              isIOS ? (
-                <SymbolView name="chart.bar" tintColor={color} size={22} />
-              ) : (
-                <Feather name="bar-chart-2" size={22} color={color} />
-              ),
-          }}
-        />
-      ) : (
-        <Tabs.Screen
-          name="reports"
-          options={{ href: null }}
-        />
-      )}
-      {!isAdmin ? (
-        <Tabs.Screen
-          name="worklog"
-          options={{
-            title: "Work Log",
-            tabBarIcon: ({ color }) =>
-              isIOS ? (
-                <SymbolView name="clock" tintColor={color} size={22} />
-              ) : (
-                <Feather name="play-circle" size={22} color={color} />
-              ),
-          }}
-        />
-      ) : (
-        <Tabs.Screen
-          name="worklog"
-          options={{ href: null }}
-        />
-      )}
+      <Tabs.Screen
+        name="employees"
+        options={
+          isAdmin
+            ? { title: "Team", tabBarIcon: icon("users", "person.2") }
+            : hide()
+        }
+      />
+      <Tabs.Screen
+        name="timesheets"
+        options={
+          isAdmin
+            ? { title: "Timesheets", tabBarIcon: icon("clock", "clock") }
+            : hide()
+        }
+      />
+      <Tabs.Screen
+        name="reports"
+        options={
+          isAdmin
+            ? { title: "Reports", tabBarIcon: icon("bar-chart-2", "chart.bar") }
+            : hide()
+        }
+      />
+
+      {/* ─── EMPLOYEE TABS ─── */}
+      <Tabs.Screen
+        name="emp-home"
+        options={
+          !isAdmin
+            ? { title: "Home", tabBarIcon: icon("home", "house") }
+            : hide()
+        }
+      />
+      <Tabs.Screen
+        name="emp-projects"
+        options={
+          !isAdmin
+            ? { title: "My Jobs", tabBarIcon: icon("briefcase", "folder") }
+            : hide()
+        }
+      />
+      <Tabs.Screen
+        name="emp-notes"
+        options={
+          !isAdmin
+            ? { title: "Notes", tabBarIcon: icon("file-text", "doc.text") }
+            : hide()
+        }
+      />
+      <Tabs.Screen
+        name="emp-profile"
+        options={
+          !isAdmin
+            ? { title: "Profile", tabBarIcon: icon("user", "person") }
+            : hide()
+        }
+      />
+
+      {/* ─── HIDDEN LEGACY SCREENS ─── */}
+      <Tabs.Screen name="worklog" options={hide()} />
     </Tabs>
   );
-}
-
-export default function TabLayout() {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) return null;
-  if (!user) return <Redirect href="/login" />;
-
-  const isAdmin = user.role === "admin";
-
-  if (isLiquidGlassAvailable()) {
-    return <NativeTabLayout isAdmin={isAdmin} />;
-  }
-  return <ClassicTabLayout isAdmin={isAdmin} />;
 }

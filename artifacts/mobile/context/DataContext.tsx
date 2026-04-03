@@ -55,11 +55,20 @@ export interface Expense {
   createdBy: string;
 }
 
+export interface EmployeeNote {
+  id: string;
+  projectId: string;
+  employeeId: string;
+  text: string;
+  createdAt: string;
+}
+
 interface DataContextType {
   projects: Project[];
   employees: Employee[];
   timeLogs: TimeLog[];
   expenses: Expense[];
+  employeeNotes: EmployeeNote[];
   isLoading: boolean;
   addProject: (p: Omit<Project, "id" | "createdAt">) => Promise<void>;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
@@ -81,6 +90,10 @@ interface DataContextType {
   getEmployeeWeeklyLaborCost: (employeeId: string) => number;
   getEmployeeDailyLogs: (employeeId: string, dateStr?: string) => TimeLog[];
   getSessionLaborCost: (log: TimeLog) => number;
+  addEmployeeNote: (projectId: string, employeeId: string, text: string) => Promise<void>;
+  deleteEmployeeNote: (noteId: string) => Promise<void>;
+  getProjectNotes: (projectId: string, employeeId?: string) => EmployeeNote[];
+  addProjectPhoto: (projectId: string, photoUri: string) => Promise<void>;
   refresh: () => Promise<void>;
 }
 
@@ -91,6 +104,7 @@ const KEYS = {
   employees: "paintpro_employees",
   timeLogs: "paintpro_time_logs",
   expenses: "paintpro_expenses",
+  employeeNotes: "paintpro_employee_notes",
 };
 
 function genId() {
@@ -318,16 +332,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [employeeNotes, setEmployeeNotes] = useState<EmployeeNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const [pRaw, eRaw, tRaw, xRaw, usersRaw] = await Promise.all([
+      const [pRaw, eRaw, tRaw, xRaw, usersRaw, nRaw] = await Promise.all([
         AsyncStorage.getItem(KEYS.projects),
         AsyncStorage.getItem(KEYS.employees),
         AsyncStorage.getItem(KEYS.timeLogs),
         AsyncStorage.getItem(KEYS.expenses),
         AsyncStorage.getItem("paintpro_users"),
+        AsyncStorage.getItem(KEYS.employeeNotes),
       ]);
 
       if (!usersRaw) {
@@ -358,6 +374,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       } else {
         setExpenses(JSON.parse(xRaw));
       }
+      setEmployeeNotes(nRaw ? JSON.parse(nRaw) : []);
     } finally {
       setIsLoading(false);
     }
@@ -382,6 +399,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const saveExpenses = async (data: Expense[]) => {
     setExpenses(data);
     await AsyncStorage.setItem(KEYS.expenses, JSON.stringify(data));
+  };
+  const saveEmployeeNotes = async (data: EmployeeNote[]) => {
+    setEmployeeNotes(data);
+    await AsyncStorage.setItem(KEYS.employeeNotes, JSON.stringify(data));
   };
 
   const addProject = async (p: Omit<Project, "id" | "createdAt">) => {
@@ -522,6 +543,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return logs.reduce((s, l) => s + getSessionLaborCost(l), 0);
   };
 
+  const addEmployeeNote = async (projectId: string, employeeId: string, text: string) => {
+    const note: EmployeeNote = {
+      id: genId(),
+      projectId,
+      employeeId,
+      text: text.trim(),
+      createdAt: new Date().toISOString(),
+    };
+    await saveEmployeeNotes([...employeeNotes, note]);
+  };
+
+  const deleteEmployeeNote = async (noteId: string) => {
+    await saveEmployeeNotes(employeeNotes.filter((n) => n.id !== noteId));
+  };
+
+  const getProjectNotes = (projectId: string, employeeId?: string) =>
+    employeeNotes
+      .filter((n) => n.projectId === projectId && (employeeId ? n.employeeId === employeeId : true))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const addProjectPhoto = async (projectId: string, photoUri: string) => {
+    await saveProjects(
+      projects.map((p) =>
+        p.id === projectId ? { ...p, photos: [...p.photos, photoUri] } : p
+      )
+    );
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -529,6 +578,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         employees,
         timeLogs,
         expenses,
+        employeeNotes,
         isLoading,
         addProject,
         updateProject,
@@ -550,6 +600,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         getEmployeeWeeklyLaborCost,
         getEmployeeDailyLogs,
         getSessionLaborCost,
+        addEmployeeNote,
+        deleteEmployeeNote,
+        getProjectNotes,
+        addProjectPhoto,
         refresh: load,
       }}
     >
