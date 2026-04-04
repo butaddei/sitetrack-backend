@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React from "react";
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +18,8 @@ export default function DashboardScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { projects, employees, timeLogs, getProjectLaborCost, getProjectExpenses } = useData();
+
+  if (user?.role !== "admin") return <Redirect href="/(tabs)/emp-home" />;
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;

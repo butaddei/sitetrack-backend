@@ -1,17 +1,23 @@
 import { Feather } from "@expo/vector-icons";
+import { Redirect } from "expo-router";
 import React, { useState } from "react";
 import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { StatusBadge } from "@/components/StatusBadge";
+import { useAuth } from "@/context/AuthContext";
 import { useData } from "@/context/DataContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function ReportsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { projects, employees, timeLogs, expenses, getProjectLaborCost, getProjectExpenses, getEmployeeTotalHours } = useData();
+
   const [activeTab, setActiveTab] = useState<"projects" | "employees">("projects");
+
+  if (user?.role !== "admin") return <Redirect href="/(tabs)/emp-home" />;
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;

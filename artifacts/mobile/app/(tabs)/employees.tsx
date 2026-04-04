@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   FlatList,
@@ -17,14 +17,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { EmptyState } from "@/components/EmptyState";
 import { InputField } from "@/components/InputField";
 import { PrimaryButton } from "@/components/PrimaryButton";
+import { useAuth } from "@/context/AuthContext";
 import { Employee, useData } from "@/context/DataContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function EmployeesScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const { employees, addEmployee, timeLogs, getEmployeeTotalHours } = useData();
+
   const [showAdd, setShowAdd] = useState(false);
+
+  if (user?.role !== "admin") return <Redirect href="/(tabs)/emp-home" />;
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;

@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   FlatList,
@@ -44,6 +44,8 @@ export default function ProjectsScreen() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<ProjectStatus | "all">("all");
   const [showAdd, setShowAdd] = useState(false);
+
+  if (user?.role !== "admin") return <Redirect href="/(tabs)/emp-home" />;
 
   const filtered = projects.filter((p) => {
     const matchSearch =

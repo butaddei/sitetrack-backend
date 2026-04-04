@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { Redirect } from "expo-router";
 import React, { useState } from "react";
 import {
   FlatList,
@@ -41,6 +42,8 @@ export default function TimesheetsScreen() {
 
   const [viewMode, setViewMode] = useState<ViewMode>("summary");
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
+
+  if (user?.role !== "admin") return <Redirect href="/(tabs)/emp-home" />;
 
   const activeEmployees = employees.filter((e) => e.role === "employee" && e.isActive);
 
