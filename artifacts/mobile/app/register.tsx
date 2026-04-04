@@ -56,7 +56,7 @@ export default function RegisterScreen() {
     setLoading(false);
     if (result.success) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace("/(tabs)");
+      router.replace("/onboarding");
     } else {
       setError(result.error ?? "Registration failed");
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

@@ -23,7 +23,7 @@ export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user, isLoading: authLoading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,20 +34,28 @@ export default function LoginScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  // If already logged in, redirect to appropriate dashboard
+  React.useEffect(() => {
+    if (!authLoading && user) {
+      router.replace(user.role === "admin" ? "/(tabs)" : "/(tabs)/emp-home");
+    }
+  }, [user, authLoading]);
+
   async function handleLogin() {
     if (!email || !password) {
-      setError("Please enter both email and password");
+      setError("Please enter your email and password.");
       return;
     }
     setLoading(true);
     setError("");
-    const result = await login(email.trim(), password);
+    const result = await login(email.trim().toLowerCase(), password);
     setLoading(false);
-    if (result.success) {
+    if (result.success && result.user) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.replace("/(tabs)");
+      const dest = result.user.role === "admin" ? "/(tabs)" : "/(tabs)/emp-home";
+      router.replace(dest);
     } else {
-      setError(result.error ?? "Login failed");
+      setError(result.error ?? "Login failed. Please try again.");
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   }

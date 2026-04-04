@@ -28,7 +28,7 @@ interface LoginResponse {
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; user?: AuthUser }>;
   register: (
     companyName: string,
     adminName: string,
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+  async function login(email: string, password: string): Promise<{ success: boolean; error?: string; user?: AuthUser }> {
     try {
       const data = await apiFetch<LoginResponse>("/auth/login", {
         method: "POST",
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await storeToken(data.token);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));
       setUser(data.user);
-      return { success: true };
+      return { success: true, user: data.user };
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Login failed. Please try again.";
       return { success: false, error: message };

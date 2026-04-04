@@ -27,7 +27,7 @@ export default function ProfileSettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
 
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
@@ -331,6 +331,28 @@ export default function ProfileSettingsScreen() {
               </View>
             ))}
           </View>
+
+          {/* Sign out */}
+          <TouchableOpacity
+            style={[styles.signOutBtn, { backgroundColor: colors.destructive + "10", borderColor: colors.destructive + "25" }]}
+            onPress={() =>
+              Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Sign Out",
+                  style: "destructive",
+                  onPress: async () => {
+                    await logout();
+                    router.replace("/login");
+                  },
+                },
+              ])
+            }
+            activeOpacity={0.7}
+          >
+            <Feather name="log-out" size={18} color={colors.destructive} />
+            <Text style={[styles.signOutText, { color: colors.destructive }]}>Sign Out</Text>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -432,4 +454,16 @@ const styles = StyleSheet.create({
   },
   infoLabel: { fontSize: 14 },
   infoValue: { fontSize: 14, fontWeight: "600", maxWidth: "60%" },
+
+  signOutBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  signOutText: { fontSize: 15, fontWeight: "700" },
 });
