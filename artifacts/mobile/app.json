@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "SiteTrack",
-    "slug": "sitetrack",
+    "name": "PaintPro Manager",
+    "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "sitetrack",
+    "scheme": "mobile",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -14,12 +14,9 @@
       "backgroundColor": "#0f172a"
     },
     "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.sitetrack.app"
+      "supportsTablet": false
     },
-    "android": {
-      "package": "com.sitetrack.app"
-    },
+    "android": {},
     "web": {
       "favicon": "./assets/images/icon.png"
     },
