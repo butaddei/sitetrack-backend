@@ -120,7 +120,21 @@ export default function ProjectsScreen() {
           myProjects.length === 0 && styles.emptyContainer,
         ]}
         ListEmptyComponent={
-          <EmptyState icon="folder" title="No projects found" subtitle="Try a different filter" />
+          projects.length === 0 ? (
+            <EmptyState
+              icon="folder"
+              title="No projects yet"
+              subtitle="Create your first project and assign a team to it."
+              actionLabel="New Project"
+              onAction={() => setShowAdd(true)}
+            />
+          ) : (
+            <EmptyState
+              icon="search"
+              title="No matches"
+              subtitle="Try a different search or filter"
+            />
+          )
         }
         renderItem={({ item }) => (
           <ProjectListCard

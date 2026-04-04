@@ -4,6 +4,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -82,6 +83,8 @@ export default function EmployeeHomeScreen() {
   const [noteProjectId, setNoteProjectId] = useState("");
   const [clockInError, setClockInError] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [clockingIn, setClockingIn] = useState(false);
+  const [clockingOut, setClockingOut] = useState(false);
 
   // Pulse animation
   const pulseScale = useSharedValue(1);
@@ -159,26 +162,36 @@ export default function EmployeeHomeScreen() {
   };
 
   const handleConfirmStart = async (projectId: string) => {
-    if (!user) return;
+    if (!user || clockingIn) return;
     setClockInError("");
-    const result = await clockIn(user.id, projectId);
-    if (result.success) {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setShowConfirm(false);
-      setShowPicker(false);
-    } else {
-      setClockInError(result.error ?? "Could not start timer");
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    setClockingIn(true);
+    try {
+      const result = await clockIn(user.id, projectId);
+      if (result.success) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setShowConfirm(false);
+        setShowPicker(false);
+      } else {
+        setClockInError(result.error ?? "Could not start timer");
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    } finally {
+      setClockingIn(false);
     }
   };
 
   // ── Stop flow ────────────────────────────────────────────
   const handleStop = async () => {
-    if (!activeLog) return;
-    await clockOut(activeLog.id, stopNotes.trim() || undefined);
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setShowStop(false);
-    setStopNotes("");
+    if (!activeLog || clockingOut) return;
+    setClockingOut(true);
+    try {
+      await clockOut(activeLog.id, stopNotes.trim() || undefined);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowStop(false);
+      setStopNotes("");
+    } finally {
+      setClockingOut(false);
+    }
   };
 
   // ── Notes ────────────────────────────────────────────────
@@ -363,13 +376,25 @@ export default function EmployeeHomeScreen() {
           ) : myProjects.length > 0 ? (
             <>
               <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: colors.primary }]}
+                style={[
+                  styles.primaryBtn,
+                  { backgroundColor: clockingIn ? colors.primary + "88" : colors.primary },
+                ]}
                 onPress={handleStartPress}
                 activeOpacity={0.86}
+                disabled={clockingIn}
               >
-                <Feather name="play" size={24} color="#fff" />
+                {clockingIn ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Feather name="play" size={24} color="#fff" />
+                )}
                 <Text style={styles.primaryBtnText}>
-                  {workState === "finished" ? "Start Another Session" : "Start Work"}
+                  {clockingIn
+                    ? "Starting..."
+                    : workState === "finished"
+                    ? "Start Another Session"
+                    : "Start Work"}
                 </Text>
               </TouchableOpacity>
 
@@ -521,12 +546,26 @@ export default function EmployeeHomeScreen() {
 
             {/* Confirm button */}
             <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: colors.primary, marginHorizontal: 0, marginTop: 8 }]}
+              style={[
+                styles.primaryBtn,
+                {
+                  backgroundColor: clockingIn ? colors.primary + "88" : colors.primary,
+                  marginHorizontal: 0,
+                  marginTop: 8,
+                },
+              ]}
               onPress={() => confirmProject && handleConfirmStart(confirmProject.id)}
+              disabled={clockingIn}
               activeOpacity={0.86}
             >
-              <Feather name="play" size={22} color="#fff" />
-              <Text style={styles.primaryBtnText}>Confirm — Start Timer</Text>
+              {clockingIn ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Feather name="play" size={22} color="#fff" />
+              )}
+              <Text style={styles.primaryBtnText}>
+                {clockingIn ? "Starting..." : "Confirm — Start Timer"}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -642,12 +681,25 @@ export default function EmployeeHomeScreen() {
             </View>
 
             <TouchableOpacity
-              style={[styles.primaryBtn, { backgroundColor: colors.destructive, marginHorizontal: 0 }]}
+              style={[
+                styles.primaryBtn,
+                {
+                  backgroundColor: clockingOut ? colors.destructive + "88" : colors.destructive,
+                  marginHorizontal: 0,
+                },
+              ]}
               onPress={handleStop}
+              disabled={clockingOut}
               activeOpacity={0.86}
             >
-              <Feather name="square" size={20} color="#fff" />
-              <Text style={styles.primaryBtnText}>Confirm Stop</Text>
+              {clockingOut ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Feather name="square" size={20} color="#fff" />
+              )}
+              <Text style={styles.primaryBtnText}>
+                {clockingOut ? "Saving..." : "Confirm Stop"}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </KeyboardAvoidingView>

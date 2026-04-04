@@ -78,7 +78,13 @@ export default function EmployeesScreen() {
           </View>
         }
         ListEmptyComponent={
-          <EmptyState icon="users" title="No employees yet" subtitle="Tap + to add your first employee" />
+          <EmptyState
+            icon="users"
+            title="No employees yet"
+            subtitle="Add your first team member to start tracking time and costs."
+            actionLabel="Add First Employee"
+            onAction={() => setShowAdd(true)}
+          />
         }
         renderItem={({ item }) => (
           <EmployeeCard
