@@ -165,6 +165,13 @@ export default function ProjectsScreen() {
   );
 }
 
+const PROJ_STATUS_COLOR: Record<string, string> = {
+  in_progress: "#f97316",
+  completed: "#16a34a",
+  pending: "#d97706",
+  on_hold: "#94a3b8",
+};
+
 function ProjectListCard({
   project,
   labor,
@@ -180,12 +187,20 @@ function ProjectListCard({
 }) {
   const colors = useColors();
   const profit = project.totalValue - labor - expenses;
+  const accentColor = PROJ_STATUS_COLOR[project.status] ?? colors.mutedForeground;
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+          borderLeftColor: accentColor,
+        },
+      ]}
       onPress={onPress}
-      activeOpacity={0.85}
+      activeOpacity={0.82}
     >
       <View style={styles.cardTop}>
         <View style={styles.cardInfo}>
@@ -202,17 +217,20 @@ function ProjectListCard({
         <StatusBadge status={project.status} />
       </View>
 
+      <View style={[styles.cardDivider, { backgroundColor: colors.border }]} />
+
       <View style={styles.cardRow}>
-        <View style={styles.cardStat}>
-          <Feather name="dollar-sign" size={13} color={colors.success} />
-          <Text style={[styles.cardStatLabel, { color: colors.mutedForeground }]}>
-            Value: <Text style={{ color: colors.foreground, fontWeight: "700" }}>${project.totalValue.toLocaleString()}</Text>
+        <View style={styles.cardStatBlock}>
+          <Text style={[styles.cardStatMeta, { color: colors.mutedForeground }]}>Contract Value</Text>
+          <Text style={[styles.cardStatValue, { color: colors.foreground }]}>
+            ${project.totalValue.toLocaleString()}
           </Text>
         </View>
-        <View style={styles.cardStat}>
-          <Feather name="trending-up" size={13} color={profit >= 0 ? colors.success : colors.destructive} />
-          <Text style={[styles.cardStatLabel, { color: colors.mutedForeground }]}>
-            Profit: <Text style={{ color: profit >= 0 ? colors.success : colors.destructive, fontWeight: "700" }}>${profit.toLocaleString()}</Text>
+        <View style={[styles.cardStatDivider, { backgroundColor: colors.border }]} />
+        <View style={styles.cardStatBlock}>
+          <Text style={[styles.cardStatMeta, { color: colors.mutedForeground }]}>Net Profit</Text>
+          <Text style={[styles.cardStatValue, { color: profit >= 0 ? colors.success : colors.destructive }]}>
+            {profit < 0 ? "-" : "+"}${Math.abs(profit).toLocaleString()}
           </Text>
         </View>
       </View>
@@ -221,7 +239,7 @@ function ProjectListCard({
         <View style={styles.cardStat}>
           <Feather name="users" size={12} color={colors.mutedForeground} />
           <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
-            {employeeCount} assigned
+            {employeeCount} {employeeCount === 1 ? "person" : "people"}
           </Text>
         </View>
         <View style={styles.cardStat}>
@@ -373,15 +391,22 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   headerTitle: { color: "#fff", fontSize: 22, fontWeight: "800" },
-  addBtn: { padding: 4 },
+  addBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   searchBar: { paddingHorizontal: 16 },
   searchInput: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 11,
+    borderRadius: 14,
   },
   searchText: { flex: 1, color: "#fff", fontSize: 15 },
   filters: { paddingHorizontal: 16, paddingVertical: 8, gap: 8, alignItems: "center" },
@@ -389,15 +414,30 @@ const styles = StyleSheet.create({
   filterText: { fontSize: 13, fontWeight: "600" },
   list: { padding: 16, gap: 12 },
   emptyContainer: { flex: 1 },
-  card: { borderRadius: 14, padding: 14, borderWidth: 1, gap: 10 },
+  card: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderLeftWidth: 3,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
   cardInfo: { flex: 1, marginRight: 8 },
-  cardName: { fontSize: 15, fontWeight: "700" },
+  cardName: { fontSize: 15, fontWeight: "700", letterSpacing: -0.2 },
   addressRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3 },
   cardAddress: { fontSize: 12, flex: 1 },
-  cardRow: { flexDirection: "row", gap: 16 },
+  cardDivider: { height: 1 },
+  cardRow: { flexDirection: "row", gap: 0 },
+  cardStatBlock: { flex: 1, gap: 2 },
+  cardStatMeta: { fontSize: 11, fontWeight: "500", textTransform: "uppercase", letterSpacing: 0.4 },
+  cardStatValue: { fontSize: 15, fontWeight: "700" },
+  cardStatDivider: { width: 1, marginHorizontal: 16, alignSelf: "stretch" },
   cardStat: { flexDirection: "row", alignItems: "center", gap: 4 },
-  cardStatLabel: { fontSize: 13 },
   cardFooter: { flexDirection: "row", justifyContent: "space-between" },
   footerText: { fontSize: 12 },
   modal: { flex: 1 },

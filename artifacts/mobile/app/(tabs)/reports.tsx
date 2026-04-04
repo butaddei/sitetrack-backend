@@ -31,6 +31,13 @@ export default function ReportsScreen() {
 
   const activeEmployees = employees.filter((e) => e.role === "employee" && e.isActive);
 
+  const AVATAR_COLORS = ["#f97316","#3b82f6","#16a34a","#a855f7","#ec4899","#14b8a6","#6366f1","#d97706"];
+  function nameToColor(name: string) {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+  }
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={[styles.topBar, { paddingTop: topPad + 8, backgroundColor: colors.accent }]}>
@@ -40,18 +47,18 @@ export default function ReportsScreen() {
       <View style={[styles.overviewCard, { backgroundColor: colors.accent }]}>
         <Text style={styles.overviewTitle}>Business Overview</Text>
         <View style={styles.overviewRow}>
-          <OverviewItem label="Revenue" value={fmt(totalRevenue)} valueColor="#22c55e" />
-          <OverviewItem label="Labor Cost" value={fmt(totalLaborCost)} valueColor="#ef4444" />
-          <OverviewItem label="Other Costs" value={fmt(totalExpenses)} valueColor="#eab308" />
+          <OverviewItem label="Revenue" value={fmt(totalRevenue)} valueColor="#4ade80" />
+          <OverviewItem label="Labor Cost" value={fmt(totalLaborCost)} valueColor="#f87171" />
+          <OverviewItem label="Other Costs" value={fmt(totalExpenses)} valueColor="#fbbf24" />
           <OverviewItem
             label="Est. Profit"
             value={fmt(totalProfit)}
-            valueColor={totalProfit >= 0 ? "#22c55e" : "#ef4444"}
+            valueColor={totalProfit >= 0 ? "#4ade80" : "#f87171"}
           />
         </View>
       </View>
 
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
         {(["projects", "employees"] as const).map((t) => (
           <TouchableOpacity
             key={t}
@@ -80,85 +87,109 @@ export default function ReportsScreen() {
         contentContainerStyle={[styles.content, { paddingBottom: botPad + 24 }]}
         showsVerticalScrollIndicator={false}
       >
-        {activeTab === "projects"
-          ? projects.map((proj) => {
-              const labor = getProjectLaborCost(proj.id);
-              const expAmt = getProjectExpenses(proj.id);
-              const profit = proj.totalValue - labor - expAmt;
-              const margin =
-                proj.totalValue > 0 ? ((profit / proj.totalValue) * 100).toFixed(1) : "0";
-              const logs = timeLogs.filter((l) => l.projectId === proj.id && l.totalMinutes);
-              const hours = logs.reduce((s, l) => s + (l.totalMinutes ?? 0) / 60, 0);
+        {activeTab === "projects" ? (
+          projects.length === 0 ? (
+            <View style={styles.emptyWrap}>
+              <View style={[styles.emptyIcon, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                <Feather name="folder" size={28} color={colors.mutedForeground} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No projects yet</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>
+                Projects will appear here once created.
+              </Text>
+            </View>
+          ) : projects.map((proj) => {
+            const labor = getProjectLaborCost(proj.id);
+            const expAmt = getProjectExpenses(proj.id);
+            const profit = proj.totalValue - labor - expAmt;
+            const margin =
+              proj.totalValue > 0 ? ((profit / proj.totalValue) * 100).toFixed(1) : "0";
+            const logs = timeLogs.filter((l) => l.projectId === proj.id && l.totalMinutes);
+            const hours = logs.reduce((s, l) => s + (l.totalMinutes ?? 0) / 60, 0);
 
-              return (
-                <View
-                  key={proj.id}
-                  style={[styles.reportCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-                >
-                  <View style={styles.cardTop}>
-                    <Text style={[styles.cardName, { color: colors.foreground }]} numberOfLines={1}>
-                      {proj.name}
+            return (
+              <View
+                key={proj.id}
+                style={[styles.reportCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                <View style={styles.cardTop}>
+                  <Text style={[styles.cardName, { color: colors.foreground }]} numberOfLines={1}>
+                    {proj.name}
+                  </Text>
+                  <StatusBadge status={proj.status} />
+                </View>
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                <View style={styles.financialGrid}>
+                  <FinRow label="Contract Value" value={fmt(proj.totalValue)} color={colors.foreground} />
+                  <FinRow label="Labor Cost" value={fmt(labor)} color={colors.destructive} />
+                  <FinRow label="Other Expenses" value={fmt(expAmt)} color={colors.warning} />
+                  <FinRow label="Total Hours" value={`${hours.toFixed(1)}h`} color={colors.foreground} />
+                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                  <FinRow
+                    label="Est. Profit"
+                    value={fmt(profit)}
+                    color={profit >= 0 ? colors.success : colors.destructive}
+                    bold
+                  />
+                  <FinRow
+                    label="Margin"
+                    value={`${margin}%`}
+                    color={parseFloat(margin) >= 30 ? colors.success : colors.warning}
+                  />
+                </View>
+              </View>
+            );
+          })
+        ) : (
+          activeEmployees.length === 0 ? (
+            <View style={styles.emptyWrap}>
+              <View style={[styles.emptyIcon, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                <Feather name="users" size={28} color={colors.mutedForeground} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No employees yet</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>
+                Employee reports will appear once you add team members.
+              </Text>
+            </View>
+          ) : activeEmployees.map((emp) => {
+            const hours = getEmployeeTotalHours(emp.id);
+            const cost = hours * emp.hourlyRate;
+            const projCount = projects.filter((p) => p.assignedEmployeeIds.includes(emp.id)).length;
+            const logs = timeLogs.filter((l) => l.employeeId === emp.id && l.totalMinutes);
+            const avgHrs = logs.length > 0 ? hours / logs.length : 0;
+            const initials = emp.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+            const avatarColor = nameToColor(emp.name);
+
+            return (
+              <View
+                key={emp.id}
+                style={[styles.reportCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                <View style={styles.empHeader}>
+                  <View style={[styles.empAvatar, { backgroundColor: avatarColor }]}>
+                    <Text style={styles.empInitials}>{initials}</Text>
+                  </View>
+                  <View>
+                    <Text style={[styles.cardName, { color: colors.foreground }]}>{emp.name}</Text>
+                    <Text style={[styles.empPosition, { color: colors.mutedForeground }]}>
+                      {emp.position}
                     </Text>
-                    <StatusBadge status={proj.status} />
-                  </View>
-                  <View style={styles.financialGrid}>
-                    <FinRow label="Contract Value" value={fmt(proj.totalValue)} color={colors.foreground} />
-                    <FinRow label="Labor Cost" value={fmt(labor)} color={colors.destructive} />
-                    <FinRow label="Other Expenses" value={fmt(expAmt)} color={colors.warning} />
-                    <FinRow label="Total Hours" value={`${hours.toFixed(1)}h`} color={colors.foreground} />
-                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                    <FinRow
-                      label="Est. Profit"
-                      value={fmt(profit)}
-                      color={profit >= 0 ? colors.success : colors.destructive}
-                      bold
-                    />
-                    <FinRow
-                      label="Margin"
-                      value={`${margin}%`}
-                      color={parseFloat(margin) >= 30 ? colors.success : colors.warning}
-                    />
                   </View>
                 </View>
-              );
-            })
-          : activeEmployees.map((emp) => {
-              const hours = getEmployeeTotalHours(emp.id);
-              const cost = hours * emp.hourlyRate;
-              const projCount = projects.filter((p) => p.assignedEmployeeIds.includes(emp.id)).length;
-              const logs = timeLogs.filter((l) => l.employeeId === emp.id && l.totalMinutes);
-              const avgHrs = logs.length > 0 ? hours / logs.length : 0;
-
-              const initials = emp.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
-
-              return (
-                <View
-                  key={emp.id}
-                  style={[styles.reportCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-                >
-                  <View style={styles.empHeader}>
-                    <View style={[styles.empAvatar, { backgroundColor: colors.accent }]}>
-                      <Text style={styles.empInitials}>{initials}</Text>
-                    </View>
-                    <View>
-                      <Text style={[styles.cardName, { color: colors.foreground }]}>{emp.name}</Text>
-                      <Text style={[styles.empPosition, { color: colors.mutedForeground }]}>
-                        {emp.position}
-                      </Text>
-                    </View>
-                  </View>
-                  <View style={styles.financialGrid}>
-                    <FinRow label="Hourly Rate" value={`$${emp.hourlyRate}/h`} color={colors.foreground} />
-                    <FinRow label="Total Hours" value={`${hours.toFixed(1)}h`} color={colors.foreground} />
-                    <FinRow label="Sessions" value={logs.length.toString()} color={colors.foreground} />
-                    <FinRow label="Avg Session" value={`${avgHrs.toFixed(1)}h`} color={colors.foreground} />
-                    <FinRow label="Projects Assigned" value={projCount.toString()} color={colors.foreground} />
-                    <View style={[styles.divider, { backgroundColor: colors.border }]} />
-                    <FinRow label="Total Labor Cost" value={fmt(cost)} color={colors.primary} bold />
-                  </View>
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                <View style={styles.financialGrid}>
+                  <FinRow label="Hourly Rate" value={`$${emp.hourlyRate}/h`} color={colors.foreground} />
+                  <FinRow label="Total Hours" value={`${hours.toFixed(1)}h`} color={colors.foreground} />
+                  <FinRow label="Sessions" value={logs.length.toString()} color={colors.foreground} />
+                  <FinRow label="Avg Session" value={`${avgHrs.toFixed(1)}h`} color={colors.foreground} />
+                  <FinRow label="Projects Assigned" value={projCount.toString()} color={colors.foreground} />
+                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                  <FinRow label="Total Labor Cost" value={fmt(cost)} color={colors.primary} bold />
                 </View>
-              );
-            })}
+              </View>
+            );
+          })
+        )}
       </ScrollView>
     </View>
   );
@@ -197,21 +228,34 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#e2e8f0",
   },
   tab: { flex: 1, paddingVertical: 12, alignItems: "center" },
   tabText: { fontSize: 15, fontWeight: "600" },
   content: { padding: 16, gap: 12 },
-  reportCard: { borderRadius: 14, padding: 14, borderWidth: 1, gap: 12 },
+  reportCard: {
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    gap: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
   cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   cardName: { fontSize: 15, fontWeight: "700", flex: 1, marginRight: 8 },
-  financialGrid: { gap: 6 },
+  financialGrid: { gap: 7 },
   finRow: { flexDirection: "row", justifyContent: "space-between" },
   finLabel: { fontSize: 13 },
   finValue: { fontSize: 13 },
-  divider: { height: 1, marginVertical: 4 },
+  divider: { height: 1 },
   empHeader: { flexDirection: "row", alignItems: "center", gap: 12 },
-  empAvatar: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  empInitials: { color: "#fff", fontWeight: "700", fontSize: 14 },
+  empAvatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+  empInitials: { color: "#fff", fontWeight: "800", fontSize: 14 },
   empPosition: { fontSize: 12, marginTop: 2 },
+  emptyWrap: { alignItems: "center", paddingVertical: 60, gap: 14 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  emptyTitle: { fontSize: 17, fontWeight: "700", letterSpacing: -0.2 },
+  emptySubtitle: { fontSize: 14, textAlign: "center", maxWidth: 240, lineHeight: 20 },
 });

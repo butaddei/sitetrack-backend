@@ -39,18 +39,28 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.mutedForeground,
         headerShown: false,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "600",
+          letterSpacing: 0.1,
+          marginBottom: isWeb ? 4 : 0,
+        },
         tabBarStyle: {
           position: "absolute",
           backgroundColor: isIOS ? "transparent" : colors.card,
           borderTopWidth: 1,
           borderTopColor: colors.border,
           elevation: 0,
-          ...(isWeb ? { height: 84 } : {}),
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -1 },
+          shadowOpacity: 0.06,
+          shadowRadius: 8,
+          ...(isWeb ? { height: 80 } : {}),
         },
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
-              intensity={100}
+              intensity={90}
               tint={isDark ? "dark" : "light"}
               style={StyleSheet.absoluteFill}
             />

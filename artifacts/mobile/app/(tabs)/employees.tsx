@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { Redirect, useRouter } from "expo-router";
+import { Redirect } from "expo-router";
 import React, { useState } from "react";
 import {
   FlatList,
@@ -112,10 +112,23 @@ export default function EmployeesScreen() {
   );
 }
 
+const AVATAR_PALETTE = [
+  "#f97316", "#3b82f6", "#16a34a", "#a855f7",
+  "#ec4899", "#14b8a6", "#6366f1", "#d97706",
+];
+
+function nameToColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+}
+
 function StatBox({ label, value, color }: { label: string; value: string; color: string }) {
   const colors = useColors();
   return (
-    <View style={[styles.statBox, { backgroundColor: color + "15", borderColor: color + "40" }]}>
+    <View style={[styles.statBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <Text style={[styles.statValue, { color }]}>{value}</Text>
       <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{label}</Text>
     </View>
@@ -139,37 +152,44 @@ function EmployeeCard({
     .toUpperCase()
     .slice(0, 2);
 
+  const avatarColor = nameToColor(employee.name);
   const laborCost = totalHours * employee.hourlyRate;
 
   return (
     <View style={[styles.empCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={[styles.empAvatar, { backgroundColor: colors.accent }]}>
+      <View style={[styles.empAvatar, { backgroundColor: avatarColor }]}>
         <Text style={styles.empInitials}>{initials}</Text>
       </View>
       <View style={styles.empInfo}>
         <View style={styles.empNameRow}>
-          <Text style={[styles.empName, { color: colors.foreground }]}>{employee.name}</Text>
+          <Text style={[styles.empName, { color: colors.foreground }]} numberOfLines={1}>
+            {employee.name}
+          </Text>
           {isOnSite ? (
-            <View style={[styles.activePill, { backgroundColor: colors.success + "20" }]}>
+            <View style={[styles.activePill, { backgroundColor: colors.success + "18", borderColor: colors.success + "40" }]}>
               <View style={[styles.activeDot, { backgroundColor: colors.success }]} />
               <Text style={[styles.activeText, { color: colors.success }]}>On Site</Text>
             </View>
           ) : null}
         </View>
-        <Text style={[styles.empPosition, { color: colors.mutedForeground }]}>
-          {employee.position}
-        </Text>
+        {employee.position ? (
+          <Text style={[styles.empPosition, { color: colors.mutedForeground }]} numberOfLines={1}>
+            {employee.position}
+          </Text>
+        ) : null}
         <View style={styles.empMeta}>
+          <Feather name="dollar-sign" size={11} color={colors.mutedForeground} />
           <Text style={[styles.empMetaText, { color: colors.mutedForeground }]}>
-            ${employee.hourlyRate}/hr
+            {employee.hourlyRate}/hr
           </Text>
-          <Text style={[styles.empMetaDot, { color: colors.border }]}>•</Text>
+          <View style={[styles.empMetaDivider, { backgroundColor: colors.border }]} />
+          <Feather name="clock" size={11} color={colors.mutedForeground} />
           <Text style={[styles.empMetaText, { color: colors.mutedForeground }]}>
-            {totalHours.toFixed(1)}h total
+            {totalHours.toFixed(1)}h
           </Text>
-          <Text style={[styles.empMetaDot, { color: colors.border }]}>•</Text>
-          <Text style={[styles.empMetaText, { color: colors.mutedForeground }]}>
-            ${laborCost.toFixed(0)} earned
+          <View style={[styles.empMetaDivider, { backgroundColor: colors.border }]} />
+          <Text style={[styles.empMetaText, { color: colors.success, fontWeight: "600" }]}>
+            ${laborCost.toFixed(0)}
           </Text>
         </View>
       </View>
@@ -265,27 +285,44 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   headerTitle: { color: "#fff", fontSize: 22, fontWeight: "800" },
-  addBtn: { padding: 4 },
+  addBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   list: { padding: 16, gap: 10 },
   emptyContainer: { flex: 1 },
   stats: { flexDirection: "row", gap: 10, marginBottom: 6 },
   statBox: {
     flex: 1,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    alignItems: "center",
-    gap: 4,
-  },
-  statValue: { fontSize: 22, fontWeight: "800" },
-  statLabel: { fontSize: 11, fontWeight: "500" },
-  empCard: {
-    flexDirection: "row",
-    gap: 14,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
     alignItems: "center",
+    gap: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  statValue: { fontSize: 22, fontWeight: "800" },
+  statLabel: { fontSize: 11, fontWeight: "500", textAlign: "center" },
+  empCard: {
+    flexDirection: "row",
+    gap: 13,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   empAvatar: {
     width: 46,
@@ -295,24 +332,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     flexShrink: 0,
   },
-  empInitials: { color: "#fff", fontWeight: "700", fontSize: 16 },
-  empInfo: { flex: 1, gap: 3 },
+  empInitials: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  empInfo: { flex: 1, gap: 3, minWidth: 0 },
   empNameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  empName: { fontSize: 15, fontWeight: "700" },
+  empName: { fontSize: 15, fontWeight: "700", flex: 1 },
   activePill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 100,
+    borderWidth: 1,
+    flexShrink: 0,
   },
-  activeDot: { width: 6, height: 6, borderRadius: 3 },
-  activeText: { fontSize: 11, fontWeight: "600" },
-  empPosition: { fontSize: 13 },
-  empMeta: { flexDirection: "row", alignItems: "center", gap: 4 },
+  activeDot: { width: 5, height: 5, borderRadius: 3 },
+  activeText: { fontSize: 11, fontWeight: "700" },
+  empPosition: { fontSize: 12, fontWeight: "500" },
+  empMeta: { flexDirection: "row", alignItems: "center", gap: 5 },
   empMetaText: { fontSize: 12 },
-  empMetaDot: { fontSize: 12 },
+  empMetaDivider: { width: 1, height: 10 },
   modal: { flex: 1 },
   modalHeader: {
     flexDirection: "row",

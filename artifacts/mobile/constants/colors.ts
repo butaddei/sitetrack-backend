@@ -1,13 +1,13 @@
 const colors = {
   light: {
-    text: "#1a2332",
+    text: "#0f1923",
     tint: "#f97316",
 
-    background: "#f8fafc",
-    foreground: "#1a2332",
+    background: "#f5f7fa",
+    foreground: "#0f1923",
 
     card: "#ffffff",
-    cardForeground: "#1a2332",
+    cardForeground: "#0f1923",
 
     primary: "#f97316",
     primaryForeground: "#ffffff",
@@ -15,29 +15,29 @@ const colors = {
     secondary: "#0f172a",
     secondaryForeground: "#ffffff",
 
-    muted: "#e2e8f0",
+    muted: "#f0f4f8",
     mutedForeground: "#64748b",
 
     accent: "#0f172a",
     accentForeground: "#ffffff",
 
-    success: "#22c55e",
+    success: "#16a34a",
     successForeground: "#ffffff",
 
-    warning: "#eab308",
+    warning: "#d97706",
     warningForeground: "#ffffff",
 
-    destructive: "#ef4444",
+    destructive: "#dc2626",
     destructiveForeground: "#ffffff",
 
-    border: "#e2e8f0",
-    input: "#e2e8f0",
+    border: "#e4e9f2",
+    input: "#e4e9f2",
 
     surface: "#ffffff",
-    surfaceElevated: "#f1f5f9",
+    surfaceElevated: "#f0f4f8",
   },
 
-  radius: 12,
+  radius: 16,
 };
 
 export default colors;

@@ -286,6 +286,13 @@ function StatPill({
 }
 
 // ─── Project row ──────────────────────────────────────────────────────────────
+const STATUS_ACCENT: Record<string, string> = {
+  in_progress: "#f97316",
+  completed: "#16a34a",
+  pending: "#d97706",
+  on_hold: "#94a3b8",
+};
+
 function ProjectRow({
   project,
   labor,
@@ -304,13 +311,15 @@ function ProjectRow({
   const totalCost = labor + expense;
   const profit = (project.totalValue ?? 0) - totalCost;
   const profitPositive = profit >= 0;
+  const accentColor = STATUS_ACCENT[project.status] ?? colors.mutedForeground;
 
   return (
     <TouchableOpacity
       style={[styles.projRow, !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
       onPress={onPress}
-      activeOpacity={0.8}
+      activeOpacity={0.78}
     >
+      <View style={[styles.projStatusLine, { backgroundColor: accentColor }]} />
       <View style={styles.projRowLeft}>
         <Text style={[styles.projRowName, { color: colors.foreground }]} numberOfLines={1}>
           {project.name}
@@ -505,6 +514,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     gap: 12,
+    overflow: "hidden",
+  },
+  projStatusLine: {
+    width: 3,
+    alignSelf: "stretch",
+    borderRadius: 2,
+    marginRight: 0,
   },
   projRowLeft: { flex: 1, gap: 3 },
   projRowName: { fontSize: 15, fontWeight: "700" },
