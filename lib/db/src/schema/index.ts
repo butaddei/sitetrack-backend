@@ -19,12 +19,19 @@ export const projectStatusEnum = pgEnum("project_status", [
   "on_hold",
 ]);
 
+export const planEnum = pgEnum("plan", ["free", "pro", "business"]);
+export const planStatusEnum = pgEnum("plan_status", ["active", "inactive", "trialing", "past_due", "canceled"]);
+
 export const companies = pgTable("companies", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   logoUrl: text("logo_url"),
   primaryColor: text("primary_color").notNull().default("#f97316"),
   secondaryColor: text("secondary_color").notNull().default("#0f172a"),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  plan: planEnum("plan").notNull().default("free"),
+  planStatus: planStatusEnum("plan_status").notNull().default("active"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

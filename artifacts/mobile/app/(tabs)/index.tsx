@@ -107,6 +107,26 @@ export default function DashboardScreen() {
           <Text style={[styles.nameText, { color: colors.foreground }]}>
             {user?.name?.split(" ")[0]}
           </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/billing")}
+            activeOpacity={0.8}
+            style={[
+              styles.planChip,
+              {
+                backgroundColor: user?.plan === "pro" ? colors.primary + "18" : user?.plan === "business" ? "#7c3aed18" : colors.muted,
+                borderColor: user?.plan === "pro" ? colors.primary + "35" : user?.plan === "business" ? "#7c3aed35" : colors.border,
+              },
+            ]}
+          >
+            <Text style={[
+              styles.planChipText,
+              {
+                color: user?.plan === "pro" ? colors.primary : user?.plan === "business" ? "#7c3aed" : colors.mutedForeground,
+              },
+            ]}>
+              {user?.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : "Free"} Plan
+            </Text>
+          </TouchableOpacity>
         </View>
         <TouchableOpacity
           style={[styles.avatar, { backgroundColor: colors.primary }]}
@@ -350,6 +370,8 @@ const styles = StyleSheet.create({
   headerLeft: { gap: 1 },
   greetText: { fontSize: 13, fontWeight: "500" },
   nameText: { fontSize: 28, fontWeight: "800", letterSpacing: -0.6, marginTop: 1 },
+  planChip: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 100, borderWidth: 1, marginTop: 6 },
+  planChipText: { fontSize: 11, fontWeight: "700" },
   avatar: {
     width: 46,
     height: 46,

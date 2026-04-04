@@ -1,12 +1,13 @@
 import { Feather } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
-  Modal,
+  Linking,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,667 +16,539 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuth, type PlanType } from "@/context/AuthContext";
+import { useData } from "@/context/DataContext";
+import { apiFetch, ApiError } from "@/lib/api";
 import { useColors } from "@/hooks/useColors";
 
-// ─── Plan definitions ────────────────────────────────────────────────────────
-// STRIPE_ENABLED: set to true when Stripe integration is activated
-const STRIPE_ENABLED = false;
+interface PlanInfo {
+  plan: PlanType;
+  planStatus: string;
+  stripeEnabled: boolean;
+  hasSubscription: boolean;
+}
 
-const PLANS = [
+interface PricingPlan {
+  id: PlanType;
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  color: string;
+  features: string[];
+  limit: { projects: number | null; employees: number | null };
+  badge?: string;
+}
+
+const PLANS: PricingPlan[] = [
   {
     id: "free",
     name: "Free",
-    price: 0,
-    period: null,
-    tagline: "Get started at no cost",
-    badge: null,
+    price: "$0",
+    period: "forever",
+    description: "Perfect for getting started",
     color: "#64748b",
     features: [
-      { label: "1 active project", included: true },
-      { label: "Up to 2 employees", included: true },
-      { label: "Time tracking", included: true },
-      { label: "Basic reports", included: true },
-      { label: "Expense tracking", included: false },
-      { label: "Financial P&L overview", included: false },
-      { label: "Unlimited projects", included: false },
-      { label: "Priority support", included: false },
+      "Up to 3 projects",
+      "Up to 3 employees",
+      "Time tracking & photo uploads",
+      "Basic reports",
     ],
-    ctaLabel: "Current plan",
-    isCurrent: true, // hardcoded until Stripe active
+    limit: { projects: 3, employees: 3 },
   },
   {
     id: "pro",
     name: "Pro",
-    price: 29,
-    period: "month",
-    tagline: "For growing painting businesses",
-    badge: "Most Popular",
+    price: "$29",
+    period: "/ month",
+    description: "For growing painting businesses",
     color: "#f97316",
+    badge: "Most Popular",
     features: [
-      { label: "Unlimited projects", included: true },
-      { label: "Up to 5 employees", included: true },
-      { label: "Time tracking", included: true },
-      { label: "Expense tracking", included: true },
-      { label: "Full financial P&L", included: true },
-      { label: "Advanced reports", included: true },
-      { label: "Company branding", included: true },
-      { label: "Priority support", included: false },
+      "Up to 15 projects",
+      "Up to 15 employees",
+      "Advanced financial reports",
+      "Full expense tracking",
+      "Priority support",
+      "Everything in Free",
     ],
-    ctaLabel: "Upgrade to Pro",
-    isCurrent: false,
+    limit: { projects: 15, employees: 15 },
   },
   {
     id: "business",
     name: "Business",
-    price: 79,
-    period: "month",
-    tagline: "For large teams and contractors",
-    badge: null,
-    color: "#6366f1",
+    price: "$79",
+    period: "/ month",
+    description: "For large-scale operations",
+    color: "#7c3aed",
     features: [
-      { label: "Unlimited projects", included: true },
-      { label: "Unlimited employees", included: true },
-      { label: "Time tracking", included: true },
-      { label: "Expense tracking", included: true },
-      { label: "Full financial P&L", included: true },
-      { label: "Advanced reports & export", included: true },
-      { label: "Company branding", included: true },
-      { label: "Priority support", included: true },
+      "Unlimited projects",
+      "Unlimited employees",
+      "Custom branding",
+      "Advanced analytics",
+      "Dedicated support",
+      "Everything in Pro",
     ],
-    ctaLabel: "Upgrade to Business",
-    isCurrent: false,
+    limit: { projects: null, employees: null },
   },
-] as const;
+];
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+const PLAN_STATUS_LABEL: Record<string, string> = {
+  active: "Active",
+  inactive: "Inactive",
+  trialing: "Trial",
+  past_due: "Past Due",
+  canceled: "Canceled",
+};
+
 export default function BillingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { user } = useAuth();
-  const [showComingSoon, setShowComingSoon] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const { user, updateUser } = useAuth();
+  const { projects, employees } = useData();
+
+  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [upgrading, setUpgrading] = useState<PlanType | null>(null);
+  const [managingPortal, setManagingPortal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  // Current plan — when Stripe is live, derive from user.plan
-  const currentPlanId = "free";
-  const currentPlan = PLANS.find((p) => p.id === currentPlanId)!;
+  const currentPlan = (user?.plan ?? "free") as PlanType;
 
-  function handleUpgrade(planId: string, planName: string) {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (!STRIPE_ENABLED) {
-      setSelectedPlan(planName);
-      setShowComingSoon(true);
+  const fetchPlan = useCallback(async () => {
+    try {
+      const data = await apiFetch<PlanInfo>("/stripe/plan");
+      setPlanInfo(data);
+      updateUser({ plan: data.plan });
+    } catch {
+      setPlanInfo({
+        plan: currentPlan,
+        planStatus: user?.planStatus ?? "active",
+        stripeEnabled: false,
+        hasSubscription: false,
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [currentPlan, user?.planStatus]);
+
+  useEffect(() => {
+    fetchPlan();
+  }, [fetchPlan]);
+
+  async function handleUpgrade(plan: PlanType) {
+    if (plan === "free") return;
+
+    if (!planInfo?.stripeEnabled) {
+      Alert.alert(
+        "Billing Not Configured",
+        "Stripe billing is not set up yet. Set STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET in the server environment to enable payments.",
+        [{ text: "OK" }]
+      );
       return;
     }
-    // TODO: when STRIPE_ENABLED=true, initiate Stripe checkout here
-    // router.push({ pathname: "/checkout", params: { planId } });
+
+    setUpgrading(plan);
+    try {
+      const { url } = await apiFetch<{ url: string }>("/stripe/checkout", {
+        method: "POST",
+        body: JSON.stringify({ plan }),
+      });
+      if (url) await Linking.openURL(url);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to start checkout. Please try again.";
+      Alert.alert("Checkout Error", message);
+    } finally {
+      setUpgrading(null);
+    }
   }
+
+  async function handleManageSubscription() {
+    if (!planInfo?.stripeEnabled) {
+      Alert.alert(
+        "Billing Not Configured",
+        "Stripe billing is not set up yet.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    setManagingPortal(true);
+    try {
+      const { url } = await apiFetch<{ url: string }>("/stripe/portal", {
+        method: "POST",
+      });
+      if (url) await Linking.openURL(url);
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Failed to open billing portal.";
+      Alert.alert("Portal Error", message);
+    } finally {
+      setManagingPortal(false);
+    }
+  }
+
+  const activePlan = PLANS.find((p) => p.id === currentPlan) ?? PLANS[0]!;
+  const projectCount = projects.length;
+  const employeeCount = employees.length;
+  const planStatusLabel = PLAN_STATUS_LABEL[planInfo?.planStatus ?? "active"] ?? "Active";
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      {/* ── Header ── */}
       <LinearGradient
-        colors={[colors.accent, colors.primary + "CC"]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.hero, { paddingTop: topPad + 12 }]}
+        colors={[colors.accent, colors.accent + "e0"]}
+        style={[styles.header, { paddingTop: topPad + 8 }]}
       >
-        <TouchableOpacity
-          style={styles.backBtn}
-          onPress={() => router.back()}
-          activeOpacity={0.75}
-        >
-          <Feather name="arrow-left" size={20} color="rgba(255,255,255,0.9)" />
-        </TouchableOpacity>
-
-        <View style={styles.heroCenter}>
-          <View style={styles.heroIcon}>
-            <Feather name="zap" size={28} color="#fff" />
+        <View style={styles.headerRow}>
+          <TouchableOpacity onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
+            <Feather name="arrow-left" size={22} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Plans & Billing</Text>
           </View>
-          <Text style={styles.heroTitle}>Plans & Billing</Text>
-          <Text style={styles.heroSub}>
-            Choose the plan that fits your business
-          </Text>
+          {planInfo?.hasSubscription ? (
+            <TouchableOpacity
+              onPress={handleManageSubscription}
+              hitSlop={8}
+              style={styles.manageBtn}
+              disabled={managingPortal}
+            >
+              {managingPortal ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.manageBtnText}>Manage</Text>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.manageBtn} />
+          )}
         </View>
 
-        {/* Current plan badge */}
-        <View style={[styles.currentBadge, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
-          <View style={[styles.currentDot, { backgroundColor: colors.success }]} />
-          <Text style={styles.currentBadgeText}>
-            Current plan: <Text style={{ fontWeight: "800" }}>{currentPlan.name}</Text>
-          </Text>
+        <View style={styles.currentPlanRow}>
+          <View style={[styles.currentPlanBadge, { backgroundColor: activePlan.color + "28", borderColor: activePlan.color + "45" }]}>
+            <View style={[styles.currentPlanDot, { backgroundColor: activePlan.color }]} />
+            <Text style={styles.currentPlanText}>
+              {activePlan.name} plan
+            </Text>
+            {planInfo?.planStatus && planInfo.planStatus !== "active" ? (
+              <View style={[styles.statusTag, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
+                <Text style={styles.statusTagText}>{planStatusLabel}</Text>
+              </View>
+            ) : null}
+          </View>
         </View>
       </LinearGradient>
 
       <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: botPad + 32 }]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 32 }]}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); fetchPlan(); }}
+            tintColor={colors.primary}
+          />
+        }
       >
-        {/* ── Usage summary ── */}
-        <View style={[styles.usageCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-            Free Plan · Usage
-          </Text>
-          <View style={styles.usageRow}>
-            <UsageStat
-              icon="folder"
-              label="Projects"
-              used={1}
-              max={1}
-              color={colors.primary}
-            />
-            <View style={[styles.usageDivider, { backgroundColor: colors.border }]} />
-            <UsageStat
-              icon="users"
-              label="Employees"
-              used={2}
-              max={2}
-              color={colors.warning}
-            />
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
-          <View style={[styles.limitNote, { backgroundColor: colors.warning + "14", borderColor: colors.warning + "30" }]}>
-            <Feather name="info" size={13} color={colors.warning} />
-            <Text style={[styles.limitNoteText, { color: colors.warning }]}>
-              Upgrade to unlock unlimited projects and more employees
-            </Text>
-          </View>
-        </View>
-
-        {/* ── Plan cards ── */}
-        <Text style={[styles.plansLabel, { color: colors.mutedForeground }]}>
-          Available Plans
-        </Text>
-
-        {PLANS.map((plan) => {
-          const isCurrentPlan = plan.id === currentPlanId;
-          const isHighlighted = plan.badge === "Most Popular";
-
-          return (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              isCurrentPlan={isCurrentPlan}
-              isHighlighted={isHighlighted}
-              colors={colors}
-              onUpgrade={() => handleUpgrade(plan.id, plan.name)}
-            />
-          );
-        })}
-
-        {/* ── Manage billing placeholder ── */}
-        {!STRIPE_ENABLED && (
-          <TouchableOpacity
-            style={[styles.manageBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-            onPress={() => {
-              setSelectedPlan(null);
-              setShowComingSoon(true);
-            }}
-            activeOpacity={0.8}
-          >
-            <Feather name="credit-card" size={16} color={colors.mutedForeground} />
-            <Text style={[styles.manageBtnText, { color: colors.mutedForeground }]}>
-              Manage billing & invoices
-            </Text>
-            <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
-          </TouchableOpacity>
-        )}
-
-        <Text style={[styles.legalNote, { color: colors.mutedForeground }]}>
-          Subscriptions renew automatically each month. Cancel anytime.
-          Prices shown in USD.
-        </Text>
-      </ScrollView>
-
-      {/* ── Coming soon modal ── */}
-      <Modal
-        visible={showComingSoon}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setShowComingSoon(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowComingSoon(false)}
-        >
-          <TouchableOpacity
-            activeOpacity={1}
-            style={[styles.comingSoonCard, { backgroundColor: colors.card, borderColor: colors.border }]}
-          >
-            <View style={[styles.comingSoonIcon, { backgroundColor: colors.primary + "15" }]}>
-              <Feather name="zap" size={32} color={colors.primary} />
+        ) : (
+          <>
+            {/* Usage card */}
+            <View style={[styles.usageCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>CURRENT USAGE</Text>
+              <View style={styles.usageRow}>
+                <UsageStat
+                  label="Projects"
+                  current={projectCount}
+                  max={activePlan.limit.projects}
+                  color={colors.primary}
+                  colors={colors}
+                />
+                <View style={[styles.usageDivider, { backgroundColor: colors.border }]} />
+                <UsageStat
+                  label="Employees"
+                  current={employeeCount}
+                  max={activePlan.limit.employees}
+                  color={colors.accent}
+                  colors={colors}
+                />
+              </View>
             </View>
 
-            <Text style={[styles.comingSoonTitle, { color: colors.foreground }]}>
-              Coming Soon
-            </Text>
-            <Text style={[styles.comingSoonBody, { color: colors.mutedForeground }]}>
-              {selectedPlan
-                ? `${selectedPlan} plan payments are not yet available.`
-                : "Billing management is not yet available."}{" "}
-              We're integrating Stripe and will notify you as soon as billing goes live.
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginTop: 4 }]}>
+              CHOOSE YOUR PLAN
             </Text>
 
-            <TouchableOpacity
-              style={[styles.comingSoonBtn, { backgroundColor: colors.primary }]}
-              onPress={() => setShowComingSoon(false)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.comingSoonBtnText}>Got it</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+            {PLANS.map((plan) => {
+              const isCurrent = plan.id === currentPlan;
+              const isUpgrade = !isCurrent && plan.id !== "free";
+              const isDowngrade = plan.id === "free" && currentPlan !== "free";
+              const busy = upgrading === plan.id;
+
+              return (
+                <View
+                  key={plan.id}
+                  style={[
+                    styles.planCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isCurrent ? plan.color : colors.border,
+                      borderWidth: isCurrent ? 2 : 1,
+                    },
+                  ]}
+                >
+                  {plan.badge ? (
+                    <View style={[styles.popularBadge, { backgroundColor: plan.color }]}>
+                      <Text style={styles.popularBadgeText}>{plan.badge}</Text>
+                    </View>
+                  ) : null}
+
+                  {isCurrent ? (
+                    <View style={[styles.currentBadge, { backgroundColor: plan.color }]}>
+                      <Text style={styles.currentBadgeText}>CURRENT PLAN</Text>
+                    </View>
+                  ) : null}
+
+                  <View style={styles.planTop}>
+                    <View style={styles.planTopLeft}>
+                      <Text style={[styles.planName, { color: colors.foreground }]}>{plan.name}</Text>
+                      <Text style={[styles.planDesc, { color: colors.mutedForeground }]}>{plan.description}</Text>
+                    </View>
+                    <View style={styles.priceWrap}>
+                      <Text style={[styles.priceAmount, { color: plan.color }]}>{plan.price}</Text>
+                      <Text style={[styles.pricePeriod, { color: colors.mutedForeground }]}>{plan.period}</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.featureDivider, { backgroundColor: colors.border }]} />
+
+                  <View style={styles.featureList}>
+                    {plan.features.map((f) => (
+                      <View key={f} style={styles.featureRow}>
+                        <View style={[styles.featureCheck, { backgroundColor: plan.color + "18" }]}>
+                          <Feather name="check" size={11} color={plan.color} />
+                        </View>
+                        <Text style={[styles.featureText, { color: colors.foreground }]}>{f}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  {isUpgrade ? (
+                    <TouchableOpacity
+                      style={[styles.upgradeBtn, { backgroundColor: plan.color }]}
+                      onPress={() => handleUpgrade(plan.id)}
+                      disabled={!!upgrading}
+                      activeOpacity={0.85}
+                    >
+                      {busy ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                      ) : (
+                        <>
+                          <Feather name="zap" size={15} color="#fff" />
+                          <Text style={styles.upgradeBtnText}>Upgrade to {plan.name}</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  ) : isDowngrade ? (
+                    <View style={[styles.managePlanBtn, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                      <Text style={[styles.managePlanBtnText, { color: colors.mutedForeground }]}>
+                        Manage subscription to downgrade
+                      </Text>
+                    </View>
+                  ) : isCurrent ? (
+                    <View style={[styles.activeBtn, { backgroundColor: plan.color + "15" }]}>
+                      <Feather name="check-circle" size={15} color={plan.color} />
+                      <Text style={[styles.activeBtnText, { color: plan.color }]}>Your current plan</Text>
+                    </View>
+                  ) : null}
+                </View>
+              );
+            })}
+
+            <View style={[styles.noteCard, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+              <Feather name="shield" size={14} color={colors.mutedForeground} />
+              <Text style={[styles.noteText, { color: colors.mutedForeground }]}>
+                Payments are processed securely via Stripe. Cancel anytime — no long-term contracts required.
+              </Text>
+            </View>
+          </>
+        )}
+      </ScrollView>
     </View>
   );
 }
 
-// ─── Plan Card ────────────────────────────────────────────────────────────────
-function PlanCard({
-  plan,
-  isCurrentPlan,
-  isHighlighted,
-  colors,
-  onUpgrade,
+function UsageStat({
+  label, current, max, color, colors,
 }: {
-  plan: (typeof PLANS)[number];
-  isCurrentPlan: boolean;
-  isHighlighted: boolean;
-  colors: any;
-  onUpgrade: () => void;
+  label: string;
+  current: number;
+  max: number | null;
+  color: string;
+  colors: ReturnType<typeof useColors>;
 }) {
+  const pct = max ? Math.min(current / max, 1) : 0;
+  const atLimit = max !== null && current >= max;
+
   return (
-    <View
-      style={[
-        styles.planCard,
-        {
-          backgroundColor: colors.card,
-          borderColor: isHighlighted ? plan.color : colors.border,
-          borderWidth: isHighlighted ? 2 : 1,
-        },
-      ]}
-    >
-      {/* Popular badge */}
-      {plan.badge ? (
-        <View style={[styles.popularBadge, { backgroundColor: plan.color }]}>
-          <Feather name="star" size={11} color="#fff" />
-          <Text style={styles.popularBadgeText}>{plan.badge}</Text>
-        </View>
-      ) : null}
-
-      {/* Plan header */}
-      <View style={styles.planHeader}>
-        <View>
-          <Text style={[styles.planName, { color: colors.foreground }]}>{plan.name}</Text>
-          <Text style={[styles.planTagline, { color: colors.mutedForeground }]}>
-            {plan.tagline}
-          </Text>
-        </View>
-        <View style={styles.planPriceBlock}>
-          {plan.price === 0 ? (
-            <Text style={[styles.planPrice, { color: colors.foreground }]}>Free</Text>
-          ) : (
-            <>
-              <Text style={[styles.planPriceDollar, { color: plan.color }]}>$</Text>
-              <Text style={[styles.planPrice, { color: plan.color }]}>{plan.price}</Text>
-              <Text style={[styles.planPricePer, { color: colors.mutedForeground }]}>
-                /mo
-              </Text>
-            </>
-          )}
-        </View>
+    <View style={styles.usageStat}>
+      <View style={styles.usageStatHeader}>
+        <Text style={[styles.usageLabel, { color: colors.mutedForeground }]}>{label}</Text>
+        <Text style={[styles.usageCount, { color: atLimit ? "#dc2626" : colors.foreground }]}>
+          {current}{max !== null ? ` / ${max}` : " / ∞"}
+        </Text>
       </View>
-
-      {/* Divider */}
-      <View style={[styles.planDivider, { backgroundColor: colors.border }]} />
-
-      {/* Features */}
-      <View style={styles.featuresList}>
-        {plan.features.map((f) => (
-          <View key={f.label} style={styles.featureRow}>
-            <View
-              style={[
-                styles.featureIcon,
-                {
-                  backgroundColor: f.included
-                    ? plan.color + "18"
-                    : colors.muted,
-                },
-              ]}
-            >
-              <Feather
-                name={f.included ? "check" : "x"}
-                size={12}
-                color={f.included ? plan.color : colors.mutedForeground}
-              />
-            </View>
-            <Text
-              style={[
-                styles.featureLabel,
-                {
-                  color: f.included ? colors.foreground : colors.mutedForeground,
-                  textDecorationLine: f.included ? "none" : "none",
-                },
-              ]}
-            >
-              {f.label}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-      {/* CTA button */}
-      {isCurrentPlan ? (
-        <View style={[styles.currentPlanBtn, { backgroundColor: colors.success + "14", borderColor: colors.success + "30" }]}>
-          <Feather name="check-circle" size={15} color={colors.success} />
-          <Text style={[styles.currentPlanBtnText, { color: colors.success }]}>
-            Your current plan
-          </Text>
+      {max !== null ? (
+        <View style={[styles.progressTrack, { backgroundColor: colors.muted }]}>
+          <View
+            style={[
+              styles.progressFill,
+              {
+                width: `${Math.round(pct * 100)}%` as `${number}%`,
+                backgroundColor: atLimit ? "#dc2626" : color,
+              },
+            ]}
+          />
         </View>
       ) : (
-        <TouchableOpacity
-          style={[
-            styles.upgradeBtn,
-            {
-              backgroundColor: isHighlighted ? plan.color : "transparent",
-              borderColor: plan.color,
-              borderWidth: isHighlighted ? 0 : 1.5,
-            },
-          ]}
-          onPress={onUpgrade}
-          activeOpacity={0.85}
-        >
-          <Feather
-            name="zap"
-            size={15}
-            color={isHighlighted ? "#fff" : plan.color}
-          />
-          <Text
-            style={[
-              styles.upgradeBtnText,
-              { color: isHighlighted ? "#fff" : plan.color },
-            ]}
-          >
-            {plan.ctaLabel}
-          </Text>
-          {!STRIPE_ENABLED && (
-            <View style={[styles.comingSoonPill, { backgroundColor: isHighlighted ? "rgba(255,255,255,0.2)" : plan.color + "20" }]}>
-              <Text style={[styles.comingSoonPillText, { color: isHighlighted ? "#fff" : plan.color }]}>
-                Soon
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <Text style={[styles.unlimitedText, { color }]}>Unlimited</Text>
       )}
     </View>
   );
 }
 
-// ─── Usage stat ───────────────────────────────────────────────────────────────
-function UsageStat({
-  icon,
-  label,
-  used,
-  max,
-  color,
-}: {
-  icon: string;
-  label: string;
-  used: number;
-  max: number;
-  color: string;
-}) {
-  const colors = useColors();
-  const pct = Math.min(1, used / max);
-  const atLimit = used >= max;
-
-  return (
-    <View style={styles.usageStat}>
-      <View style={styles.usageStatHeader}>
-        <Feather name={icon as any} size={13} color={color} />
-        <Text style={[styles.usageStatLabel, { color: colors.mutedForeground }]}>
-          {label}
-        </Text>
-      </View>
-      <Text style={[styles.usageStatValue, { color: atLimit ? colors.destructive : colors.foreground }]}>
-        {used} / {max}
-      </Text>
-      <View style={[styles.usageBar, { backgroundColor: colors.muted }]}>
-        <View
-          style={[
-            styles.usageBarFill,
-            {
-              width: `${pct * 100}%` as any,
-              backgroundColor: atLimit ? colors.destructive : color,
-            },
-          ]}
-        />
-      </View>
-    </View>
-  );
-}
-
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1 },
-
-  // Header
-  hero: {
-    paddingHorizontal: 20,
-    paddingBottom: 28,
-    gap: 16,
-  },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.12)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroCenter: { alignItems: "center", gap: 8 },
-  heroIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroTitle: { fontSize: 26, fontWeight: "800", color: "#fff", letterSpacing: -0.5 },
-  heroSub: { fontSize: 14, color: "rgba(255,255,255,0.65)", textAlign: "center" },
-  currentBadge: {
+  header: { paddingBottom: 20, paddingHorizontal: 20 },
+  headerRow: { flexDirection: "row", alignItems: "center", marginBottom: 16 },
+  backBtn: { width: 36, alignItems: "flex-start" },
+  headerCenter: { flex: 1, alignItems: "center" },
+  headerTitle: { color: "#fff", fontSize: 18, fontWeight: "700" },
+  manageBtn: { width: 70, alignItems: "flex-end" },
+  manageBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  currentPlanRow: { alignItems: "flex-start" },
+  currentPlanBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    alignSelf: "center",
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 100,
-  },
-  currentDot: { width: 8, height: 8, borderRadius: 4 },
-  currentBadgeText: { fontSize: 13, color: "rgba(255,255,255,0.85)", fontWeight: "600" },
-
-  // Scroll
-  scroll: { padding: 16, gap: 14 },
-
-  // Usage card
-  usageCard: {
-    borderRadius: 18,
     borderWidth: 1,
-    padding: 18,
-    gap: 14,
+  },
+  currentPlanDot: { width: 8, height: 8, borderRadius: 4 },
+  currentPlanText: { color: "#fff", fontSize: 14, fontWeight: "600" },
+  statusTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 100 },
+  statusTagText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  content: { padding: 16, gap: 12 },
+  loadingWrap: { paddingVertical: 60, alignItems: "center" },
+  usageCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionLabel: {
     fontSize: 11,
     fontWeight: "700",
-    textTransform: "uppercase",
     letterSpacing: 0.8,
-  },
-  usageRow: { flexDirection: "row", alignItems: "center" },
-  usageDivider: { width: 1, height: 52, marginHorizontal: 16 },
-  usageStat: { flex: 1, gap: 6 },
-  usageStatHeader: { flexDirection: "row", alignItems: "center", gap: 5 },
-  usageStatLabel: { fontSize: 12, fontWeight: "500" },
-  usageStatValue: { fontSize: 20, fontWeight: "800" },
-  usageBar: { height: 5, borderRadius: 3, overflow: "hidden" },
-  usageBarFill: { height: "100%", borderRadius: 3 },
-  limitNote: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 11,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  limitNoteText: { fontSize: 12, flex: 1, fontWeight: "500" },
-
-  plansLabel: {
-    fontSize: 11,
-    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginTop: 4,
-    marginLeft: 2,
   },
-
-  // Plan card
+  usageRow: { flexDirection: "row" },
+  usageDivider: { width: 1, marginHorizontal: 16 },
+  usageStat: { flex: 1, gap: 8 },
+  usageStatHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  usageLabel: { fontSize: 13, fontWeight: "500" },
+  usageCount: { fontSize: 13, fontWeight: "700" },
+  progressTrack: { height: 6, borderRadius: 100, overflow: "hidden" },
+  progressFill: { height: 6, borderRadius: 100 },
+  unlimitedText: { fontSize: 12, fontWeight: "600" },
   planCard: {
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: 16,
+    padding: 16,
     gap: 14,
-    position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
     overflow: "hidden",
   },
   popularBadge: {
     position: "absolute",
-    top: 16,
-    right: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 100,
+    top: 0,
+    left: 0,
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderBottomRightRadius: 12,
   },
-  popularBadgeText: { fontSize: 11, fontWeight: "700", color: "#fff" },
-  planHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    paddingRight: 80,
+  popularBadgeText: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
+  currentBadge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderBottomLeftRadius: 12,
   },
-  planName: { fontSize: 20, fontWeight: "800" },
-  planTagline: { fontSize: 12, marginTop: 3 },
-  planPriceBlock: { flexDirection: "row", alignItems: "flex-end", gap: 1 },
-  planPriceDollar: { fontSize: 18, fontWeight: "700", paddingBottom: 3 },
-  planPrice: { fontSize: 32, fontWeight: "900", letterSpacing: -1 },
-  planPricePer: { fontSize: 13, fontWeight: "500", paddingBottom: 5 },
-  planDivider: { height: 1 },
-  featuresList: { gap: 10 },
+  currentBadgeText: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
+  planTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginTop: 4 },
+  planTopLeft: { flex: 1 },
+  planName: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
+  planDesc: { fontSize: 12, marginTop: 3 },
+  priceWrap: { alignItems: "flex-end" },
+  priceAmount: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+  pricePeriod: { fontSize: 12, marginTop: 2, textAlign: "right" },
+  featureDivider: { height: 1 },
+  featureList: { gap: 9 },
   featureRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  featureIcon: {
-    width: 22,
-    height: 22,
-    borderRadius: 7,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  featureLabel: { fontSize: 14, flex: 1 },
-
-  // CTA buttons
-  currentPlanBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  currentPlanBtnText: { fontSize: 15, fontWeight: "700" },
+  featureCheck: { width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  featureText: { fontSize: 13, fontWeight: "500", flex: 1 },
   upgradeBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 14,
-    borderRadius: 14,
+    paddingVertical: 13,
+    borderRadius: 12,
   },
-  upgradeBtnText: { fontSize: 15, fontWeight: "700" },
-  comingSoonPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 100,
-    marginLeft: 2,
+  upgradeBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  managePlanBtn: {
+    paddingVertical: 11,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
   },
-  comingSoonPillText: { fontSize: 10, fontWeight: "800" },
-
-  // Manage billing row
-  manageBtn: {
+  managePlanBtnText: { fontSize: 12, fontWeight: "500" },
+  activeBtn: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    paddingVertical: 11,
+    borderRadius: 10,
+  },
+  activeBtnText: { fontSize: 14, fontWeight: "700" },
+  noteCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: 10,
-    padding: 16,
-    borderRadius: 14,
+    padding: 14,
+    borderRadius: 12,
     borderWidth: 1,
-  },
-  manageBtnText: { flex: 1, fontSize: 14, fontWeight: "500" },
-
-  legalNote: {
-    fontSize: 11,
-    textAlign: "center",
-    lineHeight: 16,
-    paddingHorizontal: 12,
-  },
-
-  // Coming soon modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  comingSoonCard: {
-    width: "100%",
-    maxWidth: 360,
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 28,
-    alignItems: "center",
-    gap: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.18,
-    shadowRadius: 32,
-    elevation: 12,
-  },
-  comingSoonIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  comingSoonTitle: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
-  comingSoonBody: {
-    fontSize: 15,
-    textAlign: "center",
-    lineHeight: 22,
-    maxWidth: 280,
-  },
-  comingSoonBtn: {
-    width: "100%",
-    paddingVertical: 15,
-    borderRadius: 14,
-    alignItems: "center",
     marginTop: 4,
   },
-  comingSoonBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  noteText: { fontSize: 12, flex: 1, lineHeight: 18 },
 });

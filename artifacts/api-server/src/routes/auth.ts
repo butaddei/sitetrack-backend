@@ -142,6 +142,8 @@ router.post("/login", async (req, res) => {
         position: user.position,
         avatarUrl: user.avatarUrl,
         hourlyRate: user.hourlyRate,
+        plan: company?.plan ?? "free",
+        planStatus: company?.planStatus ?? "active",
       },
     });
   } catch (err) {
@@ -183,6 +185,8 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
       position: user.position,
       avatarUrl: user.avatarUrl,
       hourlyRate: user.hourlyRate,
+      plan: company?.plan ?? "free",
+      planStatus: company?.planStatus ?? "active",
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch user" });

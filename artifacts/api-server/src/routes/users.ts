@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { eq, and } from "drizzle-orm";
 import { db, users } from "@workspace/db";
 import { requireAuth, requireAdmin, type AuthRequest } from "../middlewares/auth.js";
+import { checkPlanLimit } from "../middlewares/planLimits.js";
 
 const router = Router();
 
@@ -72,7 +73,7 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
 });
 
 // POST /api/users — create employee (admin only)
-router.post("/", requireAdmin, async (req: AuthRequest, res) => {
+router.post("/", requireAdmin, checkPlanLimit("employees"), async (req: AuthRequest, res) => {
   try {
     const { name, email, phone, role, hourlyRate, position, startDate, password } = req.body as {
       name: string;

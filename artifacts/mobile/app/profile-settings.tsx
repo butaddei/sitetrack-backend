@@ -345,7 +345,7 @@ export default function ProfileSettingsScreen() {
                   Subscription & Billing
                 </Text>
                 <Text style={[styles.billingRowSub, { color: colors.mutedForeground }]}>
-                  Free plan · Upgrade anytime
+                  {user?.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : "Free"} plan · Upgrade anytime
                 </Text>
               </View>
               <Feather name="chevron-right" size={16} color={colors.mutedForeground} />

@@ -77,17 +77,31 @@ pnpm workspace monorepo using TypeScript. PaintPro is a multi-tenant SaaS mobile
 
 ## Stripe Billing (T001–T007)
 
-**Status**: Pending credentials — Replit Stripe connector was dismissed. Billing will be wired via direct API keys stored as secrets.
+**Status**: Fully implemented — waiting on Stripe secrets to activate.
 
-**Required secrets** (not yet set):
-- `STRIPE_SECRET_KEY` — from Stripe dashboard → Developers → API keys
-- `STRIPE_WEBHOOK_SECRET` — from Stripe dashboard → Webhooks (after creating endpoint)
+**Required secrets** (add in Replit Secrets panel):
+- `STRIPE_SECRET_KEY` — from Stripe dashboard → Developers → API keys (use `sk_test_...` for testing)
+- `STRIPE_WEBHOOK_SECRET` — from Stripe dashboard → Webhooks (after creating endpoint pointing to `/api/stripe/webhook`)
 
-**Plans**: Free ($0) · Pro ($29/mo) · Business ($79/mo)
+**Required env vars** (add once products are created in Stripe dashboard):
+- `STRIPE_PRO_PRICE_ID` — Price ID for Pro plan ($29/mo recurring)
+- `STRIPE_BUSINESS_PRICE_ID` — Price ID for Business plan ($79/mo recurring)
 
-**Mobile stub**: `artifacts/mobile/app/(tabs)/billing.tsx` has `STRIPE_ENABLED = false` — flip to `true` once wired.
+**Plans**: Free ($0, 3 projects/3 employees) · Pro ($29/mo, 15/15) · Business ($79/mo, unlimited)
 
-**Do NOT use `proposeIntegration` for Stripe** — user dismissed the OAuth flow. Use `STRIPE_SECRET_KEY` secret directly in `artifacts/api-server/`.
+**Mobile**: `artifacts/mobile/app/billing.tsx` — full plans UI, usage stats, upgrade buttons, Stripe Checkout + portal
+
+**API routes**:
+- `GET /api/stripe/plan` — get current plan
+- `POST /api/stripe/checkout` — create Stripe Checkout session
+- `POST /api/stripe/portal` — open Stripe Billing Portal
+- `POST /api/stripe/webhook` — Stripe webhook handler
+
+**Plan limits enforced**: Free max 3 projects & 3 employees; Pro max 15; Business unlimited. Enforced via `checkPlanLimit()` middleware on POST /api/projects and POST /api/users.
+
+**Webhook events handled**: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+
+**Do NOT use `proposeIntegration` for Stripe** — use `STRIPE_SECRET_KEY` secret directly in `artifacts/api-server/`.
 
 ## Key Commands
 

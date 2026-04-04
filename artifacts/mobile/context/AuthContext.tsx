@@ -4,6 +4,9 @@ import { apiFetch, storeToken, clearToken, getStoredToken, ApiError } from "@/li
 
 export type UserRole = "admin" | "employee";
 
+export type PlanType = "free" | "pro" | "business";
+export type PlanStatus = "active" | "inactive" | "trialing" | "past_due" | "canceled";
+
 export interface AuthUser {
   id: string;
   name: string;
@@ -18,6 +21,8 @@ export interface AuthUser {
   primaryColor: string;
   secondaryColor: string;
   logoUrl?: string | null;
+  plan?: PlanType;
+  planStatus?: PlanStatus;
 }
 
 interface LoginResponse {
