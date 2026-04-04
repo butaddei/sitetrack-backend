@@ -30,6 +30,14 @@ function greeting() {
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
+// ─── Status accent colors ─────────────────────────────────────────────────────
+const STATUS_ACCENT: Record<string, string> = {
+  in_progress: "#f97316",
+  completed: "#16a34a",
+  pending: "#d97706",
+  on_hold: "#94a3b8",
+};
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function DashboardScreen() {
   const colors = useColors();
@@ -54,16 +62,23 @@ export default function DashboardScreen() {
   const profitPositive = profit >= 0;
 
   // ── Counts ──
-  const activeProjects = projects.filter((p) => p.status === "in_progress");
-  const completedProjects = projects.filter((p) => p.status === "completed");
-  const activeEmployees = employees.filter((e) => e.role === "employee" && e.isActive);
-  const onSiteLogs = timeLogs.filter((l) => !l.clockOut);
+  const activeProjects = projects.filter((p) => p.status === "in_progress").length;
+  const completedProjects = projects.filter((p) => p.status === "completed").length;
+  const activeEmployees = employees.filter((e) => e.role === "employee" && e.isActive).length;
+  const onSite = timeLogs.filter((l) => !l.clockOut).length;
 
-  // ── Project list for dashboard (sorted: in_progress first, then pending, completed last) ──
+  // ── Sorted projects (in_progress first) ──
   const sortedProjects = [...projects].sort((a, b) => {
-    const order: Record<string, number> = { in_progress: 0, pending: 1, completed: 2 };
-    return (order[a.status] ?? 3) - (order[b.status] ?? 3);
+    const order: Record<string, number> = { in_progress: 0, pending: 1, on_hold: 2, completed: 3 };
+    return (order[a.status] ?? 9) - (order[b.status] ?? 9);
   });
+
+  const initials = (user?.name ?? "?")
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
 
   if (isLoading) {
     return (
@@ -73,29 +88,28 @@ export default function DashboardScreen() {
     );
   }
 
-  const initials = (user?.name ?? "?")
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  const heroGradient: [string, string] = profitPositive
+    ? ["#15803d", "#16a34a"]
+    : ["#b91c1c", "#dc2626"];
 
   return (
     <ScrollView
       style={[styles.root, { backgroundColor: colors.background }]}
-      contentContainerStyle={{ paddingTop: topPad, paddingBottom: botPad + 40 }}
+      contentContainerStyle={{ paddingTop: topPad, paddingBottom: botPad + 48 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* ── Top header bar ── */}
-      <View style={styles.topBar}>
-        <View>
-          <Text style={[styles.greetText, { color: colors.mutedForeground }]}>{greeting()}</Text>
+      {/* ─── Header ─────────────────────────────────────────────────────── */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={[styles.greetText, { color: colors.mutedForeground }]}>
+            {greeting()}
+          </Text>
           <Text style={[styles.nameText, { color: colors.foreground }]}>
             {user?.name?.split(" ")[0]}
           </Text>
         </View>
         <TouchableOpacity
-          style={[styles.avatarBtn, { backgroundColor: colors.primary }]}
+          style={[styles.avatar, { backgroundColor: colors.primary }]}
           onPress={() => router.push("/profile-settings")}
           activeOpacity={0.8}
         >
@@ -104,119 +118,133 @@ export default function DashboardScreen() {
       </View>
 
       <View style={styles.body}>
-        {/* ── PROFIT HERO ── */}
+        {/* ─── Profit Hero ─────────────────────────────────────────────── */}
         <LinearGradient
-          colors={
-            profitPositive
-              ? [colors.success, colors.success + "CC"]
-              : [colors.destructive, colors.destructive + "CC"]
-          }
+          colors={heroGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.profitHero}
+          style={styles.profitCard}
         >
-          {/* Decorative orb */}
+          {/* decorative circle */}
           <View style={styles.heroOrb} />
+          <View style={styles.heroOrbSmall} />
 
-          <View style={styles.profitTopRow}>
+          <View style={styles.profitHeader}>
             <View style={styles.profitLabelRow}>
-              <Feather name="trending-up" size={14} color="rgba(255,255,255,0.7)" />
-              <Text style={styles.profitLabel}>Net Profit</Text>
+              <Feather
+                name={profitPositive ? "trending-up" : "trending-down"}
+                size={14}
+                color="rgba(255,255,255,0.75)"
+              />
+              <Text style={styles.profitLabelText}>Net Profit</Text>
             </View>
-            <View style={styles.marginBadge}>
-              <Text style={styles.marginBadgeText}>{margin.toFixed(1)}% margin</Text>
+            <View style={styles.marginPill}>
+              <Text style={styles.marginPillText}>
+                {profitPositive ? "+" : ""}{margin.toFixed(1)}% margin
+              </Text>
             </View>
           </View>
 
           <Text style={styles.profitAmount}>
             {profit < 0 ? "-" : ""}{fmt(Math.abs(profit))}
           </Text>
-          <Text style={styles.profitSub}>across all {projects.length} project{projects.length !== 1 ? "s" : ""}</Text>
+
+          <View style={styles.profitFooter}>
+            <Text style={styles.profitSub}>
+              across {projects.length} project{projects.length !== 1 ? "s" : ""}
+            </Text>
+          </View>
         </LinearGradient>
 
-        {/* ── Revenue & Cost ── */}
+        {/* ─── Revenue + Cost ──────────────────────────────────────────── */}
         <View style={styles.metricsRow}>
           <MetricCard
-            icon="arrow-up-circle"
             label="Total Revenue"
             value={fmt(totalRevenue)}
+            icon="arrow-up-circle"
             iconColor={colors.primary}
-            iconBg={colors.primary + "15"}
+            iconBg={colors.primary + "16"}
             colors={colors}
           />
           <MetricCard
-            icon="arrow-down-circle"
             label="Total Cost"
             value={fmt(totalCost)}
+            icon="arrow-down-circle"
             iconColor={colors.warning}
             iconBg={colors.warning + "18"}
             colors={colors}
           />
         </View>
 
-        {/* ── Status counts ── */}
-        <View style={[styles.statsStrip, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <StatPill icon="briefcase" value={activeProjects.length} label="Active" color={colors.primary} colors={colors} />
-          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-          <StatPill icon="check-circle" value={completedProjects.length} label="Done" color={colors.success} colors={colors} />
-          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-          <StatPill icon="users" value={activeEmployees.length} label="Team" color={colors.foreground} colors={colors} />
-          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
-          <StatPill
-            icon="radio"
-            value={onSiteLogs.length}
+        {/* ─── Activity strip ──────────────────────────────────────────── */}
+        <View style={[styles.activityStrip, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <ActivityStat value={activeProjects} label="Active" color={colors.primary} />
+          <View style={[styles.stripDivider, { backgroundColor: colors.border }]} />
+          <ActivityStat value={completedProjects} label="Done" color={colors.success} />
+          <View style={[styles.stripDivider, { backgroundColor: colors.border }]} />
+          <ActivityStat value={activeEmployees} label="Team" color={colors.foreground} />
+          <View style={[styles.stripDivider, { backgroundColor: colors.border }]} />
+          <ActivityStat
+            value={onSite}
             label="On Site"
-            color={onSiteLogs.length > 0 ? colors.success : colors.mutedForeground}
-            colors={colors}
-            pulse={onSiteLogs.length > 0}
+            color={onSite > 0 ? colors.success : colors.mutedForeground}
+            pulsing={onSite > 0}
           />
         </View>
 
-        {/* ── Quick Actions ── */}
+        {/* ─── Quick Actions ───────────────────────────────────────────── */}
         <View style={styles.quickActions}>
           <TouchableOpacity
-            style={[styles.qaBtn, { backgroundColor: colors.primary }]}
+            style={[styles.actionBtn, { backgroundColor: colors.primary }]}
             onPress={() => router.push("/(tabs)/projects")}
             activeOpacity={0.85}
           >
-            <Feather name="plus" size={16} color="#fff" />
-            <Text style={styles.qaBtnText}>Create Project</Text>
+            <View style={styles.actionBtnIcon}>
+              <Feather name="plus" size={16} color="#fff" />
+            </View>
+            <Text style={styles.actionBtnLabel}>Create Project</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.qaBtn, styles.qaBtnOutline, { borderColor: colors.border, backgroundColor: colors.card }]}
+            style={[styles.actionBtn, styles.actionBtnSecondary, {
+              backgroundColor: colors.card,
+              borderColor: colors.border,
+            }]}
             onPress={() => router.push("/(tabs)/employees")}
             activeOpacity={0.85}
           >
-            <Feather name="user-plus" size={16} color={colors.foreground} />
-            <Text style={[styles.qaBtnText, { color: colors.foreground }]}>Add Employee</Text>
+            <View style={[styles.actionBtnIcon, { backgroundColor: colors.muted }]}>
+              <Feather name="user-plus" size={15} color={colors.foreground} />
+            </View>
+            <Text style={[styles.actionBtnLabel, { color: colors.foreground }]}>Add Employee</Text>
           </TouchableOpacity>
         </View>
 
-        {/* ── Projects list ── */}
+        {/* ─── Projects Section ────────────────────────────────────────── */}
         <View style={styles.section}>
-          <View style={styles.sectionHead}>
+          <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Projects</Text>
             <TouchableOpacity onPress={() => router.push("/(tabs)/projects")} activeOpacity={0.7}>
-              <Text style={[styles.sectionLink, { color: colors.primary }]}>View all</Text>
+              <Text style={[styles.sectionLink, { color: colors.primary }]}>View all →</Text>
             </TouchableOpacity>
           </View>
 
           {sortedProjects.length === 0 ? (
-            <View style={[styles.emptyBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Feather name="folder" size={28} color={colors.mutedForeground} />
+            <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={[styles.emptyIconWrap, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+                <Feather name="folder" size={26} color={colors.mutedForeground} />
+              </View>
               <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No projects yet</Text>
               <Text style={[styles.emptySub, { color: colors.mutedForeground }]}>
-                Tap "Create Project" to get started
+                Tap "Create Project" above to get started
               </Text>
             </View>
           ) : (
-            <View style={[styles.projectsList, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.projectsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
               {sortedProjects.map((p, i) => (
                 <ProjectRow
                   key={p.id}
                   project={p}
-                  labor={getProjectLaborCost(p.id)}
-                  expense={getProjectExpenses(p.id)}
+                  profit={(p.totalValue ?? 0) - getProjectLaborCost(p.id) - getProjectExpenses(p.id)}
                   isLast={i === sortedProjects.length - 1}
                   onPress={() => router.push({ pathname: "/project/[id]", params: { id: p.id } })}
                   colors={colors}
@@ -230,25 +258,16 @@ export default function DashboardScreen() {
   );
 }
 
-// ─── Metric card ──────────────────────────────────────────────────────────────
+// ─── Metric Card ──────────────────────────────────────────────────────────────
 function MetricCard({
-  icon,
-  label,
-  value,
-  iconColor,
-  iconBg,
-  colors,
+  label, value, icon, iconColor, iconBg, colors,
 }: {
-  icon: string;
-  label: string;
-  value: string;
-  iconColor: string;
-  iconBg: string;
-  colors: any;
+  label: string; value: string; icon: string;
+  iconColor: string; iconBg: string; colors: any;
 }) {
   return (
     <View style={[styles.metricCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={[styles.metricIcon, { backgroundColor: iconBg }]}>
+      <View style={[styles.metricIconWrap, { backgroundColor: iconBg }]}>
         <Feather name={icon as any} size={18} color={iconColor} />
       </View>
       <Text style={[styles.metricValue, { color: colors.foreground }]}>{value}</Text>
@@ -257,88 +276,56 @@ function MetricCard({
   );
 }
 
-// ─── Stat pill ────────────────────────────────────────────────────────────────
-function StatPill({
-  icon,
-  value,
-  label,
-  color,
-  colors,
-  pulse,
+// ─── Activity Stat ────────────────────────────────────────────────────────────
+function ActivityStat({
+  value, label, color, pulsing,
 }: {
-  icon: string;
-  value: number;
-  label: string;
-  color: string;
-  colors: any;
-  pulse?: boolean;
+  value: number; label: string; color: string; pulsing?: boolean;
 }) {
   return (
-    <View style={styles.statPill}>
-      <View style={styles.statIconRow}>
-        {pulse && value > 0 && <View style={[styles.pulseDot, { backgroundColor: color }]} />}
-        <Feather name={icon as any} size={13} color={color} />
-      </View>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{label}</Text>
+    <View style={styles.activityStat}>
+      {pulsing ? (
+        <View style={styles.pulseRow}>
+          <View style={[styles.pulseDot, { backgroundColor: color }]} />
+          <Text style={[styles.activityValue, { color }]}>{value}</Text>
+        </View>
+      ) : (
+        <Text style={[styles.activityValue, { color }]}>{value}</Text>
+      )}
+      <Text style={[styles.activityLabel, { color }]}>{label}</Text>
     </View>
   );
 }
 
-// ─── Project row ──────────────────────────────────────────────────────────────
-const STATUS_ACCENT: Record<string, string> = {
-  in_progress: "#f97316",
-  completed: "#16a34a",
-  pending: "#d97706",
-  on_hold: "#94a3b8",
-};
-
+// ─── Project Row ──────────────────────────────────────────────────────────────
 function ProjectRow({
-  project,
-  labor,
-  expense,
-  isLast,
-  onPress,
-  colors,
+  project, profit, isLast, onPress, colors,
 }: {
-  project: Project;
-  labor: number;
-  expense: number;
-  isLast: boolean;
-  onPress: () => void;
-  colors: any;
+  project: Project; profit: number; isLast: boolean;
+  onPress: () => void; colors: any;
 }) {
-  const totalCost = labor + expense;
-  const profit = (project.totalValue ?? 0) - totalCost;
-  const profitPositive = profit >= 0;
   const accentColor = STATUS_ACCENT[project.status] ?? colors.mutedForeground;
+  const profitPositive = profit >= 0;
 
   return (
     <TouchableOpacity
-      style={[styles.projRow, !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border }]}
+      style={[
+        styles.projRow,
+        !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border },
+      ]}
       onPress={onPress}
-      activeOpacity={0.78}
+      activeOpacity={0.75}
     >
-      <View style={[styles.projStatusLine, { backgroundColor: accentColor }]} />
-      <View style={styles.projRowLeft}>
-        <Text style={[styles.projRowName, { color: colors.foreground }]} numberOfLines={1}>
+      <View style={[styles.projAccent, { backgroundColor: accentColor }]} />
+      <View style={styles.projName}>
+        <Text style={[styles.projNameText, { color: colors.foreground }]} numberOfLines={1}>
           {project.name}
         </Text>
-        {project.address ? (
-          <Text style={[styles.projRowAddr, { color: colors.mutedForeground }]} numberOfLines={1}>
-            {project.address}
-          </Text>
-        ) : null}
       </View>
-      <View style={styles.projRowRight}>
+      <View style={styles.projMeta}>
         <StatusBadge status={project.status} />
-        <Text
-          style={[
-            styles.projRowProfit,
-            { color: profitPositive ? colors.success : colors.destructive },
-          ]}
-        >
-          {profit < 0 ? "-" : "+"}{fmt(Math.abs(profit))}
+        <Text style={[styles.projProfit, { color: profitPositive ? colors.success : colors.destructive }]}>
+          {profitPositive ? "+" : "-"}{fmt(Math.abs(profit))}
         </Text>
         <Feather name="chevron-right" size={14} color={colors.mutedForeground} />
       </View>
@@ -351,184 +338,229 @@ const styles = StyleSheet.create({
   root: { flex: 1 },
   centered: { alignItems: "center", justifyContent: "center" },
 
-  // Top bar
-  topBar: {
+  // Header
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingBottom: 8,
+    paddingTop: 12,
   },
+  headerLeft: { gap: 1 },
   greetText: { fontSize: 13, fontWeight: "500" },
-  nameText: { fontSize: 26, fontWeight: "800", letterSpacing: -0.5, marginTop: 1 },
-  avatarBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  nameText: { fontSize: 28, fontWeight: "800", letterSpacing: -0.6, marginTop: 1 },
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { color: "#fff", fontWeight: "700", fontSize: 15 },
+  avatarText: { color: "#fff", fontWeight: "800", fontSize: 15 },
 
   body: { paddingHorizontal: 16, gap: 14 },
 
   // Profit hero
-  profitHero: {
+  profitCard: {
     borderRadius: 24,
     padding: 24,
-    gap: 8,
     overflow: "hidden",
     position: "relative",
+    gap: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
   },
   heroOrb: {
     position: "absolute",
-    width: 200,
-    height: 200,
-    borderRadius: 100,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
     backgroundColor: "rgba(255,255,255,0.07)",
-    top: -60,
-    right: -60,
+    top: -70,
+    right: -50,
   },
-  profitTopRow: {
+  heroOrbSmall: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    bottom: -30,
+    left: 20,
+  },
+  profitHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
   profitLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  profitLabel: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.75)" },
-  marginBadge: {
-    backgroundColor: "rgba(255,255,255,0.18)",
+  profitLabelText: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.75)" },
+  marginPill: {
+    backgroundColor: "rgba(255,255,255,0.2)",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 100,
   },
-  marginBadgeText: { fontSize: 12, fontWeight: "700", color: "#fff" },
+  marginPillText: { fontSize: 12, fontWeight: "700", color: "#fff" },
   profitAmount: {
-    fontSize: 52,
+    fontSize: 56,
     fontWeight: "900",
     color: "#fff",
-    letterSpacing: -2,
+    letterSpacing: -2.5,
     marginTop: 4,
   },
+  profitFooter: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 },
   profitSub: { fontSize: 13, color: "rgba(255,255,255,0.55)", fontWeight: "500" },
 
-  // Metrics row
+  // Metric cards
   metricsRow: { flexDirection: "row", gap: 12 },
   metricCard: {
     flex: 1,
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     padding: 18,
-    gap: 8,
+    gap: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
-  metricIcon: {
-    width: 38,
-    height: 38,
+  metricIconWrap: {
+    width: 40,
+    height: 40,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
-  metricValue: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+  metricValue: { fontSize: 26, fontWeight: "800", letterSpacing: -0.5 },
   metricLabel: { fontSize: 12, fontWeight: "500" },
 
-  // Stats strip
-  statsStrip: {
+  // Activity strip
+  activityStrip: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
-    paddingVertical: 14,
+    paddingVertical: 18,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 8,
     elevation: 2,
   },
-  statPill: { flex: 1, alignItems: "center", gap: 3 },
-  statIconRow: { flexDirection: "row", alignItems: "center", gap: 3 },
-  pulseDot: { width: 6, height: 6, borderRadius: 3 },
-  statValue: { fontSize: 22, fontWeight: "800" },
-  statLabel: { fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.4 },
-  statDivider: { width: 1, height: 36 },
+  activityStat: { flex: 1, alignItems: "center", gap: 4 },
+  pulseRow: { flexDirection: "row", alignItems: "center", gap: 5 },
+  pulseDot: { width: 7, height: 7, borderRadius: 4 },
+  activityValue: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+  activityLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    opacity: 0.65,
+  },
+  stripDivider: { width: 1, height: 40 },
 
   // Quick actions
   quickActions: { flexDirection: "row", gap: 10 },
-  qaBtn: {
+  actionBtn: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 7,
-    paddingVertical: 14,
-    borderRadius: 14,
+    gap: 10,
+    paddingVertical: 15,
+    borderRadius: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
   },
-  qaBtnOutline: { borderWidth: 1.5, shadowOpacity: 0 },
-  qaBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+  actionBtnSecondary: {
+    borderWidth: 1.5,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  actionBtnIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionBtnLabel: { color: "#fff", fontSize: 14, fontWeight: "700" },
 
   // Section
-  section: { gap: 10 },
-  sectionHead: {
+  section: { gap: 12 },
+  sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 2,
   },
-  sectionTitle: { fontSize: 17, fontWeight: "800" },
+  sectionTitle: { fontSize: 18, fontWeight: "800", letterSpacing: -0.3 },
   sectionLink: { fontSize: 13, fontWeight: "600" },
 
-  // Empty state
-  emptyBox: {
+  // Empty card
+  emptyCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 36,
+    alignItems: "center",
+    gap: 10,
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
     borderRadius: 18,
     borderWidth: 1,
-    padding: 32,
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    marginBottom: 4,
   },
-  emptyTitle: { fontSize: 16, fontWeight: "700", marginTop: 4 },
-  emptySub: { fontSize: 13, textAlign: "center" },
+  emptyTitle: { fontSize: 16, fontWeight: "700" },
+  emptySub: { fontSize: 13, textAlign: "center", lineHeight: 19 },
 
-  // Projects list
-  projectsList: {
-    borderRadius: 18,
+  // Projects card
+  projectsCard: {
+    borderRadius: 20,
     borderWidth: 1,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     elevation: 2,
   },
   projRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    gap: 12,
-    overflow: "hidden",
+    paddingVertical: 15,
+    paddingRight: 16,
+    paddingLeft: 0,
+    gap: 13,
   },
-  projStatusLine: {
-    width: 3,
+  projAccent: {
+    width: 4,
     alignSelf: "stretch",
-    borderRadius: 2,
-    marginRight: 0,
+    borderTopRightRadius: 2,
+    borderBottomRightRadius: 2,
+    marginLeft: 14,
   },
-  projRowLeft: { flex: 1, gap: 3 },
-  projRowName: { fontSize: 15, fontWeight: "700" },
-  projRowAddr: { fontSize: 12 },
-  projRowRight: {
+  projName: { flex: 1, minWidth: 0 },
+  projNameText: { fontSize: 15, fontWeight: "700", letterSpacing: -0.2 },
+  projMeta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+    flexShrink: 0,
   },
-  projRowProfit: { fontSize: 14, fontWeight: "800", minWidth: 56, textAlign: "right" },
+  projProfit: { fontSize: 14, fontWeight: "800", minWidth: 54, textAlign: "right" },
 });
