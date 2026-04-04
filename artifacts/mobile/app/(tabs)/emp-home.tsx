@@ -9,6 +9,7 @@ import {
   FlatList,
   Modal,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -191,7 +192,13 @@ export default function EmployeeHomeScreen() {
   const btnDisabled = (noProjects && !isWorking) || clockingIn || clockingOut;
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <ScrollView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      bounces={true}
+    >
 
       {/* ─── Header ──────────────────────────────────────────────────────── */}
       <View style={[styles.header, { paddingTop: topPad + 8 }]}>
@@ -454,13 +461,16 @@ export default function EmployeeHomeScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  // flexGrow: 1 lets the content fill the full screen on large devices,
+  // while still allowing overflow + scroll on small iPhones.
+  scrollContent: { flexGrow: 1 },
 
   // Header
   header: {
