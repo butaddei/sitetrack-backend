@@ -17,6 +17,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/context/AuthContext";
 import { DataProvider } from "@/context/DataContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { ToastProvider } from "@/context/ToastContext";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -65,7 +66,9 @@ export default function RootLayout() {
               <AuthProvider>
                 <ThemeProvider>
                   <DataProvider>
-                    <RootLayoutNav />
+                    <ToastProvider>
+                      <RootLayoutNav />
+                    </ToastProvider>
                   </DataProvider>
                 </ThemeProvider>
               </AuthProvider>

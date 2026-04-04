@@ -21,6 +21,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAuth } from "@/context/AuthContext";
 import { Project, ProjectStatus, useData } from "@/context/DataContext";
+import { useToast } from "@/context/ToastContext";
 import { useColors } from "@/hooks/useColors";
 
 const STATUS_OPTIONS: ProjectStatus[] = ["pending", "in_progress", "completed", "on_hold"];
@@ -37,6 +38,7 @@ export default function ProjectsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { projects, employees, addProject, getProjectLaborCost, getProjectExpenses } = useData();
+  const { showToast } = useToast();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -153,6 +155,7 @@ export default function ProjectsScreen() {
           onSave={async (data) => {
             await addProject(data);
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            showToast("success", "Project created successfully");
             setShowAdd(false);
           }}
           employees={employees.filter((e) => e.role === "employee" && e.isActive)}
@@ -270,11 +273,14 @@ function AddProjectModal({
       return;
     }
     setSaving(true);
+    setError("");
     try {
       await onSave({
         ...form,
         totalValue: parseFloat(form.totalValue) || 0,
       });
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to create project. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -345,7 +351,10 @@ function AddProjectModal({
           ))}
 
           {error ? (
-            <Text style={[styles.errorText, { color: colors.destructive }]}>{error}</Text>
+            <View style={[styles.errorBox, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "35" }]}>
+              <Feather name="alert-circle" size={14} color={colors.destructive} />
+              <Text style={[styles.errorBoxText, { color: colors.destructive }]}>{error}</Text>
+            </View>
           ) : null}
           <PrimaryButton label="Create Project" onPress={handleSave} loading={saving} />
         </ScrollView>
@@ -413,5 +422,13 @@ const styles = StyleSheet.create({
   },
   empName: { flex: 1, fontSize: 14, fontWeight: "600" },
   empRate: { fontSize: 13 },
-  errorText: { fontSize: 13 },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  errorBoxText: { fontSize: 13, flex: 1, fontWeight: "500" },
 });

@@ -19,6 +19,7 @@ import { InputField } from "@/components/InputField";
 import { PrimaryButton } from "@/components/PrimaryButton";
 import { useAuth } from "@/context/AuthContext";
 import { Employee, useData } from "@/context/DataContext";
+import { useToast } from "@/context/ToastContext";
 import { useColors } from "@/hooks/useColors";
 
 export default function EmployeesScreen() {
@@ -26,6 +27,7 @@ export default function EmployeesScreen() {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { employees, addEmployee, timeLogs, getEmployeeTotalHours } = useData();
+  const { showToast } = useToast();
 
   const [showAdd, setShowAdd] = useState(false);
 
@@ -101,6 +103,7 @@ export default function EmployeesScreen() {
           onSave={async (data) => {
             await addEmployee(data);
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            showToast("success", "Employee added successfully");
             setShowAdd(false);
           }}
         />
@@ -204,8 +207,11 @@ function AddEmployeeModal({
       return;
     }
     setSaving(true);
+    setError("");
     try {
       await onSave({ ...form, hourlyRate: parseFloat(form.hourlyRate) || 0 });
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to add employee. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -237,7 +243,10 @@ function AddEmployeeModal({
             Default password: employee123
           </Text>
           {error ? (
-            <Text style={[{ color: colors.destructive, fontSize: 13 }]}>{error}</Text>
+            <View style={[styles.errorBox, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "35" }]}>
+              <Feather name="alert-circle" size={14} color={colors.destructive} />
+              <Text style={[styles.errorBoxText, { color: colors.destructive }]}>{error}</Text>
+            </View>
           ) : null}
           <PrimaryButton label="Add Employee" onPress={handleSave} loading={saving} />
         </ScrollView>
@@ -316,4 +325,13 @@ const styles = StyleSheet.create({
   modalTitle: { fontSize: 18, fontWeight: "700" },
   modalContent: { padding: 20, gap: 14 },
   note: { fontSize: 12, fontStyle: "italic" },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  errorBoxText: { fontSize: 13, flex: 1, fontWeight: "500" },
 });

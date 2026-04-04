@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -22,6 +23,7 @@ import { PrimaryButton } from "@/components/PrimaryButton";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useAuth } from "@/context/AuthContext";
 import { Expense, ProjectStatus, useData } from "@/context/DataContext";
+import { useToast } from "@/context/ToastContext";
 import { useColors } from "@/hooks/useColors";
 
 const STATUS_OPTIONS: ProjectStatus[] = ["pending", "in_progress", "completed", "on_hold"];
@@ -40,6 +42,7 @@ export default function ProjectDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const {
     projects,
     employees,
@@ -60,6 +63,8 @@ export default function ProjectDetailScreen() {
   const [activeTab, setActiveTab] = useState<"info" | "finances" | "timelog" | "expenses">("info");
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   if (!project) {
     return (
@@ -94,8 +99,14 @@ export default function ProjectDetailScreen() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            await deleteProject(project.id);
-            router.back();
+            setDeleting(true);
+            try {
+              await deleteProject(project.id);
+              router.back();
+            } catch {
+              setDeleting(false);
+              showToast("error", "Failed to delete project");
+            }
           },
         },
       ]
@@ -103,9 +114,18 @@ export default function ProjectDetailScreen() {
   };
 
   const handleStatusChange = async (status: ProjectStatus) => {
-    await updateProject(project.id, { status });
-    setShowStatusPicker(false);
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (updatingStatus) return;
+    setUpdatingStatus(true);
+    try {
+      await updateProject(project.id, { status });
+      setShowStatusPicker(false);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showToast("success", "Status updated");
+    } catch {
+      showToast("error", "Failed to update status");
+    } finally {
+      setUpdatingStatus(false);
+    }
   };
 
   return (
@@ -118,8 +138,12 @@ export default function ProjectDetailScreen() {
           {project.name}
         </Text>
         {isAdmin ? (
-          <TouchableOpacity onPress={handleDelete}>
-            <Feather name="trash-2" size={20} color="rgba(255,255,255,0.7)" />
+          <TouchableOpacity onPress={handleDelete} disabled={deleting}>
+            {deleting ? (
+              <ActivityIndicator size="small" color="rgba(255,255,255,0.7)" />
+            ) : (
+              <Feather name="trash-2" size={20} color="rgba(255,255,255,0.7)" />
+            )}
           </TouchableOpacity>
         ) : (
           <View style={{ width: 22 }} />
@@ -198,7 +222,24 @@ export default function ProjectDetailScreen() {
           <ExpensesTab
             expenses={projectExpenses}
             onAdd={() => setShowAddExpense(true)}
-            onDelete={deleteExpense}
+            onDelete={(expId: string) => {
+              Alert.alert("Delete Expense", "Remove this expense record?", [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: async () => {
+                    try {
+                      await deleteExpense(expId);
+                      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      showToast("success", "Expense removed");
+                    } catch {
+                      showToast("error", "Failed to delete expense");
+                    }
+                  },
+                },
+              ]);
+            }}
           />
         )}
       </ScrollView>
@@ -212,22 +253,31 @@ export default function ProjectDetailScreen() {
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>Change Status</Text>
             <View style={{ width: 22 }} />
           </View>
-          {STATUS_OPTIONS.map((s) => (
-            <TouchableOpacity
-              key={s}
-              style={[
-                styles.statusOption,
-                {
-                  backgroundColor: project.status === s ? colors.primary + "18" : colors.card,
-                  borderBottomColor: colors.border,
-                },
-              ]}
-              onPress={() => handleStatusChange(s)}
-            >
-              <StatusBadge status={s} />
-              {project.status === s ? <Feather name="check" size={18} color={colors.primary} /> : null}
-            </TouchableOpacity>
-          ))}
+          {updatingStatus ? (
+            <View style={{ padding: 32, alignItems: "center" }}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={{ color: colors.mutedForeground, marginTop: 12, fontSize: 14 }}>
+                Updating status…
+              </Text>
+            </View>
+          ) : (
+            STATUS_OPTIONS.map((s) => (
+              <TouchableOpacity
+                key={s}
+                style={[
+                  styles.statusOption,
+                  {
+                    backgroundColor: project.status === s ? colors.primary + "18" : colors.card,
+                    borderBottomColor: colors.border,
+                  },
+                ]}
+                onPress={() => handleStatusChange(s)}
+              >
+                <StatusBadge status={s} />
+                {project.status === s ? <Feather name="check" size={18} color={colors.primary} /> : null}
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </Modal>
 
@@ -237,6 +287,7 @@ export default function ProjectDetailScreen() {
           onSave={async (data) => {
             await addExpense({ ...data, projectId: project.id, createdBy: user?.id ?? "" });
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            showToast("success", "Expense added");
             setShowAddExpense(false);
           }}
         />
@@ -494,8 +545,11 @@ function AddExpenseModal({ onClose, onSave }: any) {
       return;
     }
     setSaving(true);
+    setError("");
     try {
       await onSave({ ...form, amount: parseFloat(form.amount) || 0 });
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to save expense. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -532,7 +586,12 @@ function AddExpenseModal({ onClose, onSave }: any) {
           <InputField label="Description *" value={form.description} onChangeText={(t) => set("description", t)} placeholder="e.g. 20 gallons of primer" />
           <InputField label="Amount ($) *" value={form.amount} onChangeText={(t) => set("amount", t)} keyboardType="numeric" placeholder="500" />
           <InputField label="Date" value={form.date} onChangeText={(t) => set("date", t)} placeholder="YYYY-MM-DD" />
-          {error ? <Text style={{ color: colors.destructive, fontSize: 13 }}>{error}</Text> : null}
+          {error ? (
+            <View style={[styles.errorBox, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "35" }]}>
+              <Feather name="alert-circle" size={14} color={colors.destructive} />
+              <Text style={[styles.errorBoxText, { color: colors.destructive }]}>{error}</Text>
+            </View>
+          ) : null}
           <PrimaryButton label="Add Expense" onPress={handleSave} loading={saving} />
         </ScrollView>
       </View>
@@ -595,4 +654,13 @@ const styles = StyleSheet.create({
   statusOption: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1 },
   catLabel: { fontSize: 13, fontWeight: "600" },
   catChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 100 },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  errorBoxText: { fontSize: 13, flex: 1, fontWeight: "500" },
 });
