@@ -129,17 +129,19 @@ router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
     const { id } = req.params;
     const { companyId, userId, role } = req.user!;
 
+    // Fetch note scoped to this company
     const [note] = await db
       .select()
       .from(employeeNotes)
-      .where(eq(employeeNotes.id, id))
+      .where(and(eq(employeeNotes.id, id), eq(employeeNotes.companyId, companyId)))
       .limit(1);
 
-    if (!note || note.companyId !== companyId) {
+    if (!note) {
       res.status(404).json({ error: "Note not found" });
       return;
     }
 
+    // Employees can only delete their own notes
     if (role === "employee" && note.userId !== userId) {
       res.status(403).json({ error: "Forbidden" });
       return;

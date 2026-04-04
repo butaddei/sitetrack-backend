@@ -3,6 +3,16 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db, projects, projectAssignments, projectPhotos, users } from "@workspace/db";
 import { requireAuth, requireAdmin, type AuthRequest } from "../middlewares/auth.js";
 
+/** Validates that all provided user IDs belong to the given company. Returns the valid IDs only. */
+async function filterValidEmployeeIds(companyId: string, ids: string[]): Promise<string[]> {
+  if (!ids.length) return [];
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(inArray(users.id, ids), eq(users.companyId, companyId)));
+  return rows.map((r) => r.id);
+}
+
 const router = Router();
 
 // GET /api/projects — list projects (admin: all, employee: assigned only)
@@ -203,9 +213,13 @@ router.post("/", requireAdmin, async (req: AuthRequest, res) => {
       })
       .returning();
 
-    if (assignedEmployeeIds?.length) {
+    const validEmployeeIds = assignedEmployeeIds?.length
+      ? await filterValidEmployeeIds(req.user!.companyId, assignedEmployeeIds)
+      : [];
+
+    if (validEmployeeIds.length) {
       await db.insert(projectAssignments).values(
-        assignedEmployeeIds.map((uid) => ({ projectId: project.id, userId: uid }))
+        validEmployeeIds.map((uid) => ({ projectId: project.id, userId: uid }))
       );
     }
 
@@ -222,7 +236,7 @@ router.post("/", requireAdmin, async (req: AuthRequest, res) => {
       notes: project.notes,
       startDate: project.startDate,
       expectedEndDate: project.expectedEndDate,
-      assignedEmployeeIds: assignedEmployeeIds ?? [],
+      assignedEmployeeIds: validEmployeeIds,
       photos: [],
       documents: [],
       createdAt: project.createdAt.toISOString(),
@@ -273,10 +287,13 @@ router.patch("/:id", requireAdmin, async (req: AuthRequest, res) => {
       .returning();
 
     if (assignedEmployeeIds !== undefined) {
+      const validIds = assignedEmployeeIds.length
+        ? await filterValidEmployeeIds(req.user!.companyId, assignedEmployeeIds)
+        : [];
       await db.delete(projectAssignments).where(eq(projectAssignments.projectId, id));
-      if (assignedEmployeeIds.length > 0) {
+      if (validIds.length > 0) {
         await db.insert(projectAssignments).values(
-          assignedEmployeeIds.map((uid: string) => ({ projectId: id, userId: uid }))
+          validIds.map((uid: string) => ({ projectId: id, userId: uid }))
         );
       }
     }

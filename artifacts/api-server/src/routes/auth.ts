@@ -1,5 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "crypto";
 import { eq, and } from "drizzle-orm";
 import { db, users, companies, passwordResetTokens } from "@workspace/db";
 import { signToken } from "../lib/auth.js";
@@ -207,7 +208,7 @@ router.patch("/profile", requireAuth, async (req: AuthRequest, res) => {
     const [updated] = await db
       .update(users)
       .set(updates)
-      .where(eq(users.id, req.user!.userId))
+      .where(and(eq(users.id, req.user!.userId), eq(users.companyId, req.user!.companyId)))
       .returning();
 
     res.json({
@@ -291,8 +292,8 @@ router.post("/forgot-password", async (req, res) => {
       return;
     }
 
-    // Generate a short alphanumeric code (in a real app, this would be emailed)
-    const token = Math.random().toString(36).substring(2, 10).toUpperCase();
+    // Generate a cryptographically secure 8-char alphanumeric reset code
+    const token = randomBytes(6).toString("base64url").toUpperCase().slice(0, 8);
     const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour
 
     await db.insert(passwordResetTokens).values({

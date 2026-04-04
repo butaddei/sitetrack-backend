@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env["SESSION_SECRET"] ?? "paintpro-dev-secret-change-in-production";
-const JWT_EXPIRES_IN = "30d";
+const JWT_EXPIRES_IN = "7d";
 
 export interface JwtPayload {
   userId: string;

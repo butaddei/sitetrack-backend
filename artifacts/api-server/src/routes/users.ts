@@ -125,7 +125,6 @@ router.post("/", requireAdmin, async (req: AuthRequest, res) => {
       position: user.position,
       startDate: user.startDate,
       isActive: user.isActive,
-      tempPassword: rawPassword,
     });
   } catch {
     res.status(500).json({ error: "Failed to create user" });
