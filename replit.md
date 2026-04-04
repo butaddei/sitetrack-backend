@@ -75,6 +75,20 @@ pnpm workspace monorepo using TypeScript. PaintPro is a multi-tenant SaaS mobile
 - Financial fields (totalValue, clientName, laborCost) stripped from employee API responses
 - 5 admin frontend screens have role guards (redirect employees to emp-home)
 
+## Stripe Billing (T001–T007)
+
+**Status**: Pending credentials — Replit Stripe connector was dismissed. Billing will be wired via direct API keys stored as secrets.
+
+**Required secrets** (not yet set):
+- `STRIPE_SECRET_KEY` — from Stripe dashboard → Developers → API keys
+- `STRIPE_WEBHOOK_SECRET` — from Stripe dashboard → Webhooks (after creating endpoint)
+
+**Plans**: Free ($0) · Pro ($29/mo) · Business ($79/mo)
+
+**Mobile stub**: `artifacts/mobile/app/(tabs)/billing.tsx` has `STRIPE_ENABLED = false` — flip to `true` once wired.
+
+**Do NOT use `proposeIntegration` for Stripe** — user dismissed the OAuth flow. Use `STRIPE_SECRET_KEY` secret directly in `artifacts/api-server/`.
+
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
