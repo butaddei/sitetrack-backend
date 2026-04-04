@@ -38,6 +38,8 @@ pnpm workspace monorepo using TypeScript. PaintPro is a multi-tenant SaaS mobile
 - **Role guards**: All 5 admin tab screens redirect employees to emp-home
 - **Avatar upload**: Profile settings with expo-image-picker (stored as base64 dataURL)
 - **Logo upload**: Company settings with expo-image-picker
+- **Auth screens**: Premium dark-gradient login & register with animated entrance, icon-prefixed inputs, trust badges, demo account quick-fill
+- **Billing screen**: Plans & Billing UI (Free/Pro/Business) with usage stats; upgrade buttons show "Coming soon" modal. `STRIPE_ENABLED=false` flag in `billing.tsx` — flip to activate.
 - **Color presets**: 12 named color themes in company settings with live preview
 
 #### Design System
