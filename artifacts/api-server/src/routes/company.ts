@@ -5,11 +5,17 @@ import { requireAuth, requireAdmin, type AuthRequest } from "../middlewares/auth
 
 const router = Router();
 
-// GET /api/company — get own company info
+// GET /api/company — get own company info (branding fields only, available to all roles)
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {
     const [company] = await db
-      .select()
+      .select({
+        id: companies.id,
+        name: companies.name,
+        logoUrl: companies.logoUrl,
+        primaryColor: companies.primaryColor,
+        secondaryColor: companies.secondaryColor,
+      })
       .from(companies)
       .where(eq(companies.id, req.user!.companyId))
       .limit(1);
@@ -41,13 +47,19 @@ router.patch("/", requireAdmin, async (req: AuthRequest, res) => {
     if (secondaryColor) updates.secondaryColor = secondaryColor;
     if (logoUrl !== undefined) updates.logoUrl = logoUrl || null;
 
-    const [updated] = await db
+    const rows = await db
       .update(companies)
       .set(updates)
       .where(eq(companies.id, req.user!.companyId))
-      .returning();
+      .returning({
+        id: companies.id,
+        name: companies.name,
+        logoUrl: companies.logoUrl,
+        primaryColor: companies.primaryColor,
+        secondaryColor: companies.secondaryColor,
+      });
 
-    res.json(updated);
+    res.json(rows[0]);
   } catch {
     res.status(500).json({ error: "Failed to update company" });
   }

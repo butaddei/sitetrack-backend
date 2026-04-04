@@ -151,24 +151,20 @@ router.post("/clock-out", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
+    // Fetch log scoped to this company. For employees, also enforce userId.
+    const whereClause =
+      role === "employee"
+        ? and(eq(timeLogs.id, logId), eq(timeLogs.companyId, companyId), eq(timeLogs.userId, userId))
+        : and(eq(timeLogs.id, logId), eq(timeLogs.companyId, companyId));
+
     const [log] = await db
       .select()
       .from(timeLogs)
-      .where(eq(timeLogs.id, logId))
+      .where(whereClause)
       .limit(1);
 
     if (!log) {
-      res.status(404).json({ error: "Time log not found" });
-      return;
-    }
-
-    if (log.companyId !== companyId) {
-      res.status(403).json({ error: "Forbidden" });
-      return;
-    }
-
-    if (role === "employee" && log.userId !== userId) {
-      res.status(403).json({ error: "Forbidden" });
+      res.status(404).json({ error: "Time log not found or access denied" });
       return;
     }
 
@@ -183,7 +179,7 @@ router.post("/clock-out", requireAuth, async (req: AuthRequest, res) => {
     const [updated] = await db
       .update(timeLogs)
       .set({ clockOut: now, totalMinutes, notes: notes ?? log.notes })
-      .where(eq(timeLogs.id, logId))
+      .where(and(eq(timeLogs.id, logId), eq(timeLogs.companyId, companyId), eq(timeLogs.userId, log.userId)))
       .returning();
 
     res.json({

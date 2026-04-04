@@ -269,7 +269,7 @@ router.patch("/:id", requireAdmin, async (req: AuthRequest, res) => {
     const [updated] = await db
       .update(projects)
       .set(updates)
-      .where(eq(projects.id, id))
+      .where(and(eq(projects.id, id), eq(projects.companyId, req.user!.companyId)))
       .returning();
 
     if (assignedEmployeeIds !== undefined) {
@@ -330,7 +330,7 @@ router.delete("/:id", requireAdmin, async (req: AuthRequest, res) => {
       return;
     }
 
-    await db.delete(projects).where(eq(projects.id, id));
+    await db.delete(projects).where(and(eq(projects.id, id), eq(projects.companyId, req.user!.companyId)));
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Failed to delete project" });
@@ -342,6 +342,7 @@ router.post("/:id/photos", requireAuth, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const { uri } = req.body as { uri: string };
+    const { companyId, userId, role } = req.user!;
 
     if (!uri) {
       res.status(400).json({ error: "uri is required" });
@@ -351,7 +352,7 @@ router.post("/:id/photos", requireAuth, async (req: AuthRequest, res) => {
     const [project] = await db
       .select()
       .from(projects)
-      .where(and(eq(projects.id, id), eq(projects.companyId, req.user!.companyId)))
+      .where(and(eq(projects.id, id), eq(projects.companyId, companyId)))
       .limit(1);
 
     if (!project) {
@@ -359,9 +360,23 @@ router.post("/:id/photos", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
+    // Employees must be assigned to the project to upload photos
+    if (role === "employee") {
+      const [assignment] = await db
+        .select()
+        .from(projectAssignments)
+        .where(and(eq(projectAssignments.projectId, id), eq(projectAssignments.userId, userId)))
+        .limit(1);
+
+      if (!assignment) {
+        res.status(403).json({ error: "You are not assigned to this project" });
+        return;
+      }
+    }
+
     const [photo] = await db
       .insert(projectPhotos)
-      .values({ companyId: req.user!.companyId, projectId: id, uri })
+      .values({ companyId, projectId: id, uri })
       .returning();
 
     res.status(201).json(photo);

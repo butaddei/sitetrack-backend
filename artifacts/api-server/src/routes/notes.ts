@@ -145,7 +145,7 @@ router.delete("/:id", requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    await db.delete(employeeNotes).where(eq(employeeNotes.id, id));
+    await db.delete(employeeNotes).where(and(eq(employeeNotes.id, id), eq(employeeNotes.companyId, companyId)));
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Failed to delete note" });

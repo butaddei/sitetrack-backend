@@ -1,6 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { db, users, companies, passwordResetTokens } from "@workspace/db";
 import { signToken } from "../lib/auth.js";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
@@ -155,7 +155,7 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.id, req.user!.userId))
+      .where(and(eq(users.id, req.user!.userId), eq(users.companyId, req.user!.companyId)))
       .limit(1);
 
     if (!user || !user.isActive) {

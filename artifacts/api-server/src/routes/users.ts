@@ -181,7 +181,7 @@ router.patch("/:id", requireAdmin, async (req: AuthRequest, res) => {
     const [updated] = await db
       .update(users)
       .set(updates)
-      .where(eq(users.id, id))
+      .where(and(eq(users.id, id), eq(users.companyId, req.user!.companyId)))
       .returning();
 
     res.json({
@@ -221,7 +221,7 @@ router.delete("/:id", requireAdmin, async (req: AuthRequest, res) => {
       return;
     }
 
-    await db.delete(users).where(eq(users.id, id));
+    await db.delete(users).where(and(eq(users.id, id), eq(users.companyId, req.user!.companyId)));
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Failed to delete user" });

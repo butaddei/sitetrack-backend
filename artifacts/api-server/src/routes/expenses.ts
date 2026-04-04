@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { eq, and } from "drizzle-orm";
-import { db, expenses } from "@workspace/db";
+import { db, expenses, projects } from "@workspace/db";
 import { requireAdmin, type AuthRequest } from "../middlewares/auth.js";
 
 const router = Router();
@@ -39,6 +39,18 @@ router.post("/", requireAdmin, async (req: AuthRequest, res) => {
 
     if (!projectId || !category || !description || !amount || !date) {
       res.status(400).json({ error: "All fields are required" });
+      return;
+    }
+
+    // Verify the project belongs to this company before creating the expense
+    const [project] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.id, projectId), eq(projects.companyId, req.user!.companyId)))
+      .limit(1);
+
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
       return;
     }
 
@@ -84,7 +96,7 @@ router.delete("/:id", requireAdmin, async (req: AuthRequest, res) => {
       return;
     }
 
-    await db.delete(expenses).where(eq(expenses.id, id));
+    await db.delete(expenses).where(and(eq(expenses.id, id), eq(expenses.companyId, req.user!.companyId)));
     res.json({ success: true });
   } catch {
     res.status(500).json({ error: "Failed to delete expense" });
