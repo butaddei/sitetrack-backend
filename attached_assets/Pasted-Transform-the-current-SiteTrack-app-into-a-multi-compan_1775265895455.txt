@@ -1,0 +1,280 @@
+Transform the current SiteTrack app into a multi-company SaaS platform with secure authentication, company-based data isolation, profile settings, and company theme customization.
+
+CORE GOAL
+The app must support multiple independent companies.
+Each company should have its own:
+- admin users
+- employee users
+- projects
+- time logs
+- expenses
+- notes
+- uploaded photos/documents
+- branding/theme settings
+
+No company should ever be able to see another company's data.
+
+1. AUTHENTICATION SYSTEM
+
+Add a complete authentication flow with these pages:
+- Sign In
+- Create Company Account
+- Forgot Password
+- Reset Password
+- Profile Settings
+- Company Settings
+
+Sign In page:
+- email
+- password
+- Sign In button
+- Create Account link
+- Forgot Password link
+
+Create Company Account page:
+- company name
+- admin full name
+- admin email
+- password
+- confirm password
+- Create Account button
+
+Behavior:
+- when a new company account is created, that user becomes the first Admin of that company
+- the company record must be created automatically
+- all future data created by that admin belongs only to that company
+
+Security:
+- hash passwords securely
+- add session-based or token-based authentication
+- protect all authenticated routes
+- protect all role-based routes
+- implement forgot/reset password flow
+- validate email uniqueness properly
+
+2. MULTI-COMPANY DATA MODEL
+
+Update the database schema so all business data belongs to a company.
+
+Add a Company entity/table with fields such as:
+- id
+- company_name
+- logo_url
+- primary_color
+- secondary_color
+- created_at
+- updated_at
+
+Update all relevant entities to include company ownership:
+- users
+- employees
+- projects
+- time_logs
+- expenses
+- notes
+- uploads/documents
+- project_photos
+- project_assignments
+- any other business data
+
+Rules:
+- every query must be filtered by company_id
+- admins only see data from their own company
+- employees only see data from their own company and only what they are allowed to access
+- do not expose any cross-company data anywhere in the frontend or backend
+
+3. USER ROLES
+
+Support at least these roles:
+- Admin
+- Employee
+
+Admin permissions:
+- full access to company data
+- create/edit/delete projects
+- create/edit/deactivate employees
+- assign employees to projects
+- see financial data
+- manage branding/theme
+- manage employee accounts
+- edit own profile
+
+Employee permissions:
+- login securely
+- view only assigned projects
+- view project details allowed for employees
+- start/stop time tracking
+- add notes/observations
+- upload photos
+- edit own profile only
+- no access to financial data
+- no access to company settings
+
+4. EMPLOYEE ACCESS RESTRICTIONS
+
+Employees must NOT see:
+- project total value
+- labor cost
+- expenses
+- profit
+- remaining balance
+- cost summaries
+- financial reports
+- company-wide data
+- other employees' private data unless explicitly allowed
+
+Employees should ONLY see:
+- assigned project name
+- project address
+- project notes allowed for field work
+- paint colors
+- project photos/documents if allowed
+- start/stop work buttons
+- timer status
+- total worked hours today / week
+- notes and photo upload related to their assigned projects
+- their own profile
+
+IMPORTANT:
+Do not only hide financial data in the UI.
+Make sure backend/API responses for employee users never include restricted financial fields.
+
+5. COMPANY SETTINGS / BRANDING
+
+Add a Company Settings page for Admin only.
+
+Admin can manage:
+- company logo upload
+- primary interface color
+- secondary/accent color
+
+Behavior:
+- company branding should apply throughout the app for all users of that company
+- apply theme colors consistently to headers, buttons, highlights, links, cards where appropriate
+- keep contrast and readability high
+- preserve a modern, professional SaaS look
+
+6. PROFILE SETTINGS
+
+Add a Profile Settings page for all authenticated users.
+
+Users can edit:
+- profile photo
+- full name
+- phone number
+- password
+
+Behavior:
+- employee can edit only their own profile
+- admin can edit only their own profile from profile settings
+- company branding must remain editable only in Company Settings by Admin
+
+Show profile photo/avatar in appropriate places:
+- header/menu
+- profile page
+- user account sections
+
+7. EMPLOYEE ACCOUNT MANAGEMENT
+
+Admin should be able to create employee accounts inside the company.
+
+Employee account fields:
+- full name
+- email
+- phone
+- hourly rate
+- role
+- active/inactive status
+
+Behavior:
+- employee accounts belong to the admin's company
+- admin can assign employees to one or more projects
+- employee receives login credentials or can be set up with a password flow
+- inactive employees cannot log in
+
+8. TIME TRACKING
+
+Keep the existing start/stop functionality but make it company-safe and role-safe.
+
+Requirements:
+- employee can start work only on assigned projects
+- employee can only have one active timer at a time
+- store start time, stop time, total duration, project, user, and company
+- show worked hours clearly to the employee
+- admin can see full timesheets and labor cost calculations
+- employee cannot see cost generated from their hours unless explicitly allowed, and by default it should be hidden
+
+9. UI / UX
+
+Keep the app mobile-friendly and professional.
+
+Admin navigation:
+- Dashboard
+- Projects
+- Employees
+- Time Logs
+- Expenses
+- Reports
+- Company Settings
+- Profile
+
+Employee navigation:
+- Home
+- My Projects
+- Notes / Photos
+- Profile
+
+Employee dashboard should be simple and field-focused:
+- today's active project
+- address
+- timer status
+- Start / Stop buttons
+- hours worked today
+- upload photo
+- add note
+
+Admin dashboard should remain more complete and business-focused.
+
+10. BACKEND / API PROTECTION
+
+This is critical:
+- add proper role-based access control (RBAC)
+- add company-based data scoping in all backend queries
+- never return another company's records
+- never return financial data to employee endpoints
+- validate permissions server-side, not only client-side
+- if a user tries to access unauthorized data by URL or API, return forbidden/unauthorized
+
+11. SEED / TEST DATA
+
+Create realistic seed/demo data for:
+- one admin company
+- a few employees
+- a few projects
+- project assignments
+- some time logs
+- some notes and uploads
+- company theme settings
+
+12. IMPLEMENTATION STRATEGY
+
+Do not rebuild everything from scratch unless necessary.
+Integrate this into the current app structure.
+
+Priority order:
+1. database schema updates for company ownership
+2. authentication and company account creation
+3. role-based route protection
+4. profile settings
+5. company settings/theme
+6. employee account creation
+7. backend permission hardening
+8. final UI polishing
+
+IMPORTANT FINAL REQUIREMENTS
+- Keep existing working features
+- Do not break current project, employee, and time tracking logic
+- Refactor safely where needed
+- Make the app scalable and organized
+- Explain any schema changes clearly
+- After implementation, summarize what was added and what still needs testing

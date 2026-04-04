@@ -40,7 +40,7 @@ export default function LoginScreen() {
     }
     setLoading(true);
     setError("");
-    const result = await login(email, password);
+    const result = await login(email.trim(), password);
     setLoading(false);
     if (result.success) {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -103,7 +103,7 @@ export default function LoginScreen() {
                   style={styles.flex}
                 />
                 <TouchableOpacity
-                  style={[styles.eyeBtn, { top: 30 }]}
+                  style={styles.eyeBtn}
                   onPress={() => setShowPass(!showPass)}
                 >
                   <Feather
@@ -115,6 +115,13 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            <TouchableOpacity
+              style={styles.forgotRow}
+              onPress={() => router.push("/forgot-password")}
+            >
+              <Text style={[styles.forgotText, { color: colors.primary }]}>Forgot password?</Text>
+            </TouchableOpacity>
+
             {error ? (
               <View style={[styles.errorBox, { backgroundColor: colors.destructive + "15" }]}>
                 <Feather name="alert-circle" size={14} color={colors.destructive} />
@@ -123,6 +130,22 @@ export default function LoginScreen() {
             ) : null}
 
             <PrimaryButton label="Sign In" onPress={handleLogin} loading={loading} />
+
+            <View style={styles.divider}>
+              <View style={[styles.line, { backgroundColor: colors.border }]} />
+              <Text style={[styles.dividerText, { color: colors.mutedForeground }]}>or</Text>
+              <View style={[styles.line, { backgroundColor: colors.border }]} />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.registerBtn, { borderColor: colors.border }]}
+              onPress={() => router.push("/register")}
+            >
+              <Feather name="briefcase" size={16} color={colors.foreground} />
+              <Text style={[styles.registerText, { color: colors.foreground }]}>
+                Create Company Account
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <View style={[styles.demoCard, { backgroundColor: colors.card + "33" }]}>
@@ -135,15 +158,17 @@ export default function LoginScreen() {
                 <Text style={styles.roleText}>Admin</Text>
               </View>
               <Text style={styles.demoEmail}>admin@paintpro.com</Text>
+              <Text style={styles.demoPass}>admin123</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.demoRow}
-              onPress={() => fillDemo("carlos@paintpro.com", "carlos123")}
+              onPress={() => fillDemo("carlos@paintpro.com", "employee123")}
             >
               <View style={[styles.roleTag, { backgroundColor: colors.success }]}>
                 <Text style={styles.roleText}>Employee</Text>
               </View>
               <Text style={styles.demoEmail}>carlos@paintpro.com</Text>
+              <Text style={styles.demoPass}>employee123</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -164,27 +189,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  appName: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#fff",
-    letterSpacing: -0.5,
-  },
-  tagline: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.7)",
-    fontWeight: "500",
-  },
-  card: {
-    borderRadius: 20,
-    padding: 24,
-    gap: 16,
-  },
+  appName: { fontSize: 32, fontWeight: "800", color: "#fff", letterSpacing: -0.5 },
+  tagline: { fontSize: 14, color: "rgba(255,255,255,0.7)", fontWeight: "500" },
+  card: { borderRadius: 20, padding: 24, gap: 16 },
   cardTitle: { fontSize: 22, fontWeight: "700" },
   cardSub: { fontSize: 14, marginTop: -8 },
   fields: { gap: 14 },
   passRow: { position: "relative" },
   eyeBtn: { position: "absolute", right: 14, bottom: 12 },
+  forgotRow: { alignSelf: "flex-end", marginTop: -6 },
+  forgotText: { fontSize: 13, fontWeight: "600" },
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -193,6 +207,19 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   errorText: { fontSize: 13, flex: 1 },
+  divider: { flexDirection: "row", alignItems: "center", gap: 10 },
+  line: { flex: 1, height: 1 },
+  dividerText: { fontSize: 12 },
+  registerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  registerText: { fontSize: 14, fontWeight: "600" },
   demoCard: {
     borderRadius: 16,
     padding: 16,
@@ -202,11 +229,8 @@ const styles = StyleSheet.create({
   },
   demoTitle: { fontSize: 13, fontWeight: "700", opacity: 0.8 },
   demoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  roleTag: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
+  roleTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
   roleText: { color: "#fff", fontSize: 11, fontWeight: "700" },
-  demoEmail: { color: "rgba(255,255,255,0.85)", fontSize: 13 },
+  demoEmail: { color: "rgba(255,255,255,0.85)", fontSize: 13, flex: 1 },
+  demoPass: { color: "rgba(255,255,255,0.55)", fontSize: 12 },
 });

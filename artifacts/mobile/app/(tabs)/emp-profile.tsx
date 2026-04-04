@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   Alert,
@@ -20,8 +21,8 @@ export default function EmployeeProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
+  const router = useRouter();
   const {
-    employees,
     projects,
     timeLogs,
     getActiveTimeLog,
@@ -32,7 +33,6 @@ export default function EmployeeProfileScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const employee = employees.find((e) => e.id === user?.id);
   const activeLog = user ? getActiveTimeLog(user.id) : undefined;
   const activeProject = projects.find((p) => p.id === activeLog?.projectId);
   const myProjects = projects.filter((p) =>
@@ -94,14 +94,23 @@ export default function EmployeeProfileScreen() {
       {/* ── Header ── */}
       <View style={[styles.header, { paddingTop: topPad + 12, backgroundColor: colors.accent }]}>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <TouchableOpacity
-          style={[styles.signOutBtn, { backgroundColor: "rgba(255,255,255,0.10)" }]}
-          onPress={handleSignOut}
-          hitSlop={8}
-        >
-          <Feather name="log-out" size={15} color="rgba(255,255,255,0.75)" />
-          <Text style={styles.signOutBtnText}>Sign Out</Text>
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={[styles.headerBtn, { backgroundColor: "rgba(255,255,255,0.10)" }]}
+            onPress={() => router.push("/profile-settings")}
+            hitSlop={8}
+          >
+            <Feather name="edit-2" size={15} color="rgba(255,255,255,0.75)" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.headerBtn, { backgroundColor: "rgba(255,255,255,0.10)" }]}
+            onPress={handleSignOut}
+            hitSlop={8}
+          >
+            <Feather name="log-out" size={15} color="rgba(255,255,255,0.75)" />
+            <Text style={styles.signOutBtnText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -115,7 +124,7 @@ export default function EmployeeProfileScreen() {
           </View>
           <View style={styles.idInfo}>
             <Text style={styles.idName}>{user?.name}</Text>
-            <Text style={styles.idPosition}>{employee?.position ?? "Field Employee"}</Text>
+            <Text style={styles.idPosition}>{user?.position ?? "Field Employee"}</Text>
           </View>
           {/* Live status */}
           {activeLog ? (
@@ -209,7 +218,8 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   headerTitle: { color: "#fff", fontSize: 24, fontWeight: "800" },
-  signOutBtn: {
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  headerBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,

@@ -100,6 +100,14 @@ export default function TabLayout() {
             : hide()
         }
       />
+      <Tabs.Screen
+        name="company-settings"
+        options={
+          isAdmin
+            ? { title: "Settings", tabBarIcon: icon("settings", "gearshape") }
+            : hide()
+        }
+      />
 
       {/* ─── EMPLOYEE TABS ─── */}
       <Tabs.Screen

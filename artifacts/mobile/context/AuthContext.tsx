@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { apiFetch, storeToken, clearToken, getStoredToken, ApiError } from "@/lib/api";
 
 export type UserRole = "admin" | "employee";
 
@@ -8,71 +9,129 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
-  hourlyRate?: number;
+  hourlyRate?: string;
+  phone?: string | null;
+  position?: string | null;
+  avatarUrl?: string | null;
+  companyId: string;
+  companyName: string;
+  primaryColor: string;
+  secondaryColor: string;
+}
+
+interface LoginResponse {
+  token: string;
+  user: AuthUser;
 }
 
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (
+    companyName: string,
+    adminName: string,
+    email: string,
+    password: string
+  ) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  updateUser: (updates: Partial<AuthUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
-
-const STORAGE_KEY = "paintpro_current_user";
+const USER_KEY = "paintpro_user_v2";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadUser();
+    init();
   }, []);
 
-  async function loadUser() {
+  async function init() {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setUser(JSON.parse(stored));
+      const stored = await AsyncStorage.getItem(USER_KEY);
+      const token = await getStoredToken();
+
+      if (stored && token) {
+        const parsed: AuthUser = JSON.parse(stored);
+        setUser(parsed);
+        // Refresh user data from API in background
+        refreshUser(parsed);
       }
-    } catch (e) {
+    } catch {
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function login(email: string, password: string) {
+  async function refreshUser(current: AuthUser) {
     try {
-      const usersData = await AsyncStorage.getItem("paintpro_users");
-      const users: (AuthUser & { password: string })[] = usersData
-        ? JSON.parse(usersData)
-        : [];
+      const data = await apiFetch<AuthUser>("/auth/me");
+      const updated = { ...current, ...data };
+      setUser(updated);
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
+    } catch {
+      // Token expired or invalid — log out
+      await logout();
+    }
+  }
 
-      const found = users.find(
-        (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-      );
-
-      if (!found) {
-        return { success: false, error: "Invalid email or password" };
-      }
-
-      const { password: _, ...userWithoutPass } = found;
-      setUser(userWithoutPass);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userWithoutPass));
+  async function login(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const data = await apiFetch<LoginResponse>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+        skipAuth: true,
+      });
+      await storeToken(data.token);
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      setUser(data.user);
       return { success: true };
-    } catch (e) {
-      return { success: false, error: "An error occurred. Please try again." };
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Login failed. Please try again.";
+      return { success: false, error: message };
+    }
+  }
+
+  async function register(
+    companyName: string,
+    adminName: string,
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const data = await apiFetch<LoginResponse>("/auth/register", {
+        method: "POST",
+        body: JSON.stringify({ companyName, adminName, email, password }),
+        skipAuth: true,
+      });
+      await storeToken(data.token);
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      setUser(data.user);
+      return { success: true };
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Registration failed. Please try again.";
+      return { success: false, error: message };
     }
   }
 
   async function logout() {
     setUser(null);
-    await AsyncStorage.removeItem(STORAGE_KEY);
+    await clearToken();
+    await AsyncStorage.removeItem(USER_KEY);
+  }
+
+  function updateUser(updates: Partial<AuthUser>) {
+    if (!user) return;
+    const updated = { ...user, ...updates };
+    setUser(updated);
+    AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
