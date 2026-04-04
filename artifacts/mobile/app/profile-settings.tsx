@@ -1,9 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -29,6 +32,7 @@ export default function ProfileSettingsScreen() {
   const [name, setName] = useState(user?.name ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [position, setPosition] = useState(user?.position ?? "");
+  const [avatarUri, setAvatarUri] = useState<string | null>(user?.avatarUrl ?? null);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -43,6 +47,40 @@ export default function ProfileSettingsScreen() {
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
+  const initials =
+    (user?.name ?? "?")
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+
+  async function handlePickAvatar() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        "Permission needed",
+        "Please allow access to your photo library to upload a profile photo."
+      );
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.6,
+      base64: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const dataUrl = asset.base64
+        ? `data:image/jpeg;base64,${asset.base64}`
+        : asset.uri;
+      setAvatarUri(dataUrl);
+      setProfileSuccess(false);
+    }
+  }
+
   async function handleSaveProfile() {
     if (!name.trim()) {
       setProfileError("Name is required");
@@ -52,13 +90,20 @@ export default function ProfileSettingsScreen() {
     setProfileError("");
     setProfileSuccess(false);
     try {
-      const updated = await apiFetch<{ name: string; phone: string; position: string }>(
-        "/auth/profile",
-        {
-          method: "PATCH",
-          body: JSON.stringify({ name: name.trim(), phone: phone.trim() || null, position: position.trim() || null }),
-        }
-      );
+      const updated = await apiFetch<{
+        name: string;
+        phone: string;
+        position: string;
+        avatarUrl?: string | null;
+      }>("/auth/profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: name.trim(),
+          phone: phone.trim() || null,
+          position: position.trim() || null,
+          avatarUrl: avatarUri,
+        }),
+      });
       updateUser(updated);
       setProfileSuccess(true);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -110,46 +155,66 @@ export default function ProfileSettingsScreen() {
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
-        {/* Header */}
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.card,
-              paddingTop: topPad + 8,
-              borderBottomColor: colors.border,
-            },
-          ]}
+        {/* Hero gradient header */}
+        <LinearGradient
+          colors={[colors.accent, colors.primary + "AA"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { paddingTop: topPad + 12 }]}
         >
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Feather name="arrow-left" size={22} color={colors.foreground} />
+          {/* Back button */}
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <Feather name="arrow-left" size={20} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>Profile Settings</Text>
-          <View style={{ width: 40 }} />
-        </View>
 
-        <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 24 }]}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Avatar placeholder */}
-          <View style={styles.avatarSection}>
-            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              <Text style={styles.avatarInitial}>
-                {(user?.name ?? "?")[0].toUpperCase()}
-              </Text>
+          {/* Avatar */}
+          <View style={styles.avatarWrapper}>
+            <View style={[styles.avatarRing, { borderColor: "rgba(255,255,255,0.5)" }]}>
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatarImg} />
+              ) : (
+                <LinearGradient
+                  colors={[colors.primary, colors.primary + "99"]}
+                  style={styles.avatarFallback}
+                >
+                  <Text style={styles.avatarInitials}>{initials}</Text>
+                </LinearGradient>
+              )}
             </View>
-            <Text style={[styles.avatarName, { color: colors.foreground }]}>{user?.name}</Text>
-            <View style={[styles.roleBadge, { backgroundColor: colors.primary + "20" }]}>
-              <Text style={[styles.roleText, { color: colors.primary }]}>
-                {user?.role === "admin" ? "Administrator" : "Employee"}
-              </Text>
-            </View>
+            <TouchableOpacity
+              style={[styles.cameraBtn, { backgroundColor: colors.primary }]}
+              onPress={handlePickAvatar}
+              activeOpacity={0.85}
+            >
+              <Feather name="camera" size={14} color="#fff" />
+            </TouchableOpacity>
           </View>
 
-          {/* Profile info */}
+          <Text style={styles.heroName}>{user?.name}</Text>
+          {user?.position ? (
+            <Text style={styles.heroPosition}>{user.position}</Text>
+          ) : null}
+          <View style={[styles.roleBadge, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
+            <Text style={styles.roleText}>
+              {user?.role === "admin" ? "Administrator" : "Employee"}
+            </Text>
+          </View>
+        </LinearGradient>
+
+        <ScrollView
+          contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 32 }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Personal info card */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>Personal Information</Text>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Feather name="user" size={16} color={colors.primary} />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Personal Information</Text>
+            </View>
+
             <InputField
               label="Full Name"
               value={name}
@@ -173,13 +238,13 @@ export default function ProfileSettingsScreen() {
             />
 
             {profileError ? (
-              <View style={[styles.alertBox, { backgroundColor: colors.destructive + "15" }]}>
+              <View style={[styles.alert, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "30" }]}>
                 <Feather name="alert-circle" size={14} color={colors.destructive} />
                 <Text style={[styles.alertText, { color: colors.destructive }]}>{profileError}</Text>
               </View>
             ) : null}
             {profileSuccess ? (
-              <View style={[styles.alertBox, { backgroundColor: colors.success + "15" }]}>
+              <View style={[styles.alert, { backgroundColor: colors.success + "12", borderColor: colors.success + "30" }]}>
                 <Feather name="check-circle" size={14} color={colors.success} />
                 <Text style={[styles.alertText, { color: colors.success }]}>Profile updated successfully</Text>
               </View>
@@ -188,9 +253,15 @@ export default function ProfileSettingsScreen() {
             <PrimaryButton label="Save Changes" onPress={handleSaveProfile} loading={profileLoading} />
           </View>
 
-          {/* Change password */}
+          {/* Change password card */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>Change Password</Text>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Feather name="lock" size={16} color={colors.primary} />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Change Password</Text>
+            </View>
+
             <InputField
               label="Current Password"
               value={currentPassword}
@@ -198,21 +269,16 @@ export default function ProfileSettingsScreen() {
               secureTextEntry={!showPass}
               placeholder="Your current password"
             />
-            <View style={styles.passRow}>
+            <View>
               <InputField
                 label="New Password"
                 value={newPassword}
                 onChangeText={(t) => { setNewPassword(t); setPasswordError(""); setPasswordSuccess(false); }}
                 secureTextEntry={!showPass}
                 placeholder="At least 8 characters"
-                style={styles.flex}
               />
-              <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass(!showPass)}>
-                <Feather
-                  name={showPass ? "eye-off" : "eye"}
-                  size={18}
-                  color={colors.mutedForeground}
-                />
+              <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass(!showPass)} hitSlop={8}>
+                <Feather name={showPass ? "eye-off" : "eye"} size={18} color={colors.mutedForeground} />
               </TouchableOpacity>
             </View>
             <InputField
@@ -224,13 +290,13 @@ export default function ProfileSettingsScreen() {
             />
 
             {passwordError ? (
-              <View style={[styles.alertBox, { backgroundColor: colors.destructive + "15" }]}>
+              <View style={[styles.alert, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "30" }]}>
                 <Feather name="alert-circle" size={14} color={colors.destructive} />
                 <Text style={[styles.alertText, { color: colors.destructive }]}>{passwordError}</Text>
               </View>
             ) : null}
             {passwordSuccess ? (
-              <View style={[styles.alertBox, { backgroundColor: colors.success + "15" }]}>
+              <View style={[styles.alert, { backgroundColor: colors.success + "12", borderColor: colors.success + "30" }]}>
                 <Feather name="check-circle" size={14} color={colors.success} />
                 <Text style={[styles.alertText, { color: colors.success }]}>Password changed successfully</Text>
               </View>
@@ -239,23 +305,31 @@ export default function ProfileSettingsScreen() {
             <PrimaryButton label="Change Password" onPress={handleChangePassword} loading={passwordLoading} />
           </View>
 
-          {/* Read-only info */}
+          {/* Account info */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>Account Information</Text>
-            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Email</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground }]}>{user?.email}</Text>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Feather name="info" size={16} color={colors.primary} />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Account Details</Text>
             </View>
-            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Company</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground }]}>{user?.companyName}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Role</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground }]}>
-                {user?.role === "admin" ? "Administrator" : "Employee"}
-              </Text>
-            </View>
+
+            {[
+              { label: "Email", value: user?.email ?? "" },
+              { label: "Company", value: user?.companyName ?? "" },
+              { label: "Role", value: user?.role === "admin" ? "Administrator" : "Employee" },
+            ].map((row, i, arr) => (
+              <View
+                key={row.label}
+                style={[
+                  styles.infoRow,
+                  i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.border },
+                ]}
+              >
+                <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>{row.label}</Text>
+                <Text style={[styles.infoValue, { color: colors.foreground }]}>{row.value}</Text>
+              </View>
+            ))}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -266,57 +340,96 @@ export default function ProfileSettingsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
-  header: {
-    flexDirection: "row",
+
+  hero: {
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
+    paddingHorizontal: 24,
+    paddingBottom: 32,
+    gap: 10,
   },
-  backBtn: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  headerTitle: { fontSize: 18, fontWeight: "700" },
-  scroll: { padding: 16, gap: 16 },
-  avatarSection: { alignItems: "center", gap: 10, paddingVertical: 12 },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  backBtn: {
+    alignSelf: "flex-start",
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  avatarWrapper: { position: "relative", marginBottom: 4 },
+  avatarRing: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    overflow: "hidden",
+  },
+  avatarImg: { width: "100%", height: "100%" },
+  avatarFallback: {
+    width: "100%",
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarInitial: { fontSize: 32, fontWeight: "700", color: "#fff" },
-  avatarName: { fontSize: 22, fontWeight: "700" },
-  roleBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  roleText: { fontSize: 13, fontWeight: "600" },
-  card: {
+  avatarInitials: { fontSize: 36, fontWeight: "800", color: "#fff" },
+  cameraBtn: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
     borderRadius: 16,
-    padding: 20,
-    gap: 14,
-    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
   },
+  heroName: { fontSize: 22, fontWeight: "800", color: "#fff", letterSpacing: -0.5 },
+  heroPosition: { fontSize: 14, color: "rgba(255,255,255,0.65)", marginTop: -4 },
+  roleBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 20,
+    marginTop: 2,
+  },
+  roleText: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.9)" },
+
+  scroll: { padding: 16, gap: 14 },
+
+  card: {
+    borderRadius: 20,
+    padding: 20,
+    gap: 16,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  cardIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   cardTitle: { fontSize: 16, fontWeight: "700" },
-  passRow: { position: "relative" },
-  eyeBtn: { position: "absolute", right: 14, bottom: 12 },
-  alertBox: {
+
+  eyeBtn: { position: "absolute", right: 14, bottom: 14 },
+
+  alert: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  alertText: { fontSize: 13, flex: 1 },
+  alertText: { fontSize: 13, flex: 1, fontWeight: "500" },
+
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
+    paddingVertical: 11,
   },
   infoLabel: { fontSize: 14 },
-  infoValue: { fontSize: 14, fontWeight: "500" },
+  infoValue: { fontSize: 14, fontWeight: "600", maxWidth: "60%" },
 });

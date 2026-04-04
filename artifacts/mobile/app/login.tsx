@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -58,7 +59,11 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.accent }]}>
+    <LinearGradient
+      colors={[colors.accent, colors.accent + "F2", colors.accent]}
+      locations={[0, 0.5, 1]}
+      style={styles.root}
+    >
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -66,51 +71,53 @@ export default function LoginScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingTop: topPad + 40, paddingBottom: botPad + 24 },
+            { paddingTop: topPad + 44, paddingBottom: botPad + 32 },
           ]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.logoContainer}>
-            <View style={[styles.iconCircle, { backgroundColor: colors.primary }]}>
-              <Feather name="tool" size={32} color="#fff" />
+          {/* Brand mark */}
+          <View style={styles.brand}>
+            <View style={[styles.iconWrap, { backgroundColor: colors.primary }]}>
+              <Feather name="tool" size={30} color="#fff" />
             </View>
             <Text style={styles.appName}>PaintPro</Text>
             <Text style={styles.tagline}>Field & Project Management</Text>
           </View>
 
+          {/* Sign in card */}
           <View style={[styles.card, { backgroundColor: colors.card }]}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>Welcome back</Text>
-            <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
-              Sign in to continue
-            </Text>
+            <View style={styles.cardHead}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Welcome back</Text>
+              <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
+                Sign in to your account
+              </Text>
+            </View>
 
             <View style={styles.fields}>
               <InputField
-                label="Email"
+                label="Email address"
                 value={email}
                 onChangeText={(t) => { setEmail(t); setError(""); }}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                placeholder="your@email.com"
+                autoCorrect={false}
+                placeholder="you@company.com"
               />
-              <View style={styles.passRow}>
+              <View>
                 <InputField
                   label="Password"
                   value={password}
                   onChangeText={(t) => { setPassword(t); setError(""); }}
                   secureTextEntry={!showPass}
                   placeholder="••••••••"
-                  style={styles.flex}
                 />
                 <TouchableOpacity
                   style={styles.eyeBtn}
                   onPress={() => setShowPass(!showPass)}
+                  hitSlop={8}
                 >
-                  <Feather
-                    name={showPass ? "eye-off" : "eye"}
-                    size={18}
-                    color={colors.mutedForeground}
-                  />
+                  <Feather name={showPass ? "eye-off" : "eye"} size={18} color={colors.mutedForeground} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -123,7 +130,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             {error ? (
-              <View style={[styles.errorBox, { backgroundColor: colors.destructive + "15" }]}>
+              <View style={[styles.errorBox, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "30" }]}>
                 <Feather name="alert-circle" size={14} color={colors.destructive} />
                 <Text style={[styles.errorText, { color: colors.destructive }]}>{error}</Text>
               </View>
@@ -132,40 +139,48 @@ export default function LoginScreen() {
             <PrimaryButton label="Sign In" onPress={handleLogin} loading={loading} />
 
             <View style={styles.divider}>
-              <View style={[styles.line, { backgroundColor: colors.border }]} />
-              <Text style={[styles.dividerText, { color: colors.mutedForeground }]}>or</Text>
-              <View style={[styles.line, { backgroundColor: colors.border }]} />
+              <View style={[styles.divLine, { backgroundColor: colors.border }]} />
+              <Text style={[styles.divText, { color: colors.mutedForeground }]}>or</Text>
+              <View style={[styles.divLine, { backgroundColor: colors.border }]} />
             </View>
 
             <TouchableOpacity
               style={[styles.registerBtn, { borderColor: colors.border }]}
               onPress={() => router.push("/register")}
+              activeOpacity={0.75}
             >
-              <Feather name="briefcase" size={16} color={colors.foreground} />
+              <Feather name="briefcase" size={15} color={colors.foreground} />
               <Text style={[styles.registerText, { color: colors.foreground }]}>
                 Create Company Account
               </Text>
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.demoCard, { backgroundColor: colors.card + "33" }]}>
-            <Text style={[styles.demoTitle, { color: "#fff" }]}>Demo Accounts</Text>
+          {/* Demo accounts */}
+          <View style={[styles.demoCard, { borderColor: "rgba(255,255,255,0.15)" }]}>
+            <View style={styles.demoHeader}>
+              <View style={[styles.demoDot, { backgroundColor: colors.primary }]} />
+              <Text style={styles.demoTitle}>Demo Accounts</Text>
+            </View>
             <TouchableOpacity
               style={styles.demoRow}
               onPress={() => fillDemo("admin@paintpro.com", "admin123")}
+              activeOpacity={0.7}
             >
-              <View style={[styles.roleTag, { backgroundColor: colors.primary }]}>
-                <Text style={styles.roleText}>Admin</Text>
+              <View style={[styles.roleChip, { backgroundColor: colors.primary }]}>
+                <Text style={styles.roleChipText}>Admin</Text>
               </View>
               <Text style={styles.demoEmail}>admin@paintpro.com</Text>
               <Text style={styles.demoPass}>admin123</Text>
             </TouchableOpacity>
+            <View style={[styles.demoDivider, { backgroundColor: "rgba(255,255,255,0.1)" }]} />
             <TouchableOpacity
               style={styles.demoRow}
               onPress={() => fillDemo("carlos@paintpro.com", "employee123")}
+              activeOpacity={0.7}
             >
-              <View style={[styles.roleTag, { backgroundColor: colors.success }]}>
-                <Text style={styles.roleText}>Employee</Text>
+              <View style={[styles.roleChip, { backgroundColor: colors.success }]}>
+                <Text style={styles.roleChipText}>Field</Text>
               </View>
               <Text style={styles.demoEmail}>carlos@paintpro.com</Text>
               <Text style={styles.demoPass}>employee123</Text>
@@ -173,64 +188,88 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
-  scroll: { paddingHorizontal: 24, gap: 24 },
-  logoContainer: { alignItems: "center", gap: 10 },
-  iconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  scroll: { paddingHorizontal: 24, gap: 28 },
+
+  brand: { alignItems: "center", gap: 12 },
+  iconWrap: {
+    width: 76,
+    height: 76,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  appName: { fontSize: 32, fontWeight: "800", color: "#fff", letterSpacing: -0.5 },
-  tagline: { fontSize: 14, color: "rgba(255,255,255,0.7)", fontWeight: "500" },
-  card: { borderRadius: 20, padding: 24, gap: 16 },
-  cardTitle: { fontSize: 22, fontWeight: "700" },
-  cardSub: { fontSize: 14, marginTop: -8 },
-  fields: { gap: 14 },
-  passRow: { position: "relative" },
-  eyeBtn: { position: "absolute", right: 14, bottom: 12 },
+  appName: { fontSize: 34, fontWeight: "800", color: "#fff", letterSpacing: -1 },
+  tagline: { fontSize: 14, color: "rgba(255,255,255,0.6)", fontWeight: "500", letterSpacing: 0.2 },
+
+  card: {
+    borderRadius: 24,
+    padding: 28,
+    gap: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 6,
+  },
+  cardHead: { gap: 4 },
+  cardTitle: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+  cardSub: { fontSize: 14, fontWeight: "400" },
+  fields: { gap: 16 },
+  eyeBtn: { position: "absolute", right: 14, bottom: 14 },
   forgotRow: { alignSelf: "flex-end", marginTop: -6 },
   forgotText: { fontSize: 13, fontWeight: "600" },
+
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  errorText: { fontSize: 13, flex: 1 },
-  divider: { flexDirection: "row", alignItems: "center", gap: 10 },
-  line: { flex: 1, height: 1 },
-  dividerText: { fontSize: 12 },
+  errorText: { fontSize: 13, flex: 1, fontWeight: "500" },
+
+  divider: { flexDirection: "row", alignItems: "center", gap: 12 },
+  divLine: { flex: 1, height: 1 },
+  divText: { fontSize: 12, fontWeight: "500" },
+
   registerBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
   },
   registerText: { fontSize: 14, fontWeight: "600" },
+
   demoCard: {
     borderRadius: 16,
     padding: 16,
     gap: 10,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.07)",
   },
-  demoTitle: { fontSize: 13, fontWeight: "700", opacity: 0.8 },
+  demoHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  demoDot: { width: 6, height: 6, borderRadius: 3 },
+  demoTitle: { fontSize: 11, fontWeight: "700", color: "rgba(255,255,255,0.5)", letterSpacing: 1, textTransform: "uppercase" },
   demoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  roleTag: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 },
-  roleText: { color: "#fff", fontSize: 11, fontWeight: "700" },
-  demoEmail: { color: "rgba(255,255,255,0.85)", fontSize: 13, flex: 1 },
-  demoPass: { color: "rgba(255,255,255,0.55)", fontSize: 12 },
+  demoDivider: { height: 1, marginVertical: 2 },
+  roleChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  roleChipText: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 0.5 },
+  demoEmail: { color: "rgba(255,255,255,0.8)", fontSize: 13, flex: 1 },
+  demoPass: { color: "rgba(255,255,255,0.45)", fontSize: 12, fontWeight: "500" },
 });

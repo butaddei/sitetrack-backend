@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -93,8 +94,15 @@ export default function ForgotPasswordScreen() {
     }
   }
 
+  const steps: Step[] = ["email", "code", "done"];
+  const stepIndex = steps.indexOf(step);
+
   return (
-    <View style={[styles.root, { backgroundColor: colors.accent }]}>
+    <LinearGradient
+      colors={[colors.accent, colors.accent + "F2", colors.accent]}
+      locations={[0, 0.5, 1]}
+      style={styles.root}
+    >
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -102,17 +110,19 @@ export default function ForgotPasswordScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingTop: topPad + 20, paddingBottom: botPad + 24 },
+            { paddingTop: topPad + 20, paddingBottom: botPad + 32 },
           ]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Feather name="arrow-left" size={22} color="#fff" />
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <Feather name="arrow-left" size={20} color="rgba(255,255,255,0.85)" />
           </TouchableOpacity>
 
+          {/* Header */}
           <View style={styles.header}>
-            <View style={[styles.iconCircle, { backgroundColor: colors.primary }]}>
-              <Feather name="lock" size={28} color="#fff" />
+            <View style={[styles.iconWrap, { backgroundColor: step === "done" ? colors.success : colors.primary }]}>
+              <Feather name={step === "done" ? "check" : "lock"} size={28} color="#fff" />
             </View>
             <Text style={styles.title}>Reset Password</Text>
             <Text style={styles.subtitle}>
@@ -120,21 +130,45 @@ export default function ForgotPasswordScreen() {
                 ? "Enter your email to receive a reset code"
                 : step === "code"
                 ? "Enter the code sent to your email"
-                : "Password reset successfully"}
+                : "Your password has been reset"}
             </Text>
           </View>
 
+          {/* Step progress */}
+          <View style={styles.stepRow}>
+            {steps.map((s, i) => (
+              <React.Fragment key={s}>
+                <View
+                  style={[
+                    styles.stepDot,
+                    {
+                      backgroundColor: i <= stepIndex ? colors.primary : "rgba(255,255,255,0.25)",
+                      width: i === stepIndex ? 28 : 8,
+                    },
+                  ]}
+                />
+                {i < steps.length - 1 && (
+                  <View
+                    style={[
+                      styles.stepLine,
+                      { backgroundColor: i < stepIndex ? colors.primary : "rgba(255,255,255,0.2)" },
+                    ]}
+                  />
+                )}
+              </React.Fragment>
+            ))}
+          </View>
+
+          {/* Content card */}
           {step === "done" ? (
             <View style={[styles.card, { backgroundColor: colors.card }]}>
-              <View style={styles.successRow}>
-                <View style={[styles.successIcon, { backgroundColor: colors.success + "20" }]}>
-                  <Feather name="check-circle" size={40} color={colors.success} />
+              <View style={styles.successWrap}>
+                <View style={[styles.successCircle, { backgroundColor: colors.success + "18" }]}>
+                  <Feather name="check-circle" size={48} color={colors.success} />
                 </View>
-                <Text style={[styles.successTitle, { color: colors.foreground }]}>
-                  Password Updated
-                </Text>
+                <Text style={[styles.successTitle, { color: colors.foreground }]}>All done!</Text>
                 <Text style={[styles.successSub, { color: colors.mutedForeground }]}>
-                  You can now sign in with your new password.
+                  Your password has been updated. Sign in with your new credentials.
                 </Text>
               </View>
               <PrimaryButton label="Back to Sign In" onPress={() => router.replace("/login")} />
@@ -149,10 +183,11 @@ export default function ForgotPasswordScreen() {
                     onChangeText={(t) => { setEmail(t); setError(""); }}
                     keyboardType="email-address"
                     autoCapitalize="none"
-                    placeholder="your@email.com"
+                    autoCorrect={false}
+                    placeholder="you@company.com"
                   />
                   {error ? (
-                    <View style={[styles.errorBox, { backgroundColor: colors.destructive + "15" }]}>
+                    <View style={[styles.errorBox, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "30" }]}>
                       <Feather name="alert-circle" size={14} color={colors.destructive} />
                       <Text style={[styles.errorText, { color: colors.destructive }]}>{error}</Text>
                     </View>
@@ -161,10 +196,10 @@ export default function ForgotPasswordScreen() {
                 </>
               ) : (
                 <>
-                  <View style={[styles.infoBox, { backgroundColor: colors.primary + "15" }]}>
-                    <Feather name="info" size={14} color={colors.primary} />
+                  <View style={[styles.infoBox, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "30" }]}>
+                    <Feather name="mail" size={14} color={colors.primary} />
                     <Text style={[styles.infoText, { color: colors.primary }]}>
-                      Code sent to {email}
+                      Code sent to <Text style={{ fontWeight: "700" }}>{email}</Text>
                     </Text>
                   </View>
                   <InputField
@@ -172,26 +207,19 @@ export default function ForgotPasswordScreen() {
                     value={code}
                     onChangeText={(t) => { setCode(t); setError(""); }}
                     autoCapitalize="none"
+                    autoCorrect={false}
                     placeholder="Paste code from email"
                   />
-                  <View style={styles.passRow}>
+                  <View>
                     <InputField
                       label="New Password"
                       value={newPassword}
                       onChangeText={(t) => { setNewPassword(t); setError(""); }}
                       secureTextEntry={!showPass}
                       placeholder="At least 8 characters"
-                      style={styles.flex}
                     />
-                    <TouchableOpacity
-                      style={styles.eyeBtn}
-                      onPress={() => setShowPass(!showPass)}
-                    >
-                      <Feather
-                        name={showPass ? "eye-off" : "eye"}
-                        size={18}
-                        color={colors.mutedForeground}
-                      />
+                    <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass(!showPass)} hitSlop={8}>
+                      <Feather name={showPass ? "eye-off" : "eye"} size={18} color={colors.mutedForeground} />
                     </TouchableOpacity>
                   </View>
                   <InputField
@@ -202,7 +230,7 @@ export default function ForgotPasswordScreen() {
                     placeholder="Re-enter new password"
                   />
                   {error ? (
-                    <View style={[styles.errorBox, { backgroundColor: colors.destructive + "15" }]}>
+                    <View style={[styles.errorBox, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "30" }]}>
                       <Feather name="alert-circle" size={14} color={colors.destructive} />
                       <Text style={[styles.errorText, { color: colors.destructive }]}>{error}</Text>
                     </View>
@@ -214,65 +242,85 @@ export default function ForgotPasswordScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
-  scroll: { paddingHorizontal: 24, gap: 20 },
+  scroll: { paddingHorizontal: 24, gap: 24 },
+
   backBtn: {
     width: 40,
     height: 40,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  header: { alignItems: "center", gap: 12 },
+  iconWrap: {
+    width: 72,
+    height: 72,
     borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.15)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  header: { alignItems: "center", gap: 10 },
-  iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: "center",
-    justifyContent: "center",
+  title: { fontSize: 28, fontWeight: "800", color: "#fff", letterSpacing: -0.8 },
+  subtitle: { fontSize: 14, color: "rgba(255,255,255,0.6)", textAlign: "center", lineHeight: 20 },
+
+  stepRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  stepDot: { height: 8, borderRadius: 4 },
+  stepLine: { flex: 1, height: 2, borderRadius: 1, maxWidth: 32 },
+
+  card: {
+    borderRadius: 24,
+    padding: 24,
+    gap: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 6,
   },
-  title: { fontSize: 26, fontWeight: "800", color: "#fff", letterSpacing: -0.5 },
-  subtitle: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.7)",
-    fontWeight: "500",
-    textAlign: "center",
-  },
-  card: { borderRadius: 20, padding: 24, gap: 14 },
-  passRow: { position: "relative" },
-  eyeBtn: { position: "absolute", right: 14, bottom: 12 },
+
+  eyeBtn: { position: "absolute", right: 14, bottom: 14 },
+
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  errorText: { fontSize: 13, flex: 1 },
+  errorText: { fontSize: 13, flex: 1, fontWeight: "500" },
+
   infoBox: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  infoText: { fontSize: 13, flex: 1, fontWeight: "500" },
-  successRow: { alignItems: "center", gap: 16, paddingVertical: 8 },
-  successIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+  infoText: { fontSize: 13, flex: 1 },
+
+  successWrap: { alignItems: "center", gap: 16, paddingVertical: 8 },
+  successCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: "center",
     justifyContent: "center",
   },
-  successTitle: { fontSize: 22, fontWeight: "700" },
-  successSub: { fontSize: 14, textAlign: "center", lineHeight: 20 },
+  successTitle: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5 },
+  successSub: { fontSize: 14, textAlign: "center", lineHeight: 22 },
 });

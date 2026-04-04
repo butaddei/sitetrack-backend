@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -15,21 +15,37 @@ interface InputFieldProps extends TextInputProps {
 
 export function InputField({ label, error, style, ...props }: InputFieldProps) {
   const colors = useColors();
+  const [focused, setFocused] = useState(false);
+
+  const borderColor = error
+    ? colors.destructive
+    : focused
+    ? colors.primary
+    : colors.border;
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.label, { color: colors.mutedForeground }]}>{label}</Text>
+      <Text
+        style={[
+          styles.label,
+          { color: focused ? colors.primary : colors.mutedForeground },
+        ]}
+      >
+        {label}
+      </Text>
       <TextInput
         style={[
           styles.input,
           {
             backgroundColor: colors.surface,
-            borderColor: error ? colors.destructive : colors.border,
+            borderColor,
             color: colors.foreground,
           },
           style,
         ]}
         placeholderTextColor={colors.mutedForeground}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         {...props}
       />
       {error ? (
@@ -40,21 +56,14 @@ export function InputField({ label, error, style, ...props }: InputFieldProps) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 6,
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
+  container: { gap: 6 },
+  label: { fontSize: 12, fontWeight: "700", letterSpacing: 0.3 },
   input: {
-    borderWidth: 1,
-    borderRadius: 10,
+    borderWidth: 1.5,
+    borderRadius: 12,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 13,
     fontSize: 15,
   },
-  error: {
-    fontSize: 12,
-  },
+  error: { fontSize: 12 },
 });

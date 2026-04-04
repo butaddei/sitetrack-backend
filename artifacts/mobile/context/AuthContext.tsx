@@ -17,6 +17,7 @@ export interface AuthUser {
   companyName: string;
   primaryColor: string;
   secondaryColor: string;
+  logoUrl?: string | null;
 }
 
 interface LoginResponse {

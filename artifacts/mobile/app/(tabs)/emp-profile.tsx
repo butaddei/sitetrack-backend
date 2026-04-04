@@ -1,9 +1,11 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
   Alert,
+  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -91,58 +93,71 @@ export default function EmployeeProfileScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
-      {/* ── Header ── */}
-      <View style={[styles.header, { paddingTop: topPad + 12, backgroundColor: colors.accent }]}>
-        <Text style={styles.headerTitle}>My Profile</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={[styles.headerBtn, { backgroundColor: "rgba(255,255,255,0.10)" }]}
-            onPress={() => router.push("/profile-settings")}
-            hitSlop={8}
-          >
-            <Feather name="edit-2" size={15} color="rgba(255,255,255,0.75)" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.headerBtn, { backgroundColor: "rgba(255,255,255,0.10)" }]}
-            onPress={handleSignOut}
-            hitSlop={8}
-          >
-            <Feather name="log-out" size={15} color="rgba(255,255,255,0.75)" />
-            <Text style={styles.signOutBtnText}>Sign Out</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 40 }]}
       >
-        {/* ── Identity card ── */}
-        <View style={[styles.idCard, { backgroundColor: colors.accent }]}>
-          <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
-          </View>
-          <View style={styles.idInfo}>
-            <Text style={styles.idName}>{user?.name}</Text>
-            <Text style={styles.idPosition}>{user?.position ?? "Field Employee"}</Text>
-          </View>
-          {/* Live status */}
-          {activeLog ? (
-            <View style={[styles.statusBadge, { backgroundColor: colors.success + "25" }]}>
-              <View style={[styles.statusDot, { backgroundColor: colors.success }]} />
-              <Text style={[styles.statusText, { color: colors.success }]} numberOfLines={1}>
-                {activeProject?.name ?? "Working"}
-              </Text>
+        {/* ── Hero gradient header ── */}
+        <LinearGradient
+          colors={[colors.accent, colors.primary + "99"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { paddingTop: topPad + 12 }]}
+        >
+          <View style={styles.heroTop}>
+            <Text style={styles.heroTitle}>My Profile</Text>
+            <View style={styles.heroActions}>
+              <TouchableOpacity
+                style={[styles.heroBtn, { backgroundColor: "rgba(255,255,255,0.12)" }]}
+                onPress={() => router.push("/profile-settings")}
+                hitSlop={8}
+              >
+                <Feather name="edit-2" size={15} color="rgba(255,255,255,0.85)" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.heroBtn, { backgroundColor: "rgba(255,255,255,0.12)" }]}
+                onPress={handleSignOut}
+                hitSlop={8}
+              >
+                <Feather name="log-out" size={15} color="rgba(255,255,255,0.85)" />
+                <Text style={styles.signOutBtnText}>Sign Out</Text>
+              </TouchableOpacity>
             </View>
-          ) : (
-            <View style={[styles.statusBadge, { backgroundColor: "rgba(255,255,255,0.09)" }]}>
-              <View style={[styles.statusDot, { backgroundColor: "rgba(255,255,255,0.3)" }]} />
-              <Text style={[styles.statusText, { color: "rgba(255,255,255,0.45)" }]}>
-                Not clocked in
-              </Text>
+          </View>
+
+          {/* Identity */}
+          <View style={styles.identity}>
+            <View style={[styles.avatarRing, { borderColor: "rgba(255,255,255,0.4)" }]}>
+              {user?.avatarUrl ? (
+                <Image source={{ uri: user.avatarUrl }} style={styles.avatarImg} />
+              ) : (
+                <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.avatarText}>{initials}</Text>
+                </View>
+              )}
             </View>
-          )}
-        </View>
+            <View style={styles.idInfo}>
+              <Text style={styles.idName}>{user?.name}</Text>
+              <Text style={styles.idPosition}>{user?.position ?? "Field Employee"}</Text>
+            </View>
+            {/* Live status */}
+            {activeLog ? (
+              <View style={[styles.statusBadge, { backgroundColor: colors.success + "25" }]}>
+                <View style={[styles.statusDot, { backgroundColor: colors.success }]} />
+                <Text style={[styles.statusText, { color: colors.success }]} numberOfLines={1}>
+                  {activeProject?.name ?? "Working"}
+                </Text>
+              </View>
+            ) : (
+              <View style={[styles.statusBadge, { backgroundColor: "rgba(255,255,255,0.09)" }]}>
+                <View style={[styles.statusDot, { backgroundColor: "rgba(255,255,255,0.3)" }]} />
+                <Text style={[styles.statusText, { color: "rgba(255,255,255,0.45)" }]}>
+                  Not clocked in
+                </Text>
+              </View>
+            )}
+          </View>
+        </LinearGradient>
 
         {/* ── Hours today + this week ── */}
         <View style={styles.hoursRow}>
@@ -210,16 +225,22 @@ export default function EmployeeProfileScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  header: {
+  scroll: { gap: 0 },
+
+  // Hero gradient header
+  hero: {
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    gap: 16,
+  },
+  heroTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 16,
   },
-  headerTitle: { color: "#fff", fontSize: 24, fontWeight: "800" },
-  headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
-  headerBtn: {
+  heroTitle: { color: "#fff", fontSize: 22, fontWeight: "800" },
+  heroActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  heroBtn: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
@@ -227,28 +248,28 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 100,
   },
-  signOutBtnText: { color: "rgba(255,255,255,0.75)", fontSize: 13, fontWeight: "600" },
+  signOutBtnText: { color: "rgba(255,255,255,0.8)", fontSize: 13, fontWeight: "600" },
 
-  scroll: { gap: 0 },
-
-  // Identity card
-  idCard: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    paddingTop: 4,
-    gap: 10,
+  // Identity section
+  identity: { gap: 10 },
+  avatarRing: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    overflow: "hidden",
   },
+  avatarImg: { width: "100%", height: "100%" },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: "100%",
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { color: "#fff", fontSize: 26, fontWeight: "800" },
-  idInfo: { gap: 2 },
-  idName: { color: "#fff", fontSize: 22, fontWeight: "800" },
-  idPosition: { color: "rgba(255,255,255,0.5)", fontSize: 14 },
+  avatarText: { color: "#fff", fontSize: 28, fontWeight: "800" },
+  idInfo: { gap: 3 },
+  idName: { color: "#fff", fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
+  idPosition: { color: "rgba(255,255,255,0.55)", fontSize: 14 },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",

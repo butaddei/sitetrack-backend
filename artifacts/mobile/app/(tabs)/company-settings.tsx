@@ -1,9 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { Redirect, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -21,33 +24,63 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { useColors } from "@/hooks/useColors";
 
 const COLOR_PRESETS = [
-  { name: "Orange", primary: "#f97316", secondary: "#0f172a" },
-  { name: "Blue", primary: "#3b82f6", secondary: "#1e293b" },
-  { name: "Green", primary: "#22c55e", secondary: "#14532d" },
-  { name: "Purple", primary: "#a855f7", secondary: "#1e1b4b" },
-  { name: "Red", primary: "#ef4444", secondary: "#1c1917" },
-  { name: "Teal", primary: "#14b8a6", secondary: "#0f172a" },
-  { name: "Indigo", primary: "#6366f1", secondary: "#1e1b4b" },
-  { name: "Pink", primary: "#ec4899", secondary: "#1c1917" },
+  { name: "Ember",    primary: "#f97316", secondary: "#1c0a00", hex: "#f97316" },
+  { name: "Ocean",    primary: "#3b82f6", secondary: "#0f1e3c", hex: "#3b82f6" },
+  { name: "Forest",   primary: "#22c55e", secondary: "#0a1f12", hex: "#22c55e" },
+  { name: "Grape",    primary: "#a855f7", secondary: "#1a0a2e", hex: "#a855f7" },
+  { name: "Crimson",  primary: "#ef4444", secondary: "#1c0a0a", hex: "#ef4444" },
+  { name: "Teal",     primary: "#14b8a6", secondary: "#031a18", hex: "#14b8a6" },
+  { name: "Indigo",   primary: "#6366f1", secondary: "#0f0e24", hex: "#6366f1" },
+  { name: "Rose",     primary: "#ec4899", secondary: "#1c0a13", hex: "#ec4899" },
+  { name: "Amber",    primary: "#f59e0b", secondary: "#1c1200", hex: "#f59e0b" },
+  { name: "Slate",    primary: "#64748b", secondary: "#0f172a", hex: "#64748b" },
+  { name: "Lime",     primary: "#84cc16", secondary: "#0d1a00", hex: "#84cc16" },
+  { name: "Sky",      primary: "#0ea5e9", secondary: "#031626", hex: "#0ea5e9" },
 ];
 
 export default function CompanySettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, updateUser, logout } = useAuth();
+  const router = useRouter();
 
-  if (user?.role !== "admin") return <Redirect href="/(tabs)/emp-home" />;
+  const [companyName, setCompanyName] = useState(user?.companyName ?? "");
+  const [primaryColor, setPrimaryColor] = useState(user?.primaryColor ?? "#f97316");
+  const [secondaryColor, setSecondaryColor] = useState(user?.secondaryColor ?? "#0f172a");
+  const [logoUri, setLogoUri] = useState<string | null>(user?.logoUrl ?? null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
 
-  const router = useRouter();
-  const [companyName, setCompanyName] = useState(user.companyName ?? "");
-  const [primaryColor, setPrimaryColor] = useState(user.primaryColor ?? "#f97316");
-  const [secondaryColor, setSecondaryColor] = useState(user.secondaryColor ?? "#0f172a");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  if (user?.role !== "admin") return <Redirect href="/(tabs)/emp-home" />;
+
+  const companyInitial = (companyName || user?.companyName || "C")[0].toUpperCase();
+
+  async function handlePickLogo() {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert("Permission needed", "Please allow access to your photo library to upload a logo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const dataUrl = asset.base64
+        ? `data:image/jpeg;base64,${asset.base64}`
+        : asset.uri;
+      setLogoUri(dataUrl);
+      setSuccess(false);
+    }
+  }
 
   async function handleSave() {
     if (!companyName.trim()) {
@@ -62,18 +95,21 @@ export default function CompanySettingsScreen() {
         name: string;
         primaryColor: string;
         secondaryColor: string;
+        logoUrl?: string | null;
       }>("/company", {
         method: "PATCH",
         body: JSON.stringify({
           name: companyName.trim(),
           primaryColor,
           secondaryColor,
+          logoUrl: logoUri,
         }),
       });
       updateUser({
         companyName: updated.name,
         primaryColor: updated.primaryColor,
         secondaryColor: updated.secondaryColor,
+        logoUrl: updated.logoUrl,
       });
       setSuccess(true);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -85,6 +121,10 @@ export default function CompanySettingsScreen() {
     }
   }
 
+  const selectedPreset = COLOR_PRESETS.find(
+    (p) => p.primary === primaryColor && p.secondary === secondaryColor
+  );
+
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
@@ -92,26 +132,52 @@ export default function CompanySettingsScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         {/* Header */}
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: colors.card,
-              paddingTop: topPad + 8,
-              borderBottomColor: colors.border,
-            },
-          ]}
+        <LinearGradient
+          colors={[colors.accent, colors.primary + "99"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { paddingTop: topPad + 16 }]}
         >
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>Company Settings</Text>
-        </View>
+          {/* Logo */}
+          <View style={styles.logoWrapper}>
+            <View style={[styles.logoFrame, { borderColor: "rgba(255,255,255,0.4)" }]}>
+              {logoUri ? (
+                <Image source={{ uri: logoUri }} style={styles.logoImg} />
+              ) : (
+                <View style={[styles.logoFallback, { backgroundColor: primaryColor }]}>
+                  <Text style={styles.logoInitial}>{companyInitial}</Text>
+                </View>
+              )}
+            </View>
+            <TouchableOpacity
+              style={[styles.cameraBtn, { backgroundColor: primaryColor }]}
+              onPress={handlePickLogo}
+              activeOpacity={0.85}
+            >
+              <Feather name="camera" size={13} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.heroCompany}>{user?.companyName}</Text>
+          <View style={[styles.heroBadge, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
+            <Feather name="settings" size={11} color="rgba(255,255,255,0.8)" />
+            <Text style={styles.heroBadgeText}>Company Settings</Text>
+          </View>
+        </LinearGradient>
 
         <ScrollView
-          contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 24 }]}
+          contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 32 }]}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          {/* Company info */}
+          {/* Company name card */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>Company Information</Text>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Feather name="briefcase" size={16} color={colors.primary} />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Company Information</Text>
+            </View>
             <InputField
               label="Company Name"
               value={companyName}
@@ -121,24 +187,48 @@ export default function CompanySettingsScreen() {
             />
           </View>
 
-          {/* Brand colors */}
+          {/* Brand colors card */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>Brand Colors</Text>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Feather name="droplet" size={16} color={colors.primary} />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Brand Colors</Text>
+            </View>
             <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
-              Choose a color scheme for your company's app experience.
+              Your colors will be applied across the entire app experience.
             </Text>
 
-            {/* Preview badge */}
-            <View style={styles.previewRow}>
-              <View style={[styles.previewBadge, { backgroundColor: primaryColor }]}>
-                <Text style={styles.previewText}>Primary</Text>
+            {/* Live preview */}
+            <View style={[styles.preview, { backgroundColor: secondaryColor, borderColor: colors.border }]}>
+              <View style={styles.previewLeft}>
+                <View style={[styles.previewLogoSmall, { backgroundColor: primaryColor }]}>
+                  <Text style={styles.previewLogoText}>{companyInitial}</Text>
+                </View>
+                <View style={styles.previewInfo}>
+                  <Text style={[styles.previewCompany, { color: "#fff" }]} numberOfLines={1}>
+                    {companyName || "Company Name"}
+                  </Text>
+                  <Text style={{ color: "rgba(255,255,255,0.5)", fontSize: 11 }}>Preview</Text>
+                </View>
               </View>
-              <View style={[styles.previewBadge, { backgroundColor: secondaryColor }]}>
-                <Text style={styles.previewText}>Secondary</Text>
+              <View style={[styles.previewBtn, { backgroundColor: primaryColor }]}>
+                <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>Action</Text>
               </View>
             </View>
 
-            {/* Color preset grid */}
+            {/* Color name label */}
+            {selectedPreset && (
+              <View style={styles.selectedRow}>
+                <View style={[styles.selectedSwatch, { backgroundColor: primaryColor }]} />
+                <Text style={[styles.selectedLabel, { color: colors.foreground }]}>
+                  {selectedPreset.name}
+                </Text>
+                <Feather name="check-circle" size={14} color={colors.success} />
+              </View>
+            )}
+
+            {/* Preset grid */}
             <View style={styles.presetGrid}>
               {COLOR_PRESETS.map((preset) => {
                 const isSelected =
@@ -149,9 +239,9 @@ export default function CompanySettingsScreen() {
                     style={[
                       styles.presetItem,
                       {
-                        backgroundColor: colors.background,
-                        borderColor: isSelected ? primaryColor : colors.border,
-                        borderWidth: isSelected ? 2 : 1,
+                        backgroundColor: preset.secondary,
+                        borderColor: isSelected ? preset.primary : "transparent",
+                        borderWidth: isSelected ? 2.5 : 1.5,
                       },
                     ]}
                     onPress={() => {
@@ -159,31 +249,23 @@ export default function CompanySettingsScreen() {
                       setSecondaryColor(preset.secondary);
                       setError("");
                       setSuccess(false);
+                      Haptics.selectionAsync();
                     }}
+                    activeOpacity={0.8}
                   >
-                    <View style={styles.presetSwatch}>
-                      <View
-                        style={[styles.swatchHalf, { backgroundColor: preset.primary }]}
-                      />
-                      <View
-                        style={[styles.swatchHalf, { backgroundColor: preset.secondary }]}
-                      />
-                    </View>
+                    <View style={[styles.presetCircle, { backgroundColor: preset.primary }]} />
                     <Text
                       style={[
                         styles.presetName,
-                        { color: isSelected ? colors.primary : colors.mutedForeground },
+                        { color: isSelected ? preset.primary : "rgba(255,255,255,0.5)" },
                       ]}
                     >
                       {preset.name}
                     </Text>
                     {isSelected && (
-                      <Feather
-                        name="check-circle"
-                        size={12}
-                        color={primaryColor}
-                        style={styles.presetCheck}
-                      />
+                      <View style={[styles.checkBadge, { backgroundColor: preset.primary }]}>
+                        <Feather name="check" size={9} color="#fff" />
+                      </View>
                     )}
                   </TouchableOpacity>
                 );
@@ -191,32 +273,17 @@ export default function CompanySettingsScreen() {
             </View>
           </View>
 
-          {/* Company stats (read-only) */}
-          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>Company Info</Text>
-            <View style={[styles.infoRow, { borderBottomColor: colors.border }]}>
-              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Company ID</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: "monospace" }]}>
-                {user.companyId.slice(0, 8)}...
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={[styles.infoLabel, { color: colors.mutedForeground }]}>Your Role</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground }]}>Administrator</Text>
-            </View>
-          </View>
-
           {error ? (
-            <View style={[styles.alertBox, { backgroundColor: colors.destructive + "15" }]}>
+            <View style={[styles.alert, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "30" }]}>
               <Feather name="alert-circle" size={14} color={colors.destructive} />
               <Text style={[styles.alertText, { color: colors.destructive }]}>{error}</Text>
             </View>
           ) : null}
           {success ? (
-            <View style={[styles.alertBox, { backgroundColor: colors.success + "15" }]}>
+            <View style={[styles.alert, { backgroundColor: colors.success + "12", borderColor: colors.success + "30" }]}>
               <Feather name="check-circle" size={14} color={colors.success} />
               <Text style={[styles.alertText, { color: colors.success }]}>
-                Company settings saved successfully
+                Company settings saved — theme updated!
               </Text>
             </View>
           ) : null}
@@ -225,17 +292,25 @@ export default function CompanySettingsScreen() {
 
           {/* Account actions */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>Account</Text>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Feather name="user" size={16} color={colors.primary} />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Account</Text>
+            </View>
+
             <TouchableOpacity
               style={[styles.actionRow, { borderBottomColor: colors.border }]}
               onPress={() => router.push("/profile-settings")}
+              activeOpacity={0.7}
             >
-              <View style={[styles.actionIcon, { backgroundColor: colors.primary + "15" }]}>
-                <Feather name="user" size={16} color={colors.primary} />
+              <View style={[styles.actionIconWrap, { backgroundColor: colors.primary + "15" }]}>
+                <Feather name="edit-2" size={15} color={colors.primary} />
               </View>
               <Text style={[styles.actionLabel, { color: colors.foreground }]}>Profile Settings</Text>
               <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.actionRow}
               onPress={() => {
@@ -251,9 +326,10 @@ export default function CompanySettingsScreen() {
                   },
                 ]);
               }}
+              activeOpacity={0.7}
             >
-              <View style={[styles.actionIcon, { backgroundColor: colors.destructive + "15" }]}>
-                <Feather name="log-out" size={16} color={colors.destructive} />
+              <View style={[styles.actionIconWrap, { backgroundColor: colors.destructive + "12" }]}>
+                <Feather name="log-out" size={15} color={colors.destructive} />
               </View>
               <Text style={[styles.actionLabel, { color: colors.destructive }]}>Sign Out</Text>
               <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
@@ -268,86 +344,161 @@ export default function CompanySettingsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
-  header: {
-    flexDirection: "row",
+
+  hero: {
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    gap: 10,
+  },
+  logoWrapper: { position: "relative" },
+  logoFrame: {
+    width: 88,
+    height: 88,
+    borderRadius: 20,
+    borderWidth: 2.5,
+    overflow: "hidden",
+  },
+  logoImg: { width: "100%", height: "100%" },
+  logoFallback: {
+    width: "100%",
+    height: "100%",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
   },
-  headerTitle: { fontSize: 18, fontWeight: "700" },
-  scroll: { padding: 16, gap: 16 },
+  logoInitial: { fontSize: 36, fontWeight: "900", color: "#fff" },
+  cameraBtn: {
+    position: "absolute",
+    bottom: -6,
+    right: -6,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  heroCompany: { fontSize: 20, fontWeight: "800", color: "#fff", letterSpacing: -0.5, marginTop: 4 },
+  heroBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  heroBadgeText: { fontSize: 12, fontWeight: "600", color: "rgba(255,255,255,0.8)" },
+
+  scroll: { padding: 16, gap: 14 },
+
   card: {
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 20,
-    gap: 14,
+    gap: 16,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  cardIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  cardTitle: { fontSize: 16, fontWeight: "700" },
+  cardSub: { fontSize: 13, lineHeight: 18, marginTop: -8 },
+
+  preview: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
   },
-  cardTitle: { fontSize: 16, fontWeight: "700" },
-  cardSub: { fontSize: 13, lineHeight: 18, marginTop: -6 },
-  previewRow: { flexDirection: "row", gap: 10 },
-  previewBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  previewLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  previewLogoSmall: {
+    width: 36,
+    height: 36,
     borderRadius: 10,
-    flex: 1,
     alignItems: "center",
+    justifyContent: "center",
   },
-  previewText: { color: "#fff", fontWeight: "700", fontSize: 13 },
+  previewLogoText: { color: "#fff", fontSize: 16, fontWeight: "800" },
+  previewInfo: { gap: 2 },
+  previewCompany: { fontSize: 14, fontWeight: "700", maxWidth: 160 },
+  previewBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+
+  selectedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  selectedSwatch: { width: 16, height: 16, borderRadius: 8 },
+  selectedLabel: { fontSize: 14, fontWeight: "600", flex: 1 },
+
   presetGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
   },
   presetItem: {
-    width: "47%",
-    borderRadius: 12,
+    width: "30%",
+    borderRadius: 14,
     padding: 12,
-    gap: 8,
     alignItems: "center",
+    gap: 6,
     position: "relative",
   },
-  presetSwatch: {
-    flexDirection: "row",
-    width: 48,
-    height: 24,
-    borderRadius: 8,
-    overflow: "hidden",
+  presetCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
-  swatchHalf: { flex: 1 },
-  presetName: { fontSize: 12, fontWeight: "600" },
-  presetCheck: { position: "absolute", top: 6, right: 6 },
+  presetName: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.2,
+  },
+  checkBadge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  alert: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  alertText: { fontSize: 13, flex: 1, fontWeight: "500" },
+
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
   },
-  actionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+  actionIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
-  actionLabel: { flex: 1, fontSize: 15, fontWeight: "500" },
-  alertBox: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    borderRadius: 10,
-  },
-  alertText: { fontSize: 13, flex: 1 },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-  },
-  infoLabel: { fontSize: 14 },
-  infoValue: { fontSize: 14, fontWeight: "500" },
+  actionLabel: { flex: 1, fontSize: 15, fontWeight: "600" },
 });
