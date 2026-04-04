@@ -330,6 +330,26 @@ export default function ProfileSettingsScreen() {
                 <Text style={[styles.infoValue, { color: colors.foreground }]}>{row.value}</Text>
               </View>
             ))}
+
+            {/* Subscription & Billing */}
+            <TouchableOpacity
+              style={[styles.billingRow, { borderTopWidth: 1, borderTopColor: colors.border }]}
+              onPress={() => router.push("/billing")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.billingRowLeft, { backgroundColor: colors.primary + "18" }]}>
+                <Feather name="zap" size={15} color={colors.primary} />
+              </View>
+              <View style={styles.billingRowCenter}>
+                <Text style={[styles.billingRowTitle, { color: colors.foreground }]}>
+                  Subscription & Billing
+                </Text>
+                <Text style={[styles.billingRowSub, { color: colors.mutedForeground }]}>
+                  Free plan · Upgrade anytime
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
+            </TouchableOpacity>
           </View>
 
           {/* Sign out */}
@@ -454,6 +474,24 @@ const styles = StyleSheet.create({
   },
   infoLabel: { fontSize: 14 },
   infoValue: { fontSize: 14, fontWeight: "600", maxWidth: "60%" },
+
+  billingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingTop: 14,
+    marginTop: 2,
+  },
+  billingRowLeft: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  billingRowCenter: { flex: 1 },
+  billingRowTitle: { fontSize: 14, fontWeight: "600" },
+  billingRowSub: { fontSize: 12, marginTop: 1 },
 
   signOutBtn: {
     flexDirection: "row",
