@@ -107,26 +107,10 @@ export default function DashboardScreen() {
           <Text style={[styles.nameText, { color: colors.foreground }]}>
             {user?.name?.split(" ")[0]}
           </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/billing")}
-            activeOpacity={0.8}
-            style={[
-              styles.planChip,
-              {
-                backgroundColor: user?.plan === "pro" ? colors.primary + "18" : user?.plan === "business" ? "#7c3aed18" : colors.muted,
-                borderColor: user?.plan === "pro" ? colors.primary + "35" : user?.plan === "business" ? "#7c3aed35" : colors.border,
-              },
-            ]}
-          >
-            <Text style={[
-              styles.planChipText,
-              {
-                color: user?.plan === "pro" ? colors.primary : user?.plan === "business" ? "#7c3aed" : colors.mutedForeground,
-              },
-            ]}>
-              {user?.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : "Free"} Plan
-            </Text>
-          </TouchableOpacity>
+          <View style={[styles.planChip, { backgroundColor: colors.primary + "15", borderColor: colors.primary + "30", flexDirection: "row", alignItems: "center", gap: 4 }]}>
+            <Feather name="zap" size={11} color={colors.primary} />
+            <Text style={[styles.planChipText, { color: colors.primary }]}>Free Early Access</Text>
+          </View>
         </View>
         <TouchableOpacity
           style={[styles.avatar, { backgroundColor: colors.primary }]}

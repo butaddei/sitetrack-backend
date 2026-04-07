@@ -15,6 +15,8 @@ export function requireStripe(): Stripe {
 
 export const STRIPE_ENABLED = !!key;
 
+export const BILLING_ACTIVE = false;
+
 export const PLAN_PRICES: Record<string, { monthly: string; name: string }> = {
   pro: {
     monthly: process.env["STRIPE_PRO_PRICE_ID"] ?? "",

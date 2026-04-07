@@ -331,7 +331,7 @@ export default function ProfileSettingsScreen() {
               </View>
             ))}
 
-            {/* Subscription & Billing */}
+            {/* Early Access */}
             <TouchableOpacity
               style={[styles.billingRow, { borderTopWidth: 1, borderTopColor: colors.border }]}
               onPress={() => router.push("/billing")}
@@ -342,10 +342,10 @@ export default function ProfileSettingsScreen() {
               </View>
               <View style={styles.billingRowCenter}>
                 <Text style={[styles.billingRowTitle, { color: colors.foreground }]}>
-                  Subscription & Billing
+                  Early Access
                 </Text>
                 <Text style={[styles.billingRowSub, { color: colors.mutedForeground }]}>
-                  {user?.plan ? user.plan.charAt(0).toUpperCase() + user.plan.slice(1) : "Free"} plan · Upgrade anytime
+                  All features included · Free
                 </Text>
               </View>
               <Feather name="chevron-right" size={16} color={colors.mutedForeground} />

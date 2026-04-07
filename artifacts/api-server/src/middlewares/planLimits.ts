@@ -2,7 +2,7 @@ import type { Response, NextFunction } from "express";
 import { eq, count } from "drizzle-orm";
 import { db, companies, projects, users } from "@workspace/db";
 import type { AuthRequest } from "./auth.js";
-import { PLAN_LIMITS } from "../lib/stripeClient.js";
+import { PLAN_LIMITS, BILLING_ACTIVE } from "../lib/stripeClient.js";
 
 type LimitResource = "projects" | "employees";
 
@@ -17,6 +17,10 @@ async function getCompanyPlan(companyId: string): Promise<"free" | "pro" | "busi
 
 export function checkPlanLimit(resource: LimitResource) {
   return async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!BILLING_ACTIVE) {
+      next();
+      return;
+    }
     try {
       const companyId = req.user!.companyId;
       const plan = await getCompanyPlan(companyId);
