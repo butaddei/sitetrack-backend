@@ -255,7 +255,6 @@ export default function LoginScreen() {
                   setError={setError}
                   loading={loading}
                   onLogin={handleLogin}
-                  onForgot={() => router.push("/forgot-password")}
                   onRegister={() => router.push("/register")}
                 />
               </BlurView>
@@ -273,7 +272,6 @@ export default function LoginScreen() {
                   setError={setError}
                   loading={loading}
                   onLogin={handleLogin}
-                  onForgot={() => router.push("/forgot-password")}
                   onRegister={() => router.push("/register")}
                 />
               </View>
@@ -329,7 +327,6 @@ function CardContent({
   error, setError,
   loading,
   onLogin,
-  onForgot,
   onRegister,
 }: any) {
   return (
@@ -380,10 +377,6 @@ function CardContent({
           />
         </View>
       </View>
-
-      <TouchableOpacity onPress={onForgot} style={styles.forgotRow} activeOpacity={0.75}>
-        <Text style={[styles.forgotText, { color: colors.primary }]}>Forgot password?</Text>
-      </TouchableOpacity>
 
       {error ? (
         <View style={[styles.errorBox, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "35" }]}>
