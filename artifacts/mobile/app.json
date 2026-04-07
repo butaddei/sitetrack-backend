@@ -1,22 +1,31 @@
 {
   "expo": {
     "name": "SiteTrack",
-    "slug": "mobile",
+    "slug": "sitetrack",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "sitetrack",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0f172a"
+      "backgroundColor": "#060914"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.sitetrack.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "SiteTrack uses your photo library so you can set a profile photo.",
+        "NSCameraUsageDescription": "SiteTrack uses your camera so you can take a profile photo.",
+        "NSPhotoLibraryAddUsageDescription": "SiteTrack saves photos to your library."
+      }
     },
-    "android": {},
+    "android": {
+      "package": "com.sitetrack.app"
+    },
     "web": {
       "favicon": "./assets/images/icon.png"
     },
@@ -24,11 +33,18 @@
       [
         "expo-router",
         {
-          "origin": "https://replit.com/"
+          "origin": "https://sitetrack.app"
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SiteTrack uses your photo library so you can set a profile photo.",
+          "cameraPermission": "SiteTrack uses your camera so you can take a profile photo."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
