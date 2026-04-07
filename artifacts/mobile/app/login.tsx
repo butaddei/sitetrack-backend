@@ -221,7 +221,7 @@ export default function LoginScreen() {
                 end={{ x: 1, y: 1 }}
                 style={styles.logoGradient}
               >
-                <Feather name="tool" size={30} color="#fff" />
+                <Feather name="bar-chart-2" size={30} color="#fff" />
               </LinearGradient>
               <View style={[styles.logoGlow, { backgroundColor: colors.primary }]} />
             </View>
