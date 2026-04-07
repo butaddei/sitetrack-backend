@@ -205,6 +205,7 @@ export default function LoginScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
+          style={styles.scrollOuter}
           contentContainerStyle={[
             styles.scroll,
             { paddingTop: topPad + 40, paddingBottom: botPad + 32 },
@@ -434,8 +435,8 @@ function CardContent({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  flex: { flex: 1 },
+  root: { flex: 1, backgroundColor: "#060914" },
+  flex: { flex: 1, backgroundColor: "#060914" },
 
   // Background FX
   glowOrb: {
@@ -456,6 +457,7 @@ const styles = StyleSheet.create({
     opacity: 0.06,
   },
 
+  scrollOuter: { flex: 1, backgroundColor: "#060914" },
   scroll: { paddingHorizontal: 24, gap: 28, alignItems: "stretch" },
 
   // Brand
