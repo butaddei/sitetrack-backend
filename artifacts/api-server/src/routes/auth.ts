@@ -74,6 +74,13 @@ router.post("/register", async (req, res) => {
         companyName: company.name,
         primaryColor: company.primaryColor,
         secondaryColor: company.secondaryColor,
+        logoUrl: company.logoUrl ?? null,
+        phone: user.phone ?? null,
+        position: user.position ?? null,
+        avatarUrl: user.avatarUrl ?? null,
+        hourlyRate: user.hourlyRate,
+        plan: company.plan ?? "free",
+        planStatus: company.planStatus ?? "active",
       },
     });
   } catch (err) {
