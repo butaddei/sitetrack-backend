@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   KeyboardAvoidingView,
@@ -31,6 +32,7 @@ export default function EmployeeFieldLogScreen() {
     deleteEmployeeNote,
     getProjectNotes,
     addProjectPhoto,
+    isLoading,
   } = useData();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -126,6 +128,14 @@ export default function EmployeeFieldLogScreen() {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   if (myProjects.length === 0) {
     return (

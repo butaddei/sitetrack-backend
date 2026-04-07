@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import { Redirect } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Platform,
   ScrollView,
@@ -35,6 +36,7 @@ export default function TimesheetsScreen() {
     getEmployeeWeeklyLaborCost,
     getSessionLaborCost,
     getEmployeeTotalHours,
+    isLoading,
   } = useData();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -44,6 +46,14 @@ export default function TimesheetsScreen() {
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
 
   if (user?.role !== "admin") return <Redirect href="/(tabs)/emp-home" />;
+
+  if (isLoading) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const activeEmployees = employees.filter((e) => e.role === "employee" && e.isActive);
 

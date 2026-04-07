@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -62,6 +63,8 @@ export default function WorkLogScreen() {
   const [notes, setNotes] = useState("");
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const [clockInError, setClockInError] = useState("");
+  const [clockingIn, setClockingIn] = useState(false);
+  const [clockingOut, setClockingOut] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Animated pulse for active state
@@ -132,15 +135,20 @@ export default function WorkLogScreen() {
   const activeProject = projects.find((p) => p.id === activeLog?.projectId);
 
   const handleClockIn = async (projectId: string) => {
-    if (!user) return;
+    if (!user || clockingIn) return;
     setClockInError("");
-    const result = await clockIn(user.id, projectId);
-    if (result.success) {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setShowProjectPicker(false);
-    } else {
-      setClockInError(result.error ?? "Failed to clock in");
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    setClockingIn(true);
+    try {
+      const result = await clockIn(user.id, projectId);
+      if (result.success) {
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setShowProjectPicker(false);
+      } else {
+        setClockInError(result.error ?? "Failed to clock in");
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+    } finally {
+      setClockingIn(false);
     }
   };
 
@@ -151,11 +159,16 @@ export default function WorkLogScreen() {
   };
 
   const confirmClockOut = async () => {
-    if (!activeLog) return;
-    await clockOut(activeLog.id, notes);
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setShowNotes(false);
-    setNotes("");
+    if (!activeLog || clockingOut) return;
+    setClockingOut(true);
+    try {
+      await clockOut(activeLog.id, notes);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowNotes(false);
+      setNotes("");
+    } finally {
+      setClockingOut(false);
+    }
   };
 
   // Group logs by date for section list
@@ -325,9 +338,10 @@ export default function WorkLogScreen() {
             }
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={[styles.projOption, { backgroundColor: colors.card, borderColor: colors.border }]}
+                style={[styles.projOption, { backgroundColor: colors.card, borderColor: colors.border, opacity: clockingIn ? 0.6 : 1 }]}
                 onPress={() => handleClockIn(item.id)}
                 activeOpacity={0.85}
+                disabled={clockingIn}
               >
                 <View style={styles.projOptionInfo}>
                   <Text style={[styles.projOptionName, { color: colors.foreground }]}>{item.name}</Text>
@@ -339,7 +353,11 @@ export default function WorkLogScreen() {
                   </View>
                 </View>
                 <View style={[styles.clockInBadge, { backgroundColor: colors.primary }]}>
-                  <Feather name="play" size={12} color="#fff" />
+                  {clockingIn ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Feather name="play" size={12} color="#fff" />
+                  )}
                 </View>
               </TouchableOpacity>
             )}
@@ -407,12 +425,19 @@ export default function WorkLogScreen() {
               textAlignVertical="top"
             />
             <TouchableOpacity
-              style={[styles.clockBtn, styles.clockBtnFull, { backgroundColor: colors.destructive }]}
+              style={[styles.clockBtn, styles.clockBtnFull, { backgroundColor: colors.destructive, opacity: clockingOut ? 0.7 : 1 }]}
               onPress={confirmClockOut}
               activeOpacity={0.85}
+              disabled={clockingOut}
             >
-              <Feather name="square" size={16} color="#fff" />
-              <Text style={styles.clockBtnText}>Confirm Clock Out</Text>
+              {clockingOut ? (
+                <ActivityIndicator color="#fff" size="small" />
+              ) : (
+                <>
+                  <Feather name="square" size={16} color="#fff" />
+                  <Text style={styles.clockBtnText}>Confirm Clock Out</Text>
+                </>
+              )}
             </TouchableOpacity>
           </ScrollView>
         </View>

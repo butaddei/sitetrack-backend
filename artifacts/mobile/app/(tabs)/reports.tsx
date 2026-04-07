@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { Redirect } from "expo-router";
 import React, { useState } from "react";
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { StatusBadge } from "@/components/StatusBadge";
@@ -13,7 +13,7 @@ export default function ReportsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { projects, employees, timeLogs, expenses, getProjectLaborCost, getProjectExpenses, getEmployeeTotalHours } = useData();
+  const { projects, employees, timeLogs, expenses, getProjectLaborCost, getProjectExpenses, getEmployeeTotalHours, isLoading } = useData();
 
   const [activeTab, setActiveTab] = useState<"projects" | "employees">("projects");
 
@@ -21,6 +21,14 @@ export default function ReportsScreen() {
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
+
+  if (isLoading) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const totalRevenue = projects.filter((p) => p.status === "completed").reduce((s, p) => s + p.totalValue, 0);
   const totalLaborCost = projects.reduce((s, p) => s + getProjectLaborCost(p.id), 0);

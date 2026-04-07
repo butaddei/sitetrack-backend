@@ -3,6 +3,7 @@ import * as Haptics from "expo-haptics";
 import { Redirect } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   FlatList,
   Modal,
   Platform,
@@ -38,7 +39,7 @@ export default function EmployeesScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const { employees, projects, addEmployee, updateEmployee, timeLogs } = useData();
+  const { employees, projects, addEmployee, updateEmployee, timeLogs, isLoading } = useData();
   const { showToast } = useToast();
 
   const [editTarget, setEditTarget] = useState<Employee | null>(null);
@@ -48,6 +49,14 @@ export default function EmployeesScreen() {
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
+
+  if (isLoading) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   const activeEmployees = employees.filter((e) => e.role === "employee" && e.isActive);
   const activeLogs = timeLogs.filter((l) => !l.clockOut);

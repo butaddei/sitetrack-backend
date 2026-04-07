@@ -4,6 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Platform,
@@ -30,6 +31,7 @@ export default function EmployeeProfileScreen() {
     getActiveTimeLog,
     getEmployeeDailyHours,
     getEmployeeWeeklyHours,
+    isLoading,
   } = useData();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -90,6 +92,14 @@ export default function EmployeeProfileScreen() {
       },
     ]);
   };
+
+  if (isLoading) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
