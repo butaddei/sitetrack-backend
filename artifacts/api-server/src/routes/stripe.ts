@@ -79,7 +79,7 @@ router.post("/checkout", requireAdmin, async (req: AuthRequest, res) => {
         .where(eq(companies.id, company.id));
     }
 
-    const baseUrl = process.env["APP_URL"] ?? "https://paintpro.app";
+    const baseUrl = process.env["APP_URL"] ?? "https://sitetrack.app";
 
     const session = await client.checkout.sessions.create({
       customer: customerId,
@@ -114,7 +114,7 @@ router.post("/portal", requireAdmin, async (req: AuthRequest, res) => {
       return;
     }
 
-    const baseUrl = process.env["APP_URL"] ?? "https://paintpro.app";
+    const baseUrl = process.env["APP_URL"] ?? "https://sitetrack.app";
 
     const session = await client.billingPortal.sessions.create({
       customer: company.stripeCustomerId,

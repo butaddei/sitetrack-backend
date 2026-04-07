@@ -10,7 +10,7 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType>({
   primaryColor: "#f97316",
   secondaryColor: "#0f172a",
-  companyName: "PaintPro",
+  companyName: "SiteTrack",
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -21,7 +21,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       value={{
         primaryColor: user?.primaryColor ?? "#f97316",
         secondaryColor: user?.secondaryColor ?? "#0f172a",
-        companyName: user?.companyName ?? "PaintPro",
+        companyName: user?.companyName ?? "SiteTrack",
       }}
     >
       {children}

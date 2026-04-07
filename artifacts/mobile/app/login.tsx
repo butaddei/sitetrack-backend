@@ -225,7 +225,7 @@ export default function LoginScreen() {
               </LinearGradient>
               <View style={[styles.logoGlow, { backgroundColor: colors.primary }]} />
             </View>
-            <Text style={styles.appName}>PaintPro</Text>
+            <Text style={styles.appName}>SiteTrack</Text>
             <Text style={styles.tagline}>Field & Project Management</Text>
 
             {/* Trust signals */}
@@ -337,7 +337,7 @@ function CardContent({
       <View style={styles.cardHead}>
         <Text style={[styles.cardTitle, { color: colors.foreground }]}>Welcome back</Text>
         <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
-          Sign in to your PaintPro account
+          Sign in to your SiteTrack account
         </Text>
       </View>
 

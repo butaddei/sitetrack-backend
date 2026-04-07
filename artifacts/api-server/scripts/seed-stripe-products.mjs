@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Seed Stripe products and prices for PaintPro.
+ * Seed Stripe products and prices for SiteTrack.
  * Run once after setting STRIPE_SECRET_KEY.
  *
  *   node scripts/seed-stripe-products.mjs
@@ -33,14 +33,14 @@ async function createPlan(name, amount, description) {
 }
 
 async function main() {
-  console.log("🎨  Seeding Stripe products for PaintPro...\n");
+  console.log("🚀  Seeding Stripe products for SiteTrack...\n");
 
-  const pro = await createPlan("PaintPro Pro", 29, "For growing painting businesses — up to 15 projects & employees");
+  const pro = await createPlan("SiteTrack Pro", 29, "For growing field service businesses — up to 15 projects & employees");
   console.log(`✅  Pro plan created`);
   console.log(`   Product: ${pro.product.id}`);
   console.log(`   Price:   ${pro.price.id}`);
 
-  const biz = await createPlan("PaintPro Business", 79, "For large-scale operations — unlimited projects & employees");
+  const biz = await createPlan("SiteTrack Business", 79, "For large-scale operations — unlimited projects & employees");
   console.log(`✅  Business plan created`);
   console.log(`   Product: ${biz.product.id}`);
   console.log(`   Price:   ${biz.price.id}`);

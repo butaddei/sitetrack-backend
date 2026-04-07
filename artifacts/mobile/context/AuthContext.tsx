@@ -45,7 +45,7 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
-const USER_KEY = "paintpro_user_v2";
+const USER_KEY = "sitetrack_user_v1";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);

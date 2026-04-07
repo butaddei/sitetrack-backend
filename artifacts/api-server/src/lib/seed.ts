@@ -39,7 +39,7 @@ export async function ensureDemoData(): Promise<void> {
 
     await db.insert(companies).values({
       id: DEMO_COMPANY_ID,
-      name: "PaintPro Demo",
+      name: "SiteTrack Demo",
       primaryColor: "#f97316",
       secondaryColor: "#0f172a",
     });

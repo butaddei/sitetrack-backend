@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const TOKEN_KEY = "paintpro_jwt_token";
+const TOKEN_KEY = "sitetrack_jwt_token";
 
 export function getApiUrl(): string {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;

@@ -200,7 +200,7 @@ export default function OnboardingScreen() {
                   <Feather name="zap" size={38} color="#fff" />
                 </View>
                 <Text style={styles.heroTitle}>
-                  Welcome to PaintPro!
+                  Welcome to SiteTrack!
                 </Text>
                 <Text style={styles.heroCompany}>{user?.companyName ?? "Your Company"}</Text>
                 <Text style={styles.heroSub}>
@@ -210,7 +210,7 @@ export default function OnboardingScreen() {
 
               <View style={[styles.card, { backgroundColor: colors.card }]}>
                 <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-                  What you can do with PaintPro
+                  What you can do with SiteTrack
                 </Text>
                 {[
                   { icon: "folder", text: "Manage projects & track progress" },

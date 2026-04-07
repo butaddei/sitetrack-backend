@@ -389,7 +389,7 @@ async function seedDemoData(companyId: string, adminId: string) {
   const [carlos] = await db.insert(users).values({
     companyId,
     name: "Carlos Mendez",
-    email: `carlos.${companyId.slice(0, 6)}@demo.paintpro`,
+    email: `carlos.${companyId.slice(0, 6)}@demo.sitetrack`,
     passwordHash: employeePassword,
     role: "employee",
     hourlyRate: "28",
@@ -401,7 +401,7 @@ async function seedDemoData(companyId: string, adminId: string) {
   const [james] = await db.insert(users).values({
     companyId,
     name: "James Wilson",
-    email: `james.${companyId.slice(0, 6)}@demo.paintpro`,
+    email: `james.${companyId.slice(0, 6)}@demo.sitetrack`,
     passwordHash: employeePassword,
     role: "employee",
     hourlyRate: "24",
@@ -413,7 +413,7 @@ async function seedDemoData(companyId: string, adminId: string) {
   const [sofia] = await db.insert(users).values({
     companyId,
     name: "Sofia Chen",
-    email: `sofia.${companyId.slice(0, 6)}@demo.paintpro`,
+    email: `sofia.${companyId.slice(0, 6)}@demo.sitetrack`,
     passwordHash: employeePassword,
     role: "employee",
     hourlyRate: "26",
