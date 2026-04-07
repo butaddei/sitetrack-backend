@@ -169,12 +169,6 @@ export default function LoginScreen() {
     }
   }
 
-  const fillDemo = (e: string, p: string) => {
-    setEmail(e);
-    setPassword(p);
-    setError("");
-  };
-
   const isWeb = Platform.OS === "web";
   const isIOS = Platform.OS === "ios";
 
@@ -277,41 +271,6 @@ export default function LoginScreen() {
                 />
               </View>
             )}
-          </Animated.View>
-
-          {/* ── Demo accounts ── */}
-          <Animated.View style={[styles.demoCard, footerStyle]}>
-            <View style={styles.demoHeader}>
-              <View style={[styles.demoPill, { backgroundColor: colors.primary + "25", borderColor: colors.primary + "40" }]}>
-                <View style={[styles.demoDot, { backgroundColor: colors.primary }]} />
-                <Text style={[styles.demoTitle, { color: colors.primary }]}>Demo Accounts</Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.demoRow}
-              onPress={() => fillDemo("admin@paintpro.com", "admin123")}
-              activeOpacity={0.75}
-            >
-              <View style={[styles.roleChip, { backgroundColor: colors.primary }]}>
-                <Feather name="shield" size={10} color="#fff" />
-                <Text style={styles.roleChipText}>Admin</Text>
-              </View>
-              <Text style={styles.demoEmail}>admin@paintpro.com</Text>
-              <Text style={styles.demoPass}>admin123</Text>
-            </TouchableOpacity>
-            <View style={styles.demoDivider} />
-            <TouchableOpacity
-              style={styles.demoRow}
-              onPress={() => fillDemo("carlos@paintpro.com", "employee123")}
-              activeOpacity={0.75}
-            >
-              <View style={[styles.roleChip, { backgroundColor: "#22c55e" }]}>
-                <Feather name="user" size={10} color="#fff" />
-                <Text style={styles.roleChipText}>Field</Text>
-              </View>
-              <Text style={styles.demoEmail}>carlos@paintpro.com</Text>
-              <Text style={styles.demoPass}>employee123</Text>
-            </TouchableOpacity>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -609,41 +568,4 @@ const styles = StyleSheet.create({
   },
   createBtnText: { fontSize: 15, fontWeight: "600" },
 
-  // Demo
-  demoCard: {
-    borderRadius: 18,
-    padding: 18,
-    gap: 12,
-    backgroundColor: "rgba(255,255,255,0.04)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
-  },
-  demoHeader: { alignItems: "flex-start" },
-  demoPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 100,
-    borderWidth: 1,
-  },
-  demoDot: { width: 6, height: 6, borderRadius: 3 },
-  demoTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.8, textTransform: "uppercase" },
-  demoRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  demoDivider: {
-    height: 1,
-    backgroundColor: "rgba(255,255,255,0.06)",
-  },
-  roleChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  roleChipText: { color: "#fff", fontSize: 10, fontWeight: "800", letterSpacing: 0.3 },
-  demoEmail: { color: "rgba(255,255,255,0.75)", fontSize: 13, flex: 1 },
-  demoPass: { color: "rgba(255,255,255,0.35)", fontSize: 12, fontWeight: "500" },
 });
