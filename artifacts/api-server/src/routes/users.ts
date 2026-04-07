@@ -90,6 +90,14 @@ router.post("/", requireAdmin, checkPlanLimit("employees"), async (req: AuthRequ
       res.status(400).json({ error: "Name and email are required" });
       return;
     }
+    if (!password?.trim()) {
+      res.status(400).json({ error: "A temporary password is required" });
+      return;
+    }
+    if (password.length < 8) {
+      res.status(400).json({ error: "Temporary password must be at least 8 characters" });
+      return;
+    }
 
     const existing = await db.select().from(users).where(eq(users.email, email.toLowerCase())).limit(1);
     if (existing.length > 0) {
@@ -97,8 +105,7 @@ router.post("/", requireAdmin, checkPlanLimit("employees"), async (req: AuthRequ
       return;
     }
 
-    const rawPassword = password ?? "employee123";
-    const passwordHash = await bcrypt.hash(rawPassword, 12);
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const [user] = await db
       .insert(users)
@@ -113,6 +120,7 @@ router.post("/", requireAdmin, checkPlanLimit("employees"), async (req: AuthRequ
         position: position?.trim() ?? null,
         startDate: startDate ?? new Date().toISOString().split("T")[0],
         isActive: true,
+        mustChangePassword: true,
       })
       .returning();
 

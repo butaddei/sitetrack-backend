@@ -8,6 +8,7 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -88,25 +89,9 @@ export default function EmployeesScreen() {
         ]}
         ListHeaderComponent={
           <View style={styles.statStrip}>
-            <StatPill
-              icon="users"
-              label="Total"
-              value={activeEmployees.length}
-              color={colors.primary}
-            />
-            <StatPill
-              icon="radio"
-              label="On Site"
-              value={onSiteCount}
-              color={colors.success}
-              pulse={onSiteCount > 0}
-            />
-            <StatPill
-              icon="moon"
-              label="Idle"
-              value={idleCount}
-              color={colors.mutedForeground}
-            />
+            <StatPill icon="users" label="Total" value={activeEmployees.length} color={colors.primary} />
+            <StatPill icon="radio" label="On Site" value={onSiteCount} color={colors.success} pulse={onSiteCount > 0} />
+            <StatPill icon="moon" label="Idle" value={idleCount} color={colors.mutedForeground} />
           </View>
         }
         ListEmptyComponent={
@@ -123,9 +108,7 @@ export default function EmployeesScreen() {
         )}
         renderItem={({ item }) => {
           const isOnSite = activeLogs.some((l) => l.employeeId === item.id);
-          const assigned = projects.filter((p) =>
-            p.assignedEmployeeIds.includes(item.id)
-          );
+          const assigned = projects.filter((p) => p.assignedEmployeeIds.includes(item.id));
           return (
             <EmployeeRow
               employee={item}
@@ -145,8 +128,6 @@ export default function EmployeesScreen() {
           onSave={async (data) => {
             await addEmployee(data);
             await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            showToast("success", "Employee added");
-            setShowAdd(false);
           }}
         />
       )}
@@ -171,17 +152,9 @@ export default function EmployeesScreen() {
 
 // ─── Stat pill ────────────────────────────────────────────────────────────────
 function StatPill({
-  icon,
-  label,
-  value,
-  color,
-  pulse = false,
+  icon, label, value, color, pulse = false,
 }: {
-  icon: string;
-  label: string;
-  value: number;
-  color: string;
-  pulse?: boolean;
+  icon: string; label: string; value: number; color: string; pulse?: boolean;
 }) {
   const colors = useColors();
   return (
@@ -199,10 +172,7 @@ function StatPill({
 
 // ─── Employee row ─────────────────────────────────────────────────────────────
 function EmployeeRow({
-  employee,
-  isOnSite,
-  assignedProjects,
-  onEdit,
+  employee, isOnSite, assignedProjects, onEdit,
 }: {
   employee: Employee;
   isOnSite: boolean;
@@ -210,17 +180,8 @@ function EmployeeRow({
   onEdit: () => void;
 }) {
   const colors = useColors();
-
-  const initials = employee.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
+  const initials = employee.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
   const avatarColor = nameToColor(employee.name);
-
-  // Show max 2 project chips, then "+N more"
   const shown = assignedProjects.slice(0, 2);
   const extra = assignedProjects.length - shown.length;
 
@@ -230,14 +191,10 @@ function EmployeeRow({
       onPress={onEdit}
       activeOpacity={0.75}
     >
-      {/* Avatar */}
       <View style={[styles.avatar, { backgroundColor: avatarColor }]}>
         <Text style={styles.avatarText}>{initials}</Text>
       </View>
-
-      {/* Info */}
       <View style={styles.info}>
-        {/* Name + status */}
         <View style={styles.nameRow}>
           <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>
             {employee.name}
@@ -253,31 +210,20 @@ function EmployeeRow({
             </View>
           )}
         </View>
-
-        {/* Position */}
         {employee.position ? (
           <Text style={[styles.position, { color: colors.mutedForeground }]} numberOfLines={1}>
             {employee.position}
           </Text>
         ) : null}
-
-        {/* Assigned projects */}
         <View style={styles.projectChips}>
           {shown.length === 0 ? (
-            <Text style={[styles.noProjects, { color: colors.mutedForeground }]}>
-              No projects assigned
-            </Text>
+            <Text style={[styles.noProjects, { color: colors.mutedForeground }]}>No projects assigned</Text>
           ) : (
             <>
               {shown.map((p) => (
-                <View
-                  key={p.id}
-                  style={[styles.chip, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "28" }]}
-                >
+                <View key={p.id} style={[styles.chip, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "28" }]}>
                   <Feather name="briefcase" size={10} color={colors.primary} />
-                  <Text style={[styles.chipText, { color: colors.primary }]} numberOfLines={1}>
-                    {p.name}
-                  </Text>
+                  <Text style={[styles.chipText, { color: colors.primary }]} numberOfLines={1}>{p.name}</Text>
                 </View>
               ))}
               {extra > 0 && (
@@ -289,8 +235,6 @@ function EmployeeRow({
           )}
         </View>
       </View>
-
-      {/* Edit chevron */}
       <Feather name="chevron-right" size={16} color={colors.mutedForeground} />
     </TouchableOpacity>
   );
@@ -322,20 +266,40 @@ function EmployeeFormModal({
     isActive: initial?.isActive ?? true,
     avatarUrl: initial?.avatarUrl ?? null,
   });
+  const [password, setPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [credentials, setCredentials] = useState<{
+    name: string;
+    email: string;
+    password: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
 
   async function handleSave() {
-    if (!form.name || !form.email || !form.hourlyRate) {
+    if (!form.name.trim() || !form.email.trim() || !form.hourlyRate) {
       setError("Name, email and hourly rate are required");
       return;
+    }
+    if (!initial) {
+      if (!password.trim()) {
+        setError("Temporary password is required");
+        return;
+      }
+      if (password.length < 8) {
+        setError("Temporary password must be at least 8 characters");
+        return;
+      }
     }
     setSaving(true);
     setError("");
     try {
-      await onSave({ ...form, hourlyRate: parseFloat(form.hourlyRate) || 0 } as any);
+      await onSave({ ...form, password, hourlyRate: parseFloat(form.hourlyRate) || 0 } as any);
+      if (!initial) {
+        setCredentials({ name: form.name.trim(), email: form.email.trim().toLowerCase(), password });
+      }
     } catch (err: any) {
       setError(err?.message ?? "Failed to save. Please try again.");
     } finally {
@@ -343,6 +307,104 @@ function EmployeeFormModal({
     }
   }
 
+  async function handleShare() {
+    if (!credentials) return;
+    const text =
+      `SiteTrack Login\nEmail: ${credentials.email}\nPassword: ${credentials.password}`;
+    try {
+      if (Platform.OS === "web") {
+        await (navigator as any).clipboard?.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2500);
+      } else {
+        await Share.share({ message: text });
+      }
+    } catch {}
+  }
+
+  // ── Credentials success view ─────────────────────────────────────────────
+  if (credentials) {
+    return (
+      <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+        <View style={[styles.modal, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { paddingTop: insets.top + 16, borderBottomColor: colors.border }]}>
+            <View style={{ width: 22 }} />
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Account Created</Text>
+            <View style={{ width: 22 }} />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.modalContent}>
+            <View style={styles.credIconRow}>
+              <View style={[styles.credIconWrap, { backgroundColor: colors.success + "18" }]}>
+                <Feather name="check-circle" size={40} color={colors.success} />
+              </View>
+            </View>
+
+            <Text style={[styles.credTitle, { color: colors.foreground }]}>
+              {credentials.name}
+            </Text>
+            <Text style={[styles.credSubtitle, { color: colors.mutedForeground }]}>
+              Account created successfully
+            </Text>
+
+            {/* Credential card */}
+            <View style={[styles.credCard, { backgroundColor: colors.muted, borderColor: colors.border }]}>
+              <View style={styles.credRow}>
+                <View style={[styles.credFieldIcon, { backgroundColor: colors.primary + "14" }]}>
+                  <Feather name="mail" size={14} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.credLabel, { color: colors.mutedForeground }]}>Email</Text>
+                  <Text style={[styles.credValue, { color: colors.foreground }]} selectable>
+                    {credentials.email}
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.credDivider, { backgroundColor: colors.border }]} />
+              <View style={styles.credRow}>
+                <View style={[styles.credFieldIcon, { backgroundColor: colors.primary + "14" }]}>
+                  <Feather name="lock" size={14} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.credLabel, { color: colors.mutedForeground }]}>Temporary Password</Text>
+                  <Text style={[styles.credValue, { color: colors.foreground }]} selectable>
+                    {credentials.password}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Info note */}
+            <View style={[styles.infoNote, { backgroundColor: colors.primary + "0f", borderColor: colors.primary + "28" }]}>
+              <Feather name="info" size={14} color={colors.primary} style={{ marginTop: 1 }} />
+              <Text style={[styles.infoNoteText, { color: colors.primary }]}>
+                Please share these login details with the employee. The employee should change the password after first login.
+              </Text>
+            </View>
+
+            {/* Share / Copy button */}
+            <TouchableOpacity
+              style={[
+                styles.shareBtn,
+                { backgroundColor: copied ? colors.success : colors.accent },
+              ]}
+              onPress={handleShare}
+              activeOpacity={0.82}
+            >
+              <Feather name={copied ? "check" : Platform.OS === "web" ? "copy" : "share-2"} size={16} color="#fff" />
+              <Text style={styles.shareBtnText}>
+                {copied ? "Copied!" : Platform.OS === "web" ? "Copy Credentials" : "Share Credentials"}
+              </Text>
+            </TouchableOpacity>
+
+            <PrimaryButton label="Done" onPress={onClose} />
+          </ScrollView>
+        </View>
+      </Modal>
+    );
+  }
+
+  // ── Form view ────────────────────────────────────────────────────────────
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.modal, { backgroundColor: colors.background }]}>
@@ -363,12 +425,7 @@ function EmployeeFormModal({
             <View style={styles.modalAvatarRow}>
               <View style={[styles.modalAvatar, { backgroundColor: nameToColor(form.name || initial.name) }]}>
                 <Text style={styles.modalAvatarText}>
-                  {(form.name || initial.name)
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2)}
+                  {(form.name || initial.name).split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)}
                 </Text>
               </View>
             </View>
@@ -388,6 +445,19 @@ function EmployeeFormModal({
             autoCapitalize="none"
             placeholder="john@email.com"
           />
+
+          {/* Password — only for new employees */}
+          {!initial ? (
+            <InputField
+              label="Temporary Password *"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              placeholder="Min. 8 characters"
+            />
+          ) : null}
+
           <InputField
             label="Phone"
             value={form.phone ?? ""}
@@ -414,15 +484,6 @@ function EmployeeFormModal({
             onChangeText={(t) => set("startDate", t)}
             placeholder="YYYY-MM-DD"
           />
-
-          {!initial ? (
-            <View style={[styles.noteBadge, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-              <Feather name="lock" size={13} color={colors.mutedForeground} />
-              <Text style={[styles.noteText, { color: colors.mutedForeground }]}>
-                Default password: <Text style={{ fontWeight: "700" }}>employee123</Text>
-              </Text>
-            </View>
-          ) : null}
 
           {error ? (
             <View style={[styles.errorBox, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "35" }]}>
@@ -470,11 +531,7 @@ const styles = StyleSheet.create({
   separator: { height: 1, marginHorizontal: 16 },
 
   // Stat strip
-  statStrip: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 8,
-  },
+  statStrip: { flexDirection: "row", gap: 10, marginBottom: 8 },
   statPill: {
     flex: 1,
     flexDirection: "row",
@@ -523,12 +580,9 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   avatarText: { color: "#fff", fontWeight: "800", fontSize: 16 },
-
   info: { flex: 1, gap: 4, minWidth: 0 },
-
   nameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   name: { fontSize: 15, fontWeight: "700", flex: 1 },
-
   onSitePill: {
     flexDirection: "row",
     alignItems: "center",
@@ -541,7 +595,6 @@ const styles = StyleSheet.create({
   },
   onSiteDot: { width: 5, height: 5, borderRadius: 3 },
   onSiteText: { fontSize: 10, fontWeight: "700" },
-
   idlePill: {
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -550,9 +603,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   idleText: { fontSize: 10, fontWeight: "600" },
-
   position: { fontSize: 12, fontWeight: "500" },
-
   projectChips: { flexDirection: "row", flexWrap: "wrap", gap: 5, marginTop: 2 },
   chip: {
     flexDirection: "row",
@@ -579,7 +630,6 @@ const styles = StyleSheet.create({
   },
   modalTitle: { fontSize: 18, fontWeight: "700" },
   modalContent: { padding: 20, gap: 14 },
-
   modalAvatarRow: { alignItems: "center", paddingVertical: 4 },
   modalAvatar: {
     width: 64,
@@ -590,16 +640,58 @@ const styles = StyleSheet.create({
   },
   modalAvatarText: { color: "#fff", fontWeight: "800", fontSize: 22 },
 
-  noteBadge: {
+  // Credentials view
+  credIconRow: { alignItems: "center", paddingVertical: 8 },
+  credIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  credTitle: { fontSize: 22, fontWeight: "800", textAlign: "center", marginTop: 8 },
+  credSubtitle: { fontSize: 14, textAlign: "center", marginBottom: 6 },
+  credCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  credRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-    padding: 12,
+    gap: 12,
+    padding: 14,
+  },
+  credFieldIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  credDivider: { height: 1 },
+  credLabel: { fontSize: 11, fontWeight: "600", marginBottom: 3 },
+  credValue: { fontSize: 15, fontWeight: "700" },
+  infoNote: {
+    flexDirection: "row",
+    gap: 10,
+    padding: 13,
     borderRadius: 12,
     borderWidth: 1,
   },
-  noteText: { fontSize: 13 },
+  infoNoteText: { fontSize: 13, lineHeight: 19, flex: 1, fontWeight: "500" },
+  shareBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  shareBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
 
+  // Error
   errorBox: {
     flexDirection: "row",
     alignItems: "center",

@@ -151,6 +151,7 @@ router.post("/login", async (req, res) => {
         hourlyRate: user.hourlyRate,
         plan: company?.plan ?? "free",
         planStatus: company?.planStatus ?? "active",
+        mustChangePassword: user.mustChangePassword ?? false,
       },
     });
   } catch (err) {
@@ -194,6 +195,7 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
       hourlyRate: user.hourlyRate,
       plan: company?.plan ?? "free",
       planStatus: company?.planStatus ?? "active",
+      mustChangePassword: user.mustChangePassword ?? false,
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch user" });
@@ -273,7 +275,7 @@ router.post("/change-password", requireAuth, async (req: AuthRequest, res) => {
     const passwordHash = await bcrypt.hash(newPassword, 12);
     await db
       .update(users)
-      .set({ passwordHash, updatedAt: new Date() })
+      .set({ passwordHash, mustChangePassword: false, updatedAt: new Date() })
       .where(eq(users.id, req.user!.userId));
 
     res.json({ success: true });

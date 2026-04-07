@@ -23,6 +23,7 @@ export interface AuthUser {
   logoUrl?: string | null;
   plan?: PlanType;
   planStatus?: PlanStatus;
+  mustChangePassword?: boolean;
 }
 
 interface LoginResponse {

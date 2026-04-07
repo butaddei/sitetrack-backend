@@ -32,6 +32,7 @@ function RootLayoutNav() {
       <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="profile-settings" options={{ headerShown: false, presentation: "modal" }} />
       <Stack.Screen name="billing" options={{ headerShown: false, presentation: "modal" }} />
+      <Stack.Screen name="set-new-password" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen
         name="project/[id]"
         options={{ headerShown: false, presentation: "card" }}

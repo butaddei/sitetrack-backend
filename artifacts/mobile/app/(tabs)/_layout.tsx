@@ -22,6 +22,7 @@ export default function TabLayout() {
 
   if (isLoading) return null;
   if (!user) return <Redirect href="/login" />;
+  if (user.mustChangePassword) return <Redirect href="/set-new-password" />;
 
   const isAdmin = user.role === "admin";
 
