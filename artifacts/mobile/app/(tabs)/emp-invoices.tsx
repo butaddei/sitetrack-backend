@@ -128,196 +128,213 @@ function getPeriod(preset: string): { start: string; end: string } {
   return { start: twoWeeksAgo.toISOString().split("T")[0], end: today };
 }
 
-// ─── PDF Template ─────────────────────────────────────────────────────────────
+// ─── PDF Template — Premium Australian Invoice ────────────────────────────────
 function buildInvoiceHtml(inv: GeneratedInvoice): string {
   const primary = inv.company?.primaryColor ?? "#f97316";
+
+  // Derive a slightly darkened version of primary for hover/border use
   const companyName = inv.company?.name ?? "Company";
-  const subName = inv.user?.name ?? "";
-  const subEmail = inv.user?.email ?? "";
-  const subPhone = inv.user?.phone ?? "";
-  const subAbn = inv.user?.abn ?? "";
-  const subAddr = inv.user?.businessAddress ?? "";
-  const bankName = inv.user?.bankName ?? "";
+  const subName     = inv.user?.name ?? "";
+  const subEmail    = inv.user?.email ?? "";
+  const subPhone    = inv.user?.phone ?? "";
+  const subAbn      = inv.user?.abn ?? "";
+  const subAddr     = inv.user?.businessAddress ?? "";
+  const bankName    = inv.user?.bankName ?? "";
   const accountName = inv.user?.accountName ?? "";
-  const bsb = inv.user?.bsb ?? "";
-  const accountNumber = inv.user?.accountNumber ?? "";
-  const invoiceNotes = inv.user?.invoiceNotes ?? "";
-  const companyAbn = inv.company?.businessAbn ?? "";
+  const bsb         = inv.user?.bsb ?? "";
+  const accountNum  = inv.user?.accountNumber ?? "";
+  const notes       = inv.user?.invoiceNotes ?? "";
+  const companyAbn  = inv.company?.businessAbn ?? "";
   const companyEmail = inv.company?.businessEmail ?? "";
   const companyAddr = inv.company?.businessAddress ?? "";
 
-  const periodLabel = `${fmtDate(inv.periodStart)} – ${fmtDate(inv.periodEnd)}`;
+  // Decide heading — if subcontractor has an ABN, use "TAX INVOICE" (AU standard)
+  const invoiceHeading = subAbn ? "TAX INVOICE" : "INVOICE";
+
   const issueDate = new Date(inv.createdAt).toLocaleDateString("en-AU", {
     day: "numeric", month: "long", year: "numeric",
   });
+  const periodLabel = `${fmtDate(inv.periodStart)} – ${fmtDate(inv.periodEnd)}`;
 
-  const lineItemRows = inv.lineItems
-    .sort((a, b) => a.date.localeCompare(b.date))
-    .map((li) => {
-      const hrs = (li.minutes / 60).toFixed(2);
-      const amount = ((li.minutes / 60) * inv.hourlyRate).toFixed(2);
-      const timeRange = li.clockOut
-        ? `${isoToLocal(li.clockIn)} – ${isoToLocal(li.clockOut)}`
-        : isoToLocal(li.clockIn);
-      return `
-        <tr>
-          <td>${fmtDate(li.date)}</td>
-          <td>${li.projectName}</td>
-          <td>${timeRange}</td>
-          <td style="text-align:right">${hrs}</td>
-          <td style="text-align:right">$${amount}</td>
-        </tr>`;
-    })
-    .join("");
+  // ── Line item rows ──
+  const sortedItems = [...inv.lineItems].sort((a, b) => a.date.localeCompare(b.date));
+  const lineItemRows = sortedItems.map((li, idx) => {
+    const hrs    = (li.minutes / 60).toFixed(2);
+    const amount = ((li.minutes / 60) * inv.hourlyRate).toFixed(2);
+    const timeRange = li.clockOut
+      ? `${isoToLocal(li.clockIn)} – ${isoToLocal(li.clockOut)}`
+      : isoToLocal(li.clockIn);
+    const bg = idx % 2 === 0 ? "#ffffff" : "#f8f9fb";
+    return `<tr style="background:${bg}">
+      <td style="padding:10px 14px;border-bottom:1px solid #edf0f4;font-size:12px;color:#374151;white-space:nowrap">${fmtDate(li.date)}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #edf0f4;font-size:12px;color:#111827;font-weight:500">${li.projectName}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #edf0f4;font-size:12px;color:#6b7280;white-space:nowrap">${timeRange}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #edf0f4;font-size:12px;color:#374151;text-align:right;white-space:nowrap">${hrs}</td>
+      <td style="padding:10px 14px;border-bottom:1px solid #edf0f4;font-size:12px;color:#111827;font-weight:600;text-align:right;white-space:nowrap">$${amount}</td>
+    </tr>`;
+  }).join("");
 
   const totalHrs = (inv.totalMinutes / 60).toFixed(2);
-  const totalAmount = inv.totalAmount.toLocaleString("en-AU", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const totalAmt = Number(inv.totalAmount).toFixed(2);
 
-  const bankSection =
-    bankName || accountName || bsb || accountNumber
-      ? `
-    <div class="section bank-section">
-      <h3>Payment Details</h3>
-      <table class="info-table">
-        ${bankName ? `<tr><td>Bank</td><td>${bankName}</td></tr>` : ""}
-        ${accountName ? `<tr><td>Account Name</td><td>${accountName}</td></tr>` : ""}
-        ${bsb ? `<tr><td>BSB</td><td>${bsb}</td></tr>` : ""}
-        ${accountNumber ? `<tr><td>Account Number</td><td>${accountNumber}</td></tr>` : ""}
-      </table>
-    </div>`
-      : "";
+  // ── Payment details block (only if at least bank name or account exists) ──
+  const hasPayment = bankName || accountName || bsb || accountNum;
+  const paymentBlock = hasPayment ? `
+    <div style="margin-top:32px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:4px;height:18px;background:${primary};border-radius:2px"></div>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#6b7280">Payment Details</span>
+      </div>
+      <div style="background:#f8f9fb;border:1px solid #edf0f4;border-radius:10px;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse">
+          ${bankName    ? `<tr><td style="padding:11px 18px;font-size:12px;font-weight:600;color:#6b7280;width:40%;border-bottom:1px solid #edf0f4">Bank</td><td style="padding:11px 18px;font-size:13px;font-weight:600;color:#111827;border-bottom:1px solid #edf0f4">${bankName}</td></tr>` : ""}
+          ${accountName ? `<tr><td style="padding:11px 18px;font-size:12px;font-weight:600;color:#6b7280;width:40%;border-bottom:1px solid #edf0f4">Account Name</td><td style="padding:11px 18px;font-size:13px;font-weight:600;color:#111827;border-bottom:1px solid #edf0f4">${accountName}</td></tr>` : ""}
+          ${bsb         ? `<tr><td style="padding:11px 18px;font-size:12px;font-weight:600;color:#6b7280;width:40%;border-bottom:${accountNum ? "1px solid #edf0f4" : "none"}">BSB</td><td style="padding:11px 18px;font-size:13px;font-weight:700;color:#111827;letter-spacing:0.5px;border-bottom:${accountNum ? "1px solid #edf0f4" : "none"}">${bsb}</td></tr>` : ""}
+          ${accountNum  ? `<tr><td style="padding:11px 18px;font-size:12px;font-weight:600;color:#6b7280;width:40%">Account Number</td><td style="padding:11px 18px;font-size:13px;font-weight:700;color:#111827;letter-spacing:0.5px">${accountNum}</td></tr>` : ""}
+        </table>
+      </div>
+    </div>` : "";
+
+  // ── Notes block ──
+  const notesBlock = notes ? `
+    <div style="margin-top:24px;background:#fffbf5;border-left:4px solid ${primary};border-radius:0 8px 8px 0;padding:14px 18px">
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${primary}">Notes</span>
+      <p style="margin-top:6px;font-size:13px;color:#4b5563;line-height:1.7">${notes}</p>
+    </div>` : "";
+
+  // ── Subcontractor meta lines ──
+  const subMetaLines = [
+    subEmail  ? `<div>${subEmail}</div>`                 : "",
+    subPhone  ? `<div>${subPhone}</div>`                 : "",
+    subAbn    ? `<div style="margin-top:4px;font-weight:600;color:#111827">ABN: ${subAbn}</div>` : "",
+    subAddr   ? `<div style="color:#9ca3af;font-size:11px;margin-top:3px">${subAddr}</div>` : "",
+  ].filter(Boolean).join("");
+
+  const companyMetaLines = [
+    companyAddr  ? `<div style="color:#9ca3af;font-size:11px;margin-top:3px">${companyAddr}</div>` : "",
+    companyAbn   ? `<div style="margin-top:4px;font-weight:600;color:#111827">ABN: ${companyAbn}</div>` : "",
+    companyEmail ? `<div>${companyEmail}</div>`  : "",
+  ].filter(Boolean).join("");
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Invoice ${inv.invoiceNumber}</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, Arial, sans-serif; font-size: 13px; color: #1a1a1a; background: #fff; padding: 40px; }
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 36px; }
-  .company-block { }
-  .company-name { font-size: 24px; font-weight: 800; color: ${primary}; margin-bottom: 4px; }
-  .company-meta { font-size: 12px; color: #555; line-height: 1.6; }
-  .invoice-block { text-align: right; }
-  .invoice-title { font-size: 32px; font-weight: 900; color: #111; letter-spacing: -1px; }
-  .invoice-number { font-size: 14px; color: ${primary}; font-weight: 700; margin-top: 4px; }
-  .invoice-meta { font-size: 12px; color: #666; margin-top: 8px; line-height: 1.7; }
-  .divider { border: none; border-top: 2px solid ${primary}; margin: 0 0 28px 0; }
-  .parties { display: flex; gap: 48px; margin-bottom: 28px; }
-  .party { flex: 1; }
-  .party-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: ${primary}; margin-bottom: 8px; }
-  .party-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-  .party-meta { font-size: 12px; color: #555; line-height: 1.6; }
-  .section { margin-bottom: 28px; }
-  .section h3 { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #888; margin-bottom: 12px; }
-  table.line-items { width: 100%; border-collapse: collapse; font-size: 12px; }
-  table.line-items thead tr { background: ${primary}; color: #fff; }
-  table.line-items thead th { padding: 10px 12px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
-  table.line-items thead th:nth-child(4),
-  table.line-items thead th:nth-child(5) { text-align: right; }
-  table.line-items tbody tr:nth-child(even) { background: #f9f9f9; }
-  table.line-items tbody td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
-  .totals-row { display: flex; justify-content: flex-end; margin-top: 16px; }
-  .totals-box { background: #f5f5f5; border-radius: 10px; padding: 16px 24px; min-width: 260px; }
-  .totals-line { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
-  .totals-line.grand { border-top: 2px solid ${primary}; margin-top: 8px; padding-top: 10px; font-size: 18px; font-weight: 800; color: ${primary}; }
-  .bank-section table.info-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .bank-section table.info-table td { padding: 7px 12px; border-bottom: 1px solid #eee; }
-  .bank-section table.info-table td:first-child { font-weight: 600; color: #555; width: 40%; }
-  .notes { background: #fffbf5; border-left: 4px solid ${primary}; padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 12px; color: #555; line-height: 1.6; margin-bottom: 28px; }
-  .footer { text-align: center; font-size: 11px; color: #aaa; margin-top: 32px; padding-top: 20px; border-top: 1px solid #eee; }
-</style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>${invoiceHeading} ${inv.invoiceNumber}</title>
 </head>
-<body>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,Helvetica Neue,Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact">
 
-<div class="header">
-  <div class="company-block">
-    <div class="company-name">${companyName}</div>
-    <div class="company-meta">
-      ${companyAddr ? companyAddr + "<br/>" : ""}
-      ${companyAbn ? "ABN: " + companyAbn + "<br/>" : ""}
-      ${companyEmail ? companyEmail : ""}
-    </div>
-  </div>
-  <div class="invoice-block">
-    <div class="invoice-title">INVOICE</div>
-    <div class="invoice-number">${inv.invoiceNumber}</div>
-    <div class="invoice-meta">
-      Date Issued: ${issueDate}<br/>
-      Period: ${periodLabel}
-    </div>
-  </div>
-</div>
+<!-- Page wrapper -->
+<div style="max-width:800px;margin:0 auto;background:#ffffff;min-height:100vh">
 
-<hr class="divider"/>
+  <!-- Top accent bar -->
+  <div style="height:7px;background:${primary}"></div>
 
-<div class="parties">
-  <div class="party">
-    <div class="party-label">Bill To</div>
-    <div class="party-name">${companyName}</div>
-    <div class="party-meta">
-      ${companyAddr ? companyAddr + "<br/>" : ""}
-      ${companyAbn ? "ABN: " + companyAbn : ""}
-    </div>
-  </div>
-  <div class="party">
-    <div class="party-label">From (Subcontractor)</div>
-    <div class="party-name">${subName}</div>
-    <div class="party-meta">
-      ${subEmail ? subEmail + "<br/>" : ""}
-      ${subPhone ? subPhone + "<br/>" : ""}
-      ${subAbn ? "ABN: " + subAbn + "<br/>" : ""}
-      ${subAddr ? subAddr : ""}
-    </div>
-  </div>
-</div>
+  <!-- Main content -->
+  <div style="padding:44px 52px 52px">
 
-<div class="section">
-  <h3>Services Rendered — ${periodLabel}</h3>
-  <table class="line-items">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Project</th>
-        <th>Hours</th>
-        <th style="text-align:right">Hrs</th>
-        <th style="text-align:right">Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${lineItemRows}
-    </tbody>
-  </table>
-  <div class="totals-row">
-    <div class="totals-box">
-      <div class="totals-line">
-        <span>Total Hours</span>
-        <span>${totalHrs} hrs</span>
+    <!-- ── Header: Company + Invoice identity ── -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px">
+
+      <!-- Left: Company identity -->
+      <div style="max-width:55%">
+        <div style="font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.5px;line-height:1.2">${companyName}</div>
+        <div style="margin-top:10px;font-size:12px;color:#6b7280;line-height:1.8">
+          ${companyMetaLines}
+        </div>
       </div>
-      <div class="totals-line">
-        <span>Rate</span>
-        <span>${formatAud(inv.hourlyRate)} / hr</span>
-      </div>
-      <div class="totals-line grand">
-        <span>Total Due</span>
-        <span>$${totalAmount}</span>
+
+      <!-- Right: Invoice heading + meta -->
+      <div style="text-align:right">
+        <div style="font-size:38px;font-weight:900;letter-spacing:-2px;color:#111827;line-height:1">${invoiceHeading}</div>
+        <div style="margin-top:10px;display:inline-block;background:${primary};color:#fff;font-size:13px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:0.3px">${inv.invoiceNumber}</div>
+        <div style="margin-top:14px;font-size:12px;color:#6b7280;line-height:2">
+          <div><span style="font-weight:600;color:#374151">Date Issued</span>&nbsp;&nbsp;${issueDate}</div>
+          <div><span style="font-weight:600;color:#374151">Period</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${periodLabel}</div>
+          <div><span style="font-weight:600;color:#374151">Payment Due</span>&nbsp;&nbsp;On receipt</div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
-${bankSection}
+    <!-- ── Divider ── -->
+    <div style="height:1.5px;background:linear-gradient(to right,${primary},${primary}33);margin-bottom:32px;border-radius:1px"></div>
 
-${invoiceNotes ? `<div class="notes"><strong>Notes:</strong> ${invoiceNotes}</div>` : ""}
+    <!-- ── FROM / BILL TO ── -->
+    <div style="display:flex;gap:0;margin-bottom:40px;border:1px solid #edf0f4;border-radius:12px;overflow:hidden">
 
-<div class="footer">
-  This invoice was generated via SiteTrack · ${issueDate}
-</div>
+      <!-- FROM: Subcontractor -->
+      <div style="flex:1;padding:22px 26px;border-right:1px solid #edf0f4">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${primary};margin-bottom:10px">From</div>
+        <div style="font-size:17px;font-weight:700;color:#111827;margin-bottom:6px">${subName}</div>
+        <div style="font-size:12px;color:#6b7280;line-height:1.9">${subMetaLines || "&nbsp;"}</div>
+      </div>
+
+      <!-- BILL TO: Company -->
+      <div style="flex:1;padding:22px 26px;background:#fafafa">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280;margin-bottom:10px">Bill To</div>
+        <div style="font-size:17px;font-weight:700;color:#111827;margin-bottom:6px">${companyName}</div>
+        <div style="font-size:12px;color:#6b7280;line-height:1.9">${companyMetaLines || "&nbsp;"}</div>
+      </div>
+    </div>
+
+    <!-- ── Services table ── -->
+    <div style="margin-bottom:0">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:4px;height:18px;background:${primary};border-radius:2px"></div>
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#6b7280">Services Rendered &mdash; ${periodLabel}</span>
+      </div>
+
+      <div style="border:1px solid #edf0f4;border-radius:10px;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:${primary}">
+              <th style="padding:12px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Date</th>
+              <th style="padding:12px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Project / Description</th>
+              <th style="padding:12px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Time</th>
+              <th style="padding:12px 14px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Hours</th>
+              <th style="padding:12px 14px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Amount (AUD)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${lineItemRows || `<tr><td colspan="5" style="padding:24px;text-align:center;color:#9ca3af;font-size:13px">No time entries for this period</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Totals ── -->
+    <div style="display:flex;justify-content:flex-end;margin-top:20px;margin-bottom:8px">
+      <div style="min-width:300px;border:1px solid #edf0f4;border-radius:12px;overflow:hidden">
+        <div style="padding:13px 20px;display:flex;justify-content:space-between;border-bottom:1px solid #edf0f4;background:#fafafa">
+          <span style="font-size:13px;color:#6b7280;font-weight:500">Total Hours</span>
+          <span style="font-size:13px;color:#374151;font-weight:600">${totalHrs} hrs</span>
+        </div>
+        <div style="padding:13px 20px;display:flex;justify-content:space-between;border-bottom:1px solid #edf0f4;background:#fafafa">
+          <span style="font-size:13px;color:#6b7280;font-weight:500">Hourly Rate</span>
+          <span style="font-size:13px;color:#374151;font-weight:600">${formatAud(inv.hourlyRate)} / hr</span>
+        </div>
+        <div style="padding:18px 20px;display:flex;justify-content:space-between;align-items:center;background:${primary}">
+          <span style="font-size:15px;color:rgba(255,255,255,0.9);font-weight:700;letter-spacing:0.3px">TOTAL DUE</span>
+          <span style="font-size:24px;color:#ffffff;font-weight:900;letter-spacing:-0.5px">$${totalAmt}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Payment details ── -->
+    ${paymentBlock}
+
+    <!-- ── Notes ── -->
+    ${notesBlock}
+
+    <!-- ── Footer ── -->
+    <div style="margin-top:48px;padding-top:20px;border-top:1px solid #edf0f4;display:flex;justify-content:space-between;align-items:center">
+      <div style="font-size:11px;color:#d1d5db">Generated via <strong style="color:#9ca3af">SiteTrack</strong> &middot; ${issueDate}</div>
+      <div style="font-size:11px;color:#d1d5db">${inv.invoiceNumber}</div>
+    </div>
+
+  </div><!-- /main content -->
+</div><!-- /page wrapper -->
 
 </body>
 </html>`;
