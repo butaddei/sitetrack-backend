@@ -41,8 +41,9 @@ pnpm workspace monorepo using TypeScript. SiteTrack is a multi-tenant SaaS mobil
 - **Auth screens**: Premium dark-gradient login & register with animated entrance, icon-prefixed inputs, trust badges
 - **Billing screen**: Plans & Billing UI (Free/Pro/Business) with usage stats. `BILLING_ACTIVE=false` in stripeClient.ts — flip to activate.
 - **Color presets**: 12 named color themes in company settings with live preview
-- **Subcontractor invoicing**: Workers can fill in ABN, bank details, invoice prefix in Profile Settings. Invoices tab generates PDF invoices (expo-print + expo-sharing) for custom date periods, with professional HTML template. Past invoices stored in DB.
+- **Subcontractor invoicing**: Workers can fill in ABN, bank details, invoice prefix in Profile Settings. Invoices tab generates PDF invoices (expo-print + expo-sharing) for custom date periods. Full line item breakdown (date, project, hours, rate, subtotal) is persisted in DB (`lineItemsJson` column). Payment terms selector (On Receipt / Net 7 / Net 14 / Net 30) stored per invoice and shown on PDF.
 - **Company invoice branding**: Admin can set company ABN, billing email, business address in Company Settings — appears on subcontractor invoices as "Bill To" section.
+- **Worker home (emp-home)**: Premium card-based layout with dark gradient header (greeting + status), project card with location indicator, large timer card (gradient when working, pulse ring animation), stats row (hours today + rate), and quick-action cards (Photo / Note). All clock in/out logic preserved.
 
 #### Design System
 - **Auth screens**: `LinearGradient` dark navy background, white floating card with 24px radius + shadow

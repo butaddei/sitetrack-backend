@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -27,6 +28,13 @@ function hms(secs: number) {
   const m = Math.floor((secs % 3600) / 60);
   const s = secs % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -75,8 +83,8 @@ export default function EmployeeHomeScreen() {
     if (isWorking) {
       const loop = Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.12, duration: 900, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.14, duration: 950, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 950, useNativeDriver: true }),
         ])
       );
       loop.start();
@@ -181,6 +189,8 @@ export default function EmployeeHomeScreen() {
     .toUpperCase()
     .slice(0, 2);
 
+  const greeting = getGreeting();
+
   // ── Derived display values ──
   const displayProject = isWorking
     ? activeProject
@@ -188,180 +198,301 @@ export default function EmployeeHomeScreen() {
     ? myProjects[0]
     : null;
 
-  const btnColor = isWorking ? colors.destructive : noProjects ? colors.mutedForeground : colors.success;
   const btnDisabled = (noProjects && !isWorking) || clockingIn || clockingOut;
+  const hourlyRateDisplay = `$${Number(user?.hourlyRate ?? 0).toFixed(0)}/hr`;
 
   return (
     <ScrollView
       style={[styles.root, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.scrollContent}
+      contentContainerStyle={[styles.scrollContent, { paddingBottom: botPad + 24 }]}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       bounces={true}
     >
 
-      {/* ─── Header ──────────────────────────────────────────────────────── */}
-      <View style={[styles.header, { paddingTop: topPad + 8 }]}>
-        <View style={styles.headerLeft}>
-          <Text style={[styles.headerName, { color: colors.foreground }]}>
-            {user?.name?.split(" ")[0]}
-          </Text>
-          <Text style={[styles.headerRole, { color: colors.mutedForeground }]}>
-            Subcontractor
-          </Text>
+      {/* ─── Gradient header ──────────────────────────────────────────────── */}
+      <LinearGradient
+        colors={[colors.accent, colors.accent + "cc"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.gradientHeader, { paddingTop: topPad + 16 }]}
+      >
+        <View style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>{greeting},</Text>
+            <Text style={styles.userName}>{user?.name?.split(" ")[0]}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={() => router.push("/(tabs)/emp-profile")}
+            activeOpacity={0.8}
+          >
+            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+              <Text style={styles.avatarText}>{initials}</Text>
+            </View>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={[styles.avatar, { backgroundColor: colors.primary }]}
-          onPress={() => router.push("/(tabs)/emp-profile")}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.avatarText}>{initials}</Text>
-        </TouchableOpacity>
-      </View>
 
-      {/* ─── Current Project ─────────────────────────────────────────────── */}
-      <View style={styles.projectSection}>
-        {displayProject ? (
-          <View style={[styles.projectPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={[styles.projectDot, { backgroundColor: isWorking ? colors.success : colors.primary }]} />
-            <Text style={[styles.projectName, { color: colors.foreground }]} numberOfLines={1}>
-              {displayProject.name}
-            </Text>
-            {displayProject.address ? (
-              <Text style={[styles.projectAddr, { color: colors.mutedForeground }]} numberOfLines={1}>
-                · {displayProject.address}
-              </Text>
-            ) : null}
-          </View>
-        ) : myProjects.length > 1 ? (
-          <View style={[styles.projectPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={[styles.projectDot, { backgroundColor: colors.primary }]} />
-            <Text style={[styles.projectName, { color: colors.foreground }]}>
-              {myProjects.length} projects assigned
-            </Text>
-          </View>
-        ) : (
-          <View style={[styles.projectPill, { backgroundColor: colors.muted, borderColor: colors.border }]}>
-            <View style={[styles.projectDot, { backgroundColor: colors.mutedForeground }]} />
-            <Text style={[styles.projectName, { color: colors.mutedForeground }]}>
-              No project assigned — contact your manager
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* ─── Center content: timer + button ─────────────────────────────── */}
-      <View style={styles.center}>
-
-        {/* Status label */}
-        <View style={[styles.statusPill, {
+        <View style={[styles.headerStatusBadge, {
           backgroundColor: isWorking
-            ? colors.success + "18"
-            : dailyHours > 0 ? colors.primary + "14" : colors.muted,
+            ? "rgba(34,197,94,0.18)"
+            : "rgba(255,255,255,0.10)",
           borderColor: isWorking
-            ? colors.success + "40"
-            : dailyHours > 0 ? colors.primary + "30" : colors.border,
+            ? "rgba(34,197,94,0.35)"
+            : "rgba(255,255,255,0.18)",
         }]}>
-          <View style={[styles.statusDot, {
-            backgroundColor: isWorking ? colors.success
-              : dailyHours > 0 ? colors.primary : colors.mutedForeground,
+          <View style={[styles.headerStatusDot, {
+            backgroundColor: isWorking ? "#22c55e" : "rgba(255,255,255,0.45)",
           }]} />
-          <Text style={[styles.statusText, {
-            color: isWorking ? colors.success
-              : dailyHours > 0 ? colors.primary : colors.mutedForeground,
+          <Text style={[styles.headerStatusText, {
+            color: isWorking ? "#4ade80" : "rgba(255,255,255,0.65)",
           }]}>
             {isWorking
-              ? "Working now"
+              ? "Currently on site"
               : dailyHours > 0
-              ? "Session paused"
-              : noProjects ? "No project assigned" : "Ready to start"}
+              ? `${dailyHours.toFixed(1)}h logged today`
+              : "Ready to start"}
           </Text>
         </View>
+      </LinearGradient>
 
-        {/* Timer */}
-        <Text style={[styles.timer, {
-          color: isWorking ? colors.foreground : colors.mutedForeground,
-        }]}>
-          {isWorking ? hms(elapsed) : "00:00:00"}
-        </Text>
+      <View style={styles.body}>
 
-        {/* Big action button */}
-        <View style={styles.btnWrap}>
-          {isWorking && (
-            <Animated.View
-              style={[
-                styles.pulseRing,
-                { borderColor: btnColor + "30", transform: [{ scale: pulseAnim }] },
-              ]}
-            />
+        {/* ─── Project card ────────────────────────────────────────────────── */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+          <View style={styles.cardHeaderRow}>
+            <View style={[styles.cardIconWrap, { backgroundColor: colors.primary + "18" }]}>
+              <Feather name="briefcase" size={14} color={colors.primary} />
+            </View>
+            <Text style={[styles.cardSectionTitle, { color: colors.mutedForeground }]}>
+              CURRENT PROJECT
+            </Text>
+          </View>
+
+          {displayProject ? (
+            <View style={styles.projectContent}>
+              <View style={[styles.projectIndicator, {
+                backgroundColor: isWorking ? colors.success : colors.primary,
+              }]} />
+              <View style={styles.projectText}>
+                <Text style={[styles.projectName, { color: colors.foreground }]} numberOfLines={1}>
+                  {displayProject.name}
+                </Text>
+                {displayProject.address ? (
+                  <View style={styles.addressRow}>
+                    <Feather name="map-pin" size={11} color={colors.mutedForeground} />
+                    <Text style={[styles.projectAddr, { color: colors.mutedForeground }]} numberOfLines={1}>
+                      {displayProject.address}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+            </View>
+          ) : myProjects.length > 1 ? (
+            <View style={styles.projectContent}>
+              <View style={[styles.projectIndicator, { backgroundColor: colors.primary }]} />
+              <View style={styles.projectText}>
+                <Text style={[styles.projectName, { color: colors.foreground }]}>
+                  {myProjects.length} projects available
+                </Text>
+                <Text style={[styles.projectAddr, { color: colors.mutedForeground }]}>
+                  Tap Start to select one
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.projectContent}>
+              <View style={[styles.projectIndicator, { backgroundColor: colors.mutedForeground }]} />
+              <View style={styles.projectText}>
+                <Text style={[styles.projectName, { color: colors.mutedForeground }]}>
+                  No project assigned yet
+                </Text>
+                <Text style={[styles.projectAddr, { color: colors.mutedForeground }]}>
+                  Contact your manager
+                </Text>
+              </View>
+            </View>
           )}
-          <TouchableOpacity
-            style={[styles.bigBtn, { backgroundColor: btnColor, opacity: btnDisabled ? 0.55 : 1 }]}
-            onPress={isWorking ? () => setShowStopConfirm(true) : handleStartPress}
-            activeOpacity={0.88}
-            disabled={btnDisabled}
-          >
-            {clockingIn || clockingOut ? (
-              <ActivityIndicator color="#fff" size="large" />
-            ) : isWorking ? (
-              <Feather name="square" size={44} color="#fff" />
-            ) : (
-              <Feather name="play" size={44} color="#fff" style={{ marginLeft: 4 }} />
-            )}
-          </TouchableOpacity>
         </View>
 
-        <Text style={[styles.btnLabel, { color: colors.mutedForeground }]}>
-          {clockingIn ? "Starting…" : clockingOut ? "Stopping…" : isWorking ? "TAP TO STOP" : noProjects ? "NO PROJECT" : "TAP TO START"}
-        </Text>
+        {/* ─── Timer card ──────────────────────────────────────────────────── */}
+        <View style={[styles.timerCard, {
+          backgroundColor: isWorking ? colors.primary : colors.card,
+          borderColor: isWorking ? colors.primary : colors.border,
+          shadowColor: isWorking ? colors.primary : "#000",
+        }]}>
 
-        {/* Error message */}
-        {clockInError ? (
-          <View style={[styles.errorPill, { backgroundColor: colors.destructive + "14", borderColor: colors.destructive + "35" }]}>
-            <Feather name="alert-circle" size={13} color={colors.destructive} />
-            <Text style={[styles.errorText, { color: colors.destructive }]}>{clockInError}</Text>
+          {/* Status pill */}
+          <View style={[styles.timerStatusPill, {
+            backgroundColor: isWorking
+              ? "rgba(255,255,255,0.15)"
+              : dailyHours > 0 ? colors.primary + "14" : colors.muted,
+            borderColor: isWorking
+              ? "rgba(255,255,255,0.25)"
+              : dailyHours > 0 ? colors.primary + "30" : colors.border,
+          }]}>
+            <View style={[styles.timerStatusDot, {
+              backgroundColor: isWorking ? "#fff"
+                : dailyHours > 0 ? colors.primary : colors.mutedForeground,
+            }]} />
+            <Text style={[styles.timerStatusText, {
+              color: isWorking ? "rgba(255,255,255,0.9)"
+                : dailyHours > 0 ? colors.primary : colors.mutedForeground,
+            }]}>
+              {isWorking
+                ? "Working now"
+                : dailyHours > 0
+                ? "Session paused"
+                : noProjects ? "No project assigned" : "Ready to start"}
+            </Text>
           </View>
-        ) : null}
 
-        {/* Hours today */}
-        <View style={[styles.hoursRow, { borderColor: colors.border, backgroundColor: colors.card }]}>
-          <Feather name="clock" size={14} color={colors.mutedForeground} />
-          <Text style={[styles.hoursText, { color: colors.foreground }]}>
-            <Text style={{ fontWeight: "800" }}>{dailyHours.toFixed(1)}h</Text>
-            <Text style={{ color: colors.mutedForeground }}> worked today</Text>
+          {/* Timer display */}
+          <Text style={[styles.timer, {
+            color: isWorking ? "#fff" : colors.mutedForeground,
+          }]}>
+            {isWorking ? hms(elapsed) : "00:00:00"}
           </Text>
-        </View>
-      </View>
 
-      {/* ─── Quick Actions ───────────────────────────────────────────────── */}
-      <View style={[styles.quickActions, { paddingBottom: botPad + 12 }]}>
-        {photoFeedback ? (
-          <View style={[styles.feedbackPill, { backgroundColor: colors.success + "18", borderColor: colors.success + "40" }]}>
-            <Feather name="check-circle" size={14} color={colors.success} />
-            <Text style={[styles.feedbackText, { color: colors.success }]}>{photoFeedback}</Text>
+          {/* Big action button */}
+          <View style={styles.btnWrap}>
+            {isWorking && (
+              <Animated.View style={[styles.pulseRing, {
+                borderColor: "rgba(255,255,255,0.22)",
+                transform: [{ scale: pulseAnim }],
+              }]} />
+            )}
+            <TouchableOpacity
+              style={[styles.bigBtn, {
+                backgroundColor: isWorking
+                  ? "#ffffff"
+                  : noProjects ? colors.muted : colors.success,
+                opacity: btnDisabled ? 0.55 : 1,
+                shadowColor: isWorking ? "#fff" : colors.success,
+              }]}
+              onPress={isWorking ? () => setShowStopConfirm(true) : handleStartPress}
+              activeOpacity={0.88}
+              disabled={btnDisabled}
+            >
+              {clockingIn || clockingOut ? (
+                <ActivityIndicator
+                  color={isWorking ? colors.primary : "#fff"}
+                  size="large"
+                />
+              ) : isWorking ? (
+                <Feather name="square" size={40} color={colors.primary} />
+              ) : (
+                <Feather name="play" size={40} color="#fff" style={{ marginLeft: 4 }} />
+              )}
+            </TouchableOpacity>
           </View>
-        ) : null}
-        <View style={styles.quickRow}>
-          <TouchableOpacity
-            style={[styles.quickBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={handlePhoto}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.quickIcon, { backgroundColor: colors.primary + "14" }]}>
-              <Feather name="camera" size={18} color={colors.primary} />
+
+          <Text style={[styles.btnLabel, {
+            color: isWorking ? "rgba(255,255,255,0.55)" : colors.mutedForeground,
+          }]}>
+            {clockingIn ? "STARTING…"
+              : clockingOut ? "STOPPING…"
+              : isWorking ? "TAP TO STOP"
+              : noProjects ? "NO PROJECT"
+              : "TAP TO START"}
+          </Text>
+
+          {/* Clock-in error */}
+          {clockInError ? (
+            <View style={[styles.errorPill, {
+              backgroundColor: colors.destructive + "18",
+              borderColor: colors.destructive + "40",
+            }]}>
+              <Feather name="alert-circle" size={13} color={colors.destructive} />
+              <Text style={[styles.errorText, { color: colors.destructive }]}>{clockInError}</Text>
             </View>
-            <Text style={[styles.quickLabel, { color: colors.foreground }]}>Upload Photo</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
-            onPress={handleNote}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.quickIcon, { backgroundColor: colors.accent + "14" }]}>
-              <Feather name="edit-3" size={18} color={colors.foreground} />
+          ) : null}
+
+          {/* Stats row */}
+          <View style={[styles.statsRow, {
+            borderTopColor: isWorking ? "rgba(255,255,255,0.15)" : colors.border,
+          }]}>
+            <View style={styles.statItem}>
+              <Feather
+                name="clock"
+                size={14}
+                color={isWorking ? "rgba(255,255,255,0.55)" : colors.mutedForeground}
+              />
+              <Text style={[styles.statValue, {
+                color: isWorking ? "#fff" : colors.foreground,
+              }]}>
+                {dailyHours.toFixed(1)}h
+              </Text>
+              <Text style={[styles.statLabel, {
+                color: isWorking ? "rgba(255,255,255,0.55)" : colors.mutedForeground,
+              }]}>
+                today
+              </Text>
             </View>
-            <Text style={[styles.quickLabel, { color: colors.foreground }]}>Add Note</Text>
-          </TouchableOpacity>
+            <View style={[styles.statDivider, {
+              backgroundColor: isWorking ? "rgba(255,255,255,0.15)" : colors.border,
+            }]} />
+            <View style={styles.statItem}>
+              <Feather
+                name="dollar-sign"
+                size={14}
+                color={isWorking ? "rgba(255,255,255,0.55)" : colors.mutedForeground}
+              />
+              <Text style={[styles.statValue, {
+                color: isWorking ? "#fff" : colors.foreground,
+              }]}>
+                {hourlyRateDisplay}
+              </Text>
+              <Text style={[styles.statLabel, {
+                color: isWorking ? "rgba(255,255,255,0.55)" : colors.mutedForeground,
+              }]}>
+                rate
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ─── Quick Actions ───────────────────────────────────────────────── */}
+        <View style={styles.actionsSection}>
+          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>
+            QUICK ACTIONS
+          </Text>
+
+          {photoFeedback ? (
+            <View style={[styles.feedbackPill, {
+              backgroundColor: colors.success + "18",
+              borderColor: colors.success + "40",
+            }]}>
+              <Feather name="check-circle" size={14} color={colors.success} />
+              <Text style={[styles.feedbackText, { color: colors.success }]}>{photoFeedback}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.actionsGrid}>
+            <TouchableOpacity
+              style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={handlePhoto}
+              activeOpacity={0.78}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: colors.primary + "15" }]}>
+                <Feather name="camera" size={22} color={colors.primary} />
+              </View>
+              <Text style={[styles.actionLabel, { color: colors.foreground }]}>Photo</Text>
+              <Text style={[styles.actionSub, { color: colors.mutedForeground }]}>Upload site photo</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={handleNote}
+              activeOpacity={0.78}
+            >
+              <View style={[styles.actionIconWrap, { backgroundColor: colors.foreground + "0e" }]}>
+                <Feather name="edit-3" size={22} color={colors.foreground} />
+              </View>
+              <Text style={[styles.actionLabel, { color: colors.foreground }]}>Note</Text>
+              <Text style={[styles.actionSub, { color: colors.mutedForeground }]}>Add work note</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -381,7 +512,10 @@ export default function EmployeeHomeScreen() {
             <View style={{ width: 22 }} />
           </View>
           {clockInError ? (
-            <View style={[styles.modalError, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "30" }]}>
+            <View style={[styles.modalError, {
+              backgroundColor: colors.destructive + "12",
+              borderColor: colors.destructive + "30",
+            }]}>
               <Feather name="alert-circle" size={14} color={colors.destructive} />
               <Text style={[styles.errorText, { color: colors.destructive }]}>{clockInError}</Text>
             </View>
@@ -468,64 +602,146 @@ export default function EmployeeHomeScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  // flexGrow: 1 lets the content fill the full screen on large devices,
-  // while still allowing overflow + scroll on small iPhones.
   scrollContent: { flexGrow: 1 },
 
-  // Header
-  header: {
+  // Gradient header
+  gradientHeader: {
+    paddingHorizontal: 22,
+    paddingBottom: 22,
+    gap: 14,
+  },
+  headerRow: {
     flexDirection: "row",
+    alignItems: "flex-start",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingBottom: 16,
   },
   headerLeft: { gap: 2 },
-  headerName: { fontSize: 22, fontWeight: "800", letterSpacing: -0.4 },
-  headerRole: { fontSize: 12, fontWeight: "500" },
+  greeting: {
+    fontSize: 14,
+    color: "rgba(255,255,255,0.6)",
+    fontWeight: "500",
+    letterSpacing: 0.1,
+  },
+  userName: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#ffffff",
+    letterSpacing: -0.5,
+  },
+  avatarButton: {
+    marginTop: 2,
+  },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.25)",
   },
-  avatarText: { color: "#fff", fontWeight: "800", fontSize: 15 },
-
-  // Project strip
-  projectSection: {
-    paddingHorizontal: 20,
-    marginBottom: 4,
-  },
-  projectPill: {
+  avatarText: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  headerStatusBadge: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 9,
-    paddingVertical: 13,
-    paddingHorizontal: 16,
-    borderRadius: 14,
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 100,
     borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    elevation: 1,
+    alignSelf: "flex-start",
   },
-  projectDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  projectName: { fontSize: 15, fontWeight: "700", flex: 1 },
-  projectAddr: { fontSize: 13, flexShrink: 1, maxWidth: "45%" as any },
+  headerStatusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  headerStatusText: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
 
-  // Center area
-  center: {
-    flex: 1,
+  // Body
+  body: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    gap: 14,
+  },
+
+  // Generic card
+  card: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.055,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: 14,
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  cardIconWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
-    gap: 20,
-    paddingHorizontal: 24,
+  },
+  cardSectionTitle: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.2,
   },
 
-  // Status
-  statusPill: {
+  // Project card
+  projectContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  projectIndicator: {
+    width: 4,
+    height: 44,
+    borderRadius: 2,
+    flexShrink: 0,
+  },
+  projectText: { flex: 1, gap: 4 },
+  projectName: {
+    fontSize: 17,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+  },
+  addressRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  projectAddr: {
+    fontSize: 13,
+    flex: 1,
+  },
+
+  // Timer card
+  timerCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingTop: 24,
+    paddingBottom: 0,
+    paddingHorizontal: 22,
+    alignItems: "center",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 5,
+    gap: 18,
+    overflow: "hidden",
+  },
+  timerStatusPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 7,
@@ -534,51 +750,54 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     borderWidth: 1,
   },
-  statusDot: { width: 7, height: 7, borderRadius: 4 },
-  statusText: { fontSize: 13, fontWeight: "700", letterSpacing: 0.1 },
-
-  // Timer
+  timerStatusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  timerStatusText: {
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+  },
   timer: {
-    fontSize: 72,
+    fontSize: 70,
     fontWeight: "900",
     letterSpacing: -3,
     textAlign: "center",
     fontVariant: ["tabular-nums"],
+    marginTop: -4,
   },
-
-  // Big button
   btnWrap: {
     alignItems: "center",
     justifyContent: "center",
+    marginBottom: 4,
   },
   pulseRing: {
     position: "absolute",
-    width: 196,
-    height: 196,
-    borderRadius: 98,
+    width: 188,
+    height: 188,
+    borderRadius: 94,
     borderWidth: 3,
   },
   bigBtn: {
-    width: 168,
-    height: 168,
-    borderRadius: 84,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
   },
   btnLabel: {
     fontSize: 11,
     fontWeight: "700",
-    letterSpacing: 1.5,
+    letterSpacing: 1.8,
     textTransform: "uppercase",
-    marginTop: -4,
+    marginTop: -8,
   },
-
-  // Error
   errorPill: {
     flexDirection: "row",
     alignItems: "center",
@@ -587,26 +806,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 1,
+    width: "100%",
   },
   errorText: { fontSize: 13, flex: 1, fontWeight: "500" },
 
-  // Hours today
-  hoursRow: {
+  // Stats row at bottom of timer card
+  statsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
-    paddingVertical: 11,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 1,
+    borderTopWidth: 1,
+    width: "100%",
+    paddingVertical: 18,
+    marginTop: 4,
   },
-  hoursText: { fontSize: 15 },
+  statItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  statValue: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  statLabel: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  statDivider: {
+    width: 1,
+    height: 24,
+  },
 
   // Quick actions
-  quickActions: {
-    paddingHorizontal: 20,
-    gap: 10,
-    paddingTop: 4,
+  actionsSection: {
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 1.2,
+    paddingLeft: 2,
   },
   feedbackPill: {
     flexDirection: "row",
@@ -614,36 +855,45 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 7,
     paddingVertical: 9,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
   },
   feedbackText: { fontSize: 13, fontWeight: "600" },
-  quickRow: { flexDirection: "row", gap: 10 },
-  quickBtn: {
-    flex: 1,
+  actionsGrid: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 16,
+    gap: 12,
+  },
+  actionCard: {
+    flex: 1,
+    borderRadius: 20,
     borderWidth: 1,
+    padding: 18,
+    gap: 8,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.045,
+    shadowRadius: 6,
     elevation: 1,
   },
-  quickIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+  actionIconWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  quickLabel: { fontSize: 14, fontWeight: "700" },
+  actionLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginTop: 2,
+  },
+  actionSub: {
+    fontSize: 12,
+    fontWeight: "500",
+    lineHeight: 16,
+  },
 
-  // Project picker modal
+  // ── Modals ──
   modal: { flex: 1 },
   modalHeader: {
     flexDirection: "row",
@@ -659,7 +909,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
     margin: 16,
-    padding: 12,
+    padding: 14,
     borderRadius: 12,
     borderWidth: 1,
   },
@@ -668,69 +918,76 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    padding: 18,
+    padding: 16,
     borderRadius: 16,
     borderWidth: 1,
   },
   pickerIconWrap: {
     width: 44,
     height: 44,
-    borderRadius: 13,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
   },
-  pickerInfo: { flex: 1 },
+  pickerInfo: { flex: 1, gap: 3 },
   pickerName: { fontSize: 16, fontWeight: "700" },
-  pickerAddr: { fontSize: 13, marginTop: 2 },
+  pickerAddr: { fontSize: 13 },
 
-  // Confirm modal
+  // Stop confirm modal
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0,0,0,0.52)",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
   },
   confirmCard: {
     width: "100%",
-    maxWidth: 360,
     borderRadius: 24,
     borderWidth: 1,
     padding: 28,
     alignItems: "center",
     gap: 14,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
     shadowRadius: 32,
     elevation: 12,
   },
   confirmIconWrap: {
     width: 60,
     height: 60,
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
   },
-  confirmTitle: { fontSize: 22, fontWeight: "800" },
-  confirmSub: { fontSize: 15, textAlign: "center", lineHeight: 22 },
-  confirmBtns: { flexDirection: "row", gap: 10, width: "100%", marginTop: 4 },
+  confirmTitle: { fontSize: 20, fontWeight: "800" },
+  confirmSub: {
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  confirmBtns: {
+    flexDirection: "row",
+    gap: 12,
+    width: "100%",
+    marginTop: 4,
+  },
   confirmSecondary: {
     flex: 1,
-    height: 52,
+    paddingVertical: 14,
     borderRadius: 14,
-    borderWidth: 1.5,
+    borderWidth: 1,
     alignItems: "center",
-    justifyContent: "center",
   },
-  confirmSecondaryText: { fontSize: 15, fontWeight: "600" },
+  confirmSecondaryText: { fontSize: 15, fontWeight: "700" },
   confirmPrimary: {
     flex: 1,
-    height: 52,
+    paddingVertical: 14,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    minHeight: 50,
   },
-  confirmPrimaryText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  confirmPrimaryText: { fontSize: 15, fontWeight: "700", color: "#fff" },
 });

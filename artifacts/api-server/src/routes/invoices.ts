@@ -5,6 +5,9 @@ import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
 
 const router = Router();
 
+const VALID_PAYMENT_TERMS = ["on_receipt", "net_7", "net_14", "net_30"] as const;
+type PaymentTerms = typeof VALID_PAYMENT_TERMS[number];
+
 // GET /api/invoices/my — list all invoices for the current user
 router.get("/my", requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -17,16 +20,24 @@ router.get("/my", requireAuth, async (req: AuthRequest, res) => {
       .orderBy(desc(invoices.createdAt));
 
     res.json(
-      rows.map((inv) => ({
-        id: inv.id,
-        invoiceNumber: inv.invoiceNumber,
-        periodStart: inv.periodStart,
-        periodEnd: inv.periodEnd,
-        totalMinutes: inv.totalMinutes,
-        hourlyRate: inv.hourlyRate,
-        totalAmount: inv.totalAmount,
-        createdAt: inv.createdAt.toISOString(),
-      }))
+      rows.map((inv) => {
+        let lineItems: any[] = [];
+        if (inv.lineItemsJson) {
+          try { lineItems = JSON.parse(inv.lineItemsJson); } catch { lineItems = []; }
+        }
+        return {
+          id: inv.id,
+          invoiceNumber: inv.invoiceNumber,
+          periodStart: inv.periodStart,
+          periodEnd: inv.periodEnd,
+          totalMinutes: inv.totalMinutes,
+          hourlyRate: inv.hourlyRate,
+          totalAmount: inv.totalAmount,
+          lineItems,
+          paymentTerms: inv.paymentTerms ?? "on_receipt",
+          createdAt: inv.createdAt.toISOString(),
+        };
+      })
     );
   } catch (err) {
     console.error(err);
@@ -76,14 +87,20 @@ router.get("/preview", requireAuth, async (req: AuthRequest, res) => {
     const totalMinutes = completedLogs.reduce((sum, l) => sum + (l.totalMinutes ?? 0), 0);
     const totalAmount = (totalMinutes / 60) * hourlyRate;
 
-    const lineItems = completedLogs.map((l) => ({
-      id: l.id,
-      date: l.date,
-      projectName: projectMap.get(l.projectId) ?? "Unknown Project",
-      clockIn: l.clockIn.toISOString(),
-      clockOut: l.clockOut?.toISOString(),
-      minutes: l.totalMinutes ?? 0,
-    }));
+    const lineItems = completedLogs.map((l) => {
+      const mins = l.totalMinutes ?? 0;
+      const subtotal = Math.round((mins / 60) * hourlyRate * 100) / 100;
+      return {
+        id: l.id,
+        date: l.date,
+        projectName: projectMap.get(l.projectId) ?? "Unknown Project",
+        clockIn: l.clockIn.toISOString(),
+        clockOut: l.clockOut?.toISOString(),
+        minutes: mins,
+        rate: hourlyRate,
+        subtotal,
+      };
+    });
 
     res.json({
       periodStart: start,
@@ -103,12 +120,21 @@ router.get("/preview", requireAuth, async (req: AuthRequest, res) => {
 router.post("/generate", requireAuth, async (req: AuthRequest, res) => {
   try {
     const { userId, companyId } = req.user!;
-    const { periodStart, periodEnd } = req.body as { periodStart: string; periodEnd: string };
+    const { periodStart, periodEnd, paymentTerms: rawTerms } = req.body as {
+      periodStart: string;
+      periodEnd: string;
+      paymentTerms?: string;
+    };
 
     if (!periodStart || !periodEnd) {
       res.status(400).json({ error: "periodStart and periodEnd are required" });
       return;
     }
+
+    const paymentTerms: PaymentTerms =
+      VALID_PAYMENT_TERMS.includes(rawTerms as PaymentTerms)
+        ? (rawTerms as PaymentTerms)
+        : "on_receipt";
 
     const logs = await db
       .select()
@@ -143,6 +169,29 @@ router.post("/generate", requireAuth, async (req: AuthRequest, res) => {
     const seq = String(existing.length + 1).padStart(4, "0");
     const invoiceNumber = `${prefix}-${seq}`;
 
+    // Fetch project names for line items
+    const projectIds = [...new Set(completedLogs.map((l) => l.projectId))];
+    const projectRows = projectIds.length > 0
+      ? await db.select({ id: projects.id, name: projects.name }).from(projects).where(eq(projects.companyId, companyId))
+      : [];
+    const projectMap = new Map(projectRows.map((p) => [p.id, p.name]));
+
+    // Build full line items with rate + subtotal
+    const lineItems = completedLogs.map((l) => {
+      const mins = l.totalMinutes ?? 0;
+      const subtotal = Math.round((mins / 60) * hourlyRate * 100) / 100;
+      return {
+        id: l.id,
+        date: l.date,
+        projectName: projectMap.get(l.projectId) ?? "Unknown Project",
+        clockIn: l.clockIn.toISOString(),
+        clockOut: l.clockOut?.toISOString(),
+        minutes: mins,
+        rate: hourlyRate,
+        subtotal,
+      };
+    });
+
     const [created] = await db
       .insert(invoices)
       .values({
@@ -154,15 +203,10 @@ router.post("/generate", requireAuth, async (req: AuthRequest, res) => {
         totalMinutes,
         hourlyRate: String(hourlyRate),
         totalAmount: String(totalAmount),
+        lineItemsJson: JSON.stringify(lineItems),
+        paymentTerms,
       })
       .returning();
-
-    // Fetch project names for line items
-    const projectIds = [...new Set(completedLogs.map((l) => l.projectId))];
-    const projectRows = projectIds.length > 0
-      ? await db.select({ id: projects.id, name: projects.name }).from(projects).where(eq(projects.companyId, companyId))
-      : [];
-    const projectMap = new Map(projectRows.map((p) => [p.id, p.name]));
 
     // Fetch company and user details for PDF data
     const [company] = await db
@@ -184,15 +228,6 @@ router.post("/generate", requireAuth, async (req: AuthRequest, res) => {
       .where(eq(users.id, userId))
       .limit(1);
 
-    const lineItems = completedLogs.map((l) => ({
-      id: l.id,
-      date: l.date,
-      projectName: projectMap.get(l.projectId) ?? "Unknown Project",
-      clockIn: l.clockIn.toISOString(),
-      clockOut: l.clockOut?.toISOString(),
-      minutes: l.totalMinutes ?? 0,
-    }));
-
     res.status(201).json({
       id: created.id,
       invoiceNumber: created.invoiceNumber,
@@ -201,8 +236,9 @@ router.post("/generate", requireAuth, async (req: AuthRequest, res) => {
       totalMinutes: created.totalMinutes,
       hourlyRate: Number(created.hourlyRate),
       totalAmount: Number(created.totalAmount),
-      createdAt: created.createdAt.toISOString(),
       lineItems,
+      paymentTerms: created.paymentTerms,
+      createdAt: created.createdAt.toISOString(),
       company: company ?? null,
       user: fullUser ? {
         name: fullUser.name,

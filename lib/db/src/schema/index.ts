@@ -189,6 +189,8 @@ export const invoices = pgTable("invoices", {
   totalMinutes: integer("total_minutes").notNull().default(0),
   hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }).notNull().default("0"),
   totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  lineItemsJson: text("line_items_json"),
+  paymentTerms: text("payment_terms").notNull().default("on_receipt"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

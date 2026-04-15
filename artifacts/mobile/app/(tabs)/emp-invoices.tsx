@@ -24,6 +24,30 @@ import { useColors } from "@/hooks/useColors";
 import { apiFetch, ApiError } from "@/lib/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+type PaymentTermsKey = "on_receipt" | "net_7" | "net_14" | "net_30";
+
+const PAYMENT_TERMS: { key: PaymentTermsKey; label: string; description: string }[] = [
+  { key: "on_receipt", label: "On Receipt",  description: "Due immediately" },
+  { key: "net_7",      label: "Net 7",       description: "Due in 7 days" },
+  { key: "net_14",     label: "Net 14",      description: "Due in 14 days" },
+  { key: "net_30",     label: "Net 30",      description: "Due in 30 days" },
+];
+
+function paymentTermsLabel(key: PaymentTermsKey): string {
+  return PAYMENT_TERMS.find((t) => t.key === key)?.label ?? "On Receipt";
+}
+
+interface LineItem {
+  id: string;
+  date: string;
+  projectName: string;
+  clockIn: string;
+  clockOut?: string;
+  minutes: number;
+  rate?: number;
+  subtotal?: number;
+}
+
 interface InvoiceRecord {
   id: string;
   invoiceNumber: string;
@@ -32,6 +56,8 @@ interface InvoiceRecord {
   totalMinutes: number;
   hourlyRate: number;
   totalAmount: number;
+  lineItems: LineItem[];
+  paymentTerms: PaymentTermsKey;
   createdAt: string;
 }
 
@@ -41,18 +67,10 @@ interface PreviewData {
   totalMinutes: number;
   hourlyRate: number;
   totalAmount: number;
-  lineItems: {
-    id: string;
-    date: string;
-    projectName: string;
-    clockIn: string;
-    clockOut?: string;
-    minutes: number;
-  }[];
+  lineItems: LineItem[];
 }
 
 interface GeneratedInvoice extends InvoiceRecord {
-  lineItems: PreviewData["lineItems"];
   company: {
     name: string;
     logoUrl?: string | null;
@@ -132,35 +150,35 @@ function getPeriod(preset: string): { start: string; end: string } {
 function buildInvoiceHtml(inv: GeneratedInvoice): string {
   const primary = inv.company?.primaryColor ?? "#f97316";
 
-  // Derive a slightly darkened version of primary for hover/border use
-  const companyName = inv.company?.name ?? "Company";
-  const subName     = inv.user?.name ?? "";
-  const subEmail    = inv.user?.email ?? "";
-  const subPhone    = inv.user?.phone ?? "";
-  const subAbn      = inv.user?.abn ?? "";
-  const subAddr     = inv.user?.businessAddress ?? "";
-  const bankName    = inv.user?.bankName ?? "";
-  const accountName = inv.user?.accountName ?? "";
-  const bsb         = inv.user?.bsb ?? "";
-  const accountNum  = inv.user?.accountNumber ?? "";
-  const notes       = inv.user?.invoiceNotes ?? "";
-  const companyAbn  = inv.company?.businessAbn ?? "";
+  const companyName  = inv.company?.name ?? "Company";
+  const subName      = inv.user?.name ?? "";
+  const subEmail     = inv.user?.email ?? "";
+  const subPhone     = inv.user?.phone ?? "";
+  const subAbn       = inv.user?.abn ?? "";
+  const subAddr      = inv.user?.businessAddress ?? "";
+  const bankName     = inv.user?.bankName ?? "";
+  const accountName  = inv.user?.accountName ?? "";
+  const bsb          = inv.user?.bsb ?? "";
+  const accountNum   = inv.user?.accountNumber ?? "";
+  const notes        = inv.user?.invoiceNotes ?? "";
+  const companyAbn   = inv.company?.businessAbn ?? "";
   const companyEmail = inv.company?.businessEmail ?? "";
-  const companyAddr = inv.company?.businessAddress ?? "";
+  const companyAddr  = inv.company?.businessAddress ?? "";
 
-  // Decide heading — if subcontractor has an ABN, use "TAX INVOICE" (AU standard)
   const invoiceHeading = subAbn ? "TAX INVOICE" : "INVOICE";
 
   const issueDate = new Date(inv.createdAt).toLocaleDateString("en-AU", {
     day: "numeric", month: "long", year: "numeric",
   });
   const periodLabel = `${fmtDate(inv.periodStart)} – ${fmtDate(inv.periodEnd)}`;
+  const paymentDueLabel = paymentTermsLabel(inv.paymentTerms);
 
-  // ── Line item rows ──
+  // ── Line item rows from stored breakdown ──
   const sortedItems = [...inv.lineItems].sort((a, b) => a.date.localeCompare(b.date));
+  const hourlyRate = inv.hourlyRate;
   const lineItemRows = sortedItems.map((li, idx) => {
     const hrs    = (li.minutes / 60).toFixed(2);
-    const amount = ((li.minutes / 60) * inv.hourlyRate).toFixed(2);
+    const amount = (li.subtotal ?? ((li.minutes / 60) * hourlyRate)).toFixed(2);
     const timeRange = li.clockOut
       ? `${isoToLocal(li.clockIn)} – ${isoToLocal(li.clockOut)}`
       : isoToLocal(li.clockIn);
@@ -177,7 +195,7 @@ function buildInvoiceHtml(inv: GeneratedInvoice): string {
   const totalHrs = (inv.totalMinutes / 60).toFixed(2);
   const totalAmt = Number(inv.totalAmount).toFixed(2);
 
-  // ── Payment details block (only if at least bank name or account exists) ──
+  // ── Payment details block ──
   const hasPayment = bankName || accountName || bsb || accountNum;
   const paymentBlock = hasPayment ? `
     <div style="margin-top:32px">
@@ -252,7 +270,7 @@ function buildInvoiceHtml(inv: GeneratedInvoice): string {
         <div style="margin-top:14px;font-size:12px;color:#6b7280;line-height:2">
           <div><span style="font-weight:600;color:#374151">Date Issued</span>&nbsp;&nbsp;${issueDate}</div>
           <div><span style="font-weight:600;color:#374151">Period</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${periodLabel}</div>
-          <div><span style="font-weight:600;color:#374151">Payment Due</span>&nbsp;&nbsp;On receipt</div>
+          <div><span style="font-weight:600;color:#374151">Payment Due</span>&nbsp;&nbsp;${paymentDueLabel}</div>
         </div>
       </div>
     </div>
@@ -312,7 +330,7 @@ function buildInvoiceHtml(inv: GeneratedInvoice): string {
         </div>
         <div style="padding:13px 20px;display:flex;justify-content:space-between;border-bottom:1px solid #edf0f4;background:#fafafa">
           <span style="font-size:13px;color:#6b7280;font-weight:500">Hourly Rate</span>
-          <span style="font-size:13px;color:#374151;font-weight:600">${formatAud(inv.hourlyRate)} / hr</span>
+          <span style="font-size:13px;color:#374151;font-weight:600">${formatAud(hourlyRate)} / hr</span>
         </div>
         <div style="padding:18px 20px;display:flex;justify-content:space-between;align-items:center;background:${primary}">
           <span style="font-size:15px;color:rgba(255,255,255,0.9);font-weight:700;letter-spacing:0.3px">TOTAL DUE</span>
@@ -361,6 +379,7 @@ export default function EmpInvoicesScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [selectedPreset, setSelectedPreset] = useState("this_month");
+  const [selectedPaymentTerms, setSelectedPaymentTerms] = useState<PaymentTermsKey>("on_receipt");
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
@@ -413,12 +432,12 @@ export default function EmpInvoicesScreen() {
         body: JSON.stringify({
           periodStart: preview.periodStart,
           periodEnd: preview.periodEnd,
+          paymentTerms: selectedPaymentTerms,
         }),
       });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowGenerateModal(false);
       setInvoices((prev) => [inv, ...prev]);
-      // Generate and share PDF
       await sharePdf(inv);
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : "Failed to generate invoice";
@@ -447,14 +466,12 @@ export default function EmpInvoicesScreen() {
     }
   }
 
-  // ── Re-share existing invoice (regenerate PDF from stored data) ──
+  // ── Re-share existing invoice using stored line items ──
   async function handleReshare(inv: InvoiceRecord) {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      // We need full data to generate PDF — re-generate using stored record values
-      const generatedPlaceholder: GeneratedInvoice = {
+      const generated: GeneratedInvoice = {
         ...inv,
-        lineItems: [],
         company: {
           name: user?.companyName ?? "",
           primaryColor: user?.primaryColor ?? "#f97316",
@@ -475,7 +492,7 @@ export default function EmpInvoicesScreen() {
           invoiceNotes: user?.invoiceNotes ?? null,
         },
       };
-      await sharePdf(generatedPlaceholder);
+      await sharePdf(generated);
     } catch {
       Alert.alert("Error", "Could not share invoice.");
     }
@@ -495,7 +512,16 @@ export default function EmpInvoicesScreen() {
             <Text style={[styles.invoicePeriod, { color: colors.mutedForeground }]}>
               {fmtDate(item.periodStart)} – {fmtDate(item.periodEnd)}
             </Text>
-            <Text style={[styles.invoiceHours, { color: colors.mutedForeground }]}>{hrs} hrs</Text>
+            <View style={styles.invoiceMeta}>
+              <Text style={[styles.invoiceHours, { color: colors.mutedForeground }]}>{hrs} hrs</Text>
+              {item.paymentTerms && item.paymentTerms !== "on_receipt" ? (
+                <View style={[styles.termsBadge, { backgroundColor: colors.primary + "14" }]}>
+                  <Text style={[styles.termsBadgeText, { color: colors.primary }]}>
+                    {paymentTermsLabel(item.paymentTerms)}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
         </View>
         <View style={styles.invoiceRight}>
@@ -624,6 +650,35 @@ export default function EmpInvoicesScreen() {
                     >
                       <Text style={[styles.presetBtnText, { color: active ? "#fff" : colors.foreground }]}>
                         {p.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Payment terms selector */}
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>PAYMENT TERMS</Text>
+              <View style={styles.termsGrid}>
+                {PAYMENT_TERMS.map((t) => {
+                  const active = t.key === selectedPaymentTerms;
+                  return (
+                    <TouchableOpacity
+                      key={t.key}
+                      style={[
+                        styles.termsBtn,
+                        {
+                          backgroundColor: active ? colors.primary + "12" : colors.background,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                      onPress={() => { setSelectedPaymentTerms(t.key); Haptics.selectionAsync(); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.termsBtnLabel, { color: active ? colors.primary : colors.foreground }]}>
+                        {t.label}
+                      </Text>
+                      <Text style={[styles.termsBtnSub, { color: active ? colors.primary + "aa" : colors.mutedForeground }]}>
+                        {t.description}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -816,7 +871,14 @@ const styles = StyleSheet.create({
   invoiceInfo: { flex: 1, gap: 2 },
   invoiceNumber: { fontSize: 15, fontWeight: "700" },
   invoicePeriod: { fontSize: 12 },
+  invoiceMeta: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   invoiceHours: { fontSize: 12 },
+  termsBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  termsBadgeText: { fontSize: 10, fontWeight: "700" },
   invoiceRight: { alignItems: "flex-end", gap: 8 },
   invoiceAmount: { fontSize: 16, fontWeight: "800" },
   reshareBtn: {
@@ -840,7 +902,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 40,
-    maxHeight: "92%",
+    maxHeight: "94%",
   },
   modalHandle: {
     width: 40,
@@ -867,7 +929,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
-    marginBottom: 20,
+    marginBottom: 22,
   },
   presetBtn: {
     paddingHorizontal: 14,
@@ -876,6 +938,31 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   presetBtnText: { fontSize: 13, fontWeight: "600" },
+
+  // Payment terms
+  termsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 22,
+  },
+  termsBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    minWidth: "46%",
+    flex: 1,
+  },
+  termsBtnLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  termsBtnSub: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
 
   previewLoading: {
     flexDirection: "row",
