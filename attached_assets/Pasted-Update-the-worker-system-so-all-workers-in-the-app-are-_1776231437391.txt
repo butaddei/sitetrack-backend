@@ -1,0 +1,197 @@
+Update the worker system so all workers in the app are treated as subcontractors, not employees.
+
+Business rule:
+- all workers are subcontractors
+- remove the need to distinguish employee vs contractor
+- every worker should be able to generate a proper invoice PDF based on real worked hours tracked with Start / Stop
+
+MAIN GOAL
+Create a subcontractor invoice system inside the app, where each subcontractor can fill in their own business and bank details in their profile, then generate a professional PDF invoice from tracked hours and share/send it easily.
+
+1. WORKER ROLE / TERMINOLOGY
+- Replace employee terminology with subcontractor terminology where appropriate in the worker-facing experience
+- Keep admin functionality working
+- Do not break existing login, permissions, or time tracking
+- Admin still creates subcontractor accounts
+- Subcontractor logs in and manages their own profile and invoices
+
+2. SUBCONTRACTOR PROFILE FIELDS
+Add these editable profile fields for each subcontractor:
+- full name
+- email
+- phone
+- ABN
+- business address (optional)
+- bank name
+- account name
+- BSB
+- account number
+- invoice notes (optional)
+
+Requirements:
+- subcontractor must be able to edit these fields in their own profile
+- keep the profile page mobile-friendly and well organized
+- split the profile form into clear sections:
+  - Personal Details
+  - Business Details
+  - Payment Details
+  - Invoice Notes
+
+3. ADMIN SETTINGS FOR INVOICE BRANDING
+Allow admin to configure company invoice/business details used on generated invoices:
+- company name
+- company logo
+- ABN / tax number
+- business email
+- business address
+
+Requirements:
+- these settings should be used automatically in all subcontractor invoices
+- keep existing company branding/settings working
+
+4. NEW SUBCONTRACTOR SECTION: "MY INVOICES"
+Add a new screen/section for subcontractor users called:
+- My Invoices
+
+This screen should allow the subcontractor to:
+- choose a period:
+  - This Week
+  - Last Week
+  - Custom Date Range
+- see a summary before generating:
+  - projects worked
+  - total hours worked
+  - hourly rate
+  - total amount
+- generate a PDF invoice
+- share/export the PDF
+- open native share flow and email/share options with the PDF
+
+If direct email attachment is complex, first implement robust native share/export support for the generated PDF.
+
+5. DATA SOURCE / CALCULATION RULES
+The invoice must be generated only from real tracked worked hours already recorded by the existing Start / Stop time tracking system.
+
+Requirements:
+- use actual stored work sessions only
+- calculate total hours from selected date range
+- use the subcontractor's hourly rate already stored in the app
+- calculate total invoice amount automatically
+- support project breakdown when multiple projects were worked in the selected period
+- do not allow manual fake hour entry on the invoice screen
+
+6. PDF INVOICE CONTENT
+Generate a clean professional PDF invoice that includes:
+
+Header:
+- company logo
+- company name
+- "INVOICE" title
+
+Company details:
+- company business email
+- company business address
+- company ABN / tax number
+
+Subcontractor details:
+- subcontractor full name
+- subcontractor email
+- subcontractor phone
+- subcontractor ABN
+- subcontractor address (if available)
+
+Invoice details:
+- invoice number
+- issue date
+- selected work period
+- due date (optional or issue date + standard terms)
+
+Work summary:
+- project name(s)
+- dates or period worked
+- total hours worked
+- hourly rate
+- line totals if needed
+
+Totals:
+- subtotal
+- total amount due
+
+Payment details section:
+- bank name
+- account name
+- BSB
+- account number
+
+Footer:
+- optional invoice notes
+- clean professional closing layout
+
+7. INVOICE NUMBER LOGIC
+Add automatic invoice numbering.
+
+Requirements:
+- each generated invoice should have a unique invoice number
+- allow optional invoice prefix from the subcontractor profile
+- example:
+  ST-0001
+  BRUNO-0002
+- store generated invoice records in the database if appropriate
+
+8. PDF DESIGN / STYLE
+Design the PDF invoice in a clean, professional Australian subcontractor style.
+
+Requirements:
+- simple modern layout
+- clear spacing
+- strong readability
+- suitable for sending to builders, site managers, or companies
+- use Australian-style labels where relevant:
+  - ABN
+  - BSB
+  - Account Number
+- highlight total amount clearly
+- keep it polished and business-ready
+
+9. SUBCONTRACTOR UX
+The subcontractor invoice experience should be simple and mobile-friendly.
+
+Flow:
+- user opens My Invoices
+- selects date range
+- sees calculated summary
+- taps Generate PDF
+- previews or exports/shares the invoice
+
+Requirements:
+- keep the UI clean
+- use clear buttons:
+  - Generate PDF
+  - Share PDF
+  - Send / Share
+- do not clutter the screen
+
+10. ADMIN / DATA SAFETY
+Requirements:
+- admin can still view timesheets and project hours
+- subcontractor can only generate invoices using their own tracked hours
+- subcontractor cannot access another user's invoice or work records
+- keep role-based access control intact
+- do not expose financial admin-only data unnecessarily
+
+11. IMPLEMENTATION NOTES
+- do not break existing Start / Stop time tracking
+- do not remove current login/auth flows
+- do not break existing project assignment logic
+- integrate this feature into the current app cleanly
+- prioritize working PDF generation first
+- then sharing/export flow
+- keep the system scalable and organized
+
+12. FINAL DELIVERABLE
+After implementing, summarize clearly:
+- what profile fields were added
+- what invoice screen was added
+- how invoice calculation works
+- how PDF sharing works
+- any remaining limitations or things still recommended for later

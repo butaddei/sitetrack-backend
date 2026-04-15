@@ -145,6 +145,7 @@ router.post("/login", async (req, res) => {
         companyName: company?.name ?? "",
         primaryColor: company?.primaryColor ?? "#f97316",
         secondaryColor: company?.secondaryColor ?? "#0f172a",
+        logoUrl: company?.logoUrl ?? null,
         phone: user.phone,
         position: user.position,
         avatarUrl: user.avatarUrl,
@@ -152,6 +153,17 @@ router.post("/login", async (req, res) => {
         plan: company?.plan ?? "free",
         planStatus: company?.planStatus ?? "active",
         mustChangePassword: user.mustChangePassword ?? false,
+        abn: user.abn ?? null,
+        businessAddress: user.businessAddress ?? null,
+        bankName: user.bankName ?? null,
+        accountName: user.accountName ?? null,
+        bsb: user.bsb ?? null,
+        accountNumber: user.accountNumber ?? null,
+        invoiceNotes: user.invoiceNotes ?? null,
+        invoicePrefix: user.invoicePrefix ?? null,
+        companyBusinessAbn: company?.businessAbn ?? null,
+        companyBusinessEmail: company?.businessEmail ?? null,
+        companyBusinessAddress: company?.businessAddress ?? null,
       },
     });
   } catch (err) {
@@ -189,6 +201,7 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
       companyName: company?.name ?? "",
       primaryColor: company?.primaryColor ?? "#f97316",
       secondaryColor: company?.secondaryColor ?? "#0f172a",
+      logoUrl: company?.logoUrl ?? null,
       phone: user.phone,
       position: user.position,
       avatarUrl: user.avatarUrl,
@@ -196,20 +209,42 @@ router.get("/me", requireAuth, async (req: AuthRequest, res) => {
       plan: company?.plan ?? "free",
       planStatus: company?.planStatus ?? "active",
       mustChangePassword: user.mustChangePassword ?? false,
+      abn: user.abn ?? null,
+      businessAddress: user.businessAddress ?? null,
+      bankName: user.bankName ?? null,
+      accountName: user.accountName ?? null,
+      bsb: user.bsb ?? null,
+      accountNumber: user.accountNumber ?? null,
+      invoiceNotes: user.invoiceNotes ?? null,
+      invoicePrefix: user.invoicePrefix ?? null,
+      companyBusinessAbn: company?.businessAbn ?? null,
+      companyBusinessEmail: company?.businessEmail ?? null,
+      companyBusinessAddress: company?.businessAddress ?? null,
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch user" });
   }
 });
 
-// PATCH /api/auth/profile — update own name/phone/position
+// PATCH /api/auth/profile — update own name/phone/position + subcontractor fields
 router.patch("/profile", requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { name, phone, position, avatarUrl } = req.body as {
+    const {
+      name, phone, position, avatarUrl,
+      abn, businessAddress, bankName, accountName, bsb, accountNumber, invoiceNotes, invoicePrefix,
+    } = req.body as {
       name?: string;
       phone?: string | null;
       position?: string | null;
       avatarUrl?: string | null;
+      abn?: string | null;
+      businessAddress?: string | null;
+      bankName?: string | null;
+      accountName?: string | null;
+      bsb?: string | null;
+      accountNumber?: string | null;
+      invoiceNotes?: string | null;
+      invoicePrefix?: string | null;
     };
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -217,6 +252,14 @@ router.patch("/profile", requireAuth, async (req: AuthRequest, res) => {
     if (phone !== undefined) updates.phone = phone?.trim() || null;
     if (position !== undefined) updates.position = position?.trim() || null;
     if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl || null;
+    if (abn !== undefined) updates.abn = abn?.trim() || null;
+    if (businessAddress !== undefined) updates.businessAddress = businessAddress?.trim() || null;
+    if (bankName !== undefined) updates.bankName = bankName?.trim() || null;
+    if (accountName !== undefined) updates.accountName = accountName?.trim() || null;
+    if (bsb !== undefined) updates.bsb = bsb?.trim() || null;
+    if (accountNumber !== undefined) updates.accountNumber = accountNumber?.trim() || null;
+    if (invoiceNotes !== undefined) updates.invoiceNotes = invoiceNotes?.trim() || null;
+    if (invoicePrefix !== undefined) updates.invoicePrefix = invoicePrefix?.trim() || null;
 
     const [updated] = await db
       .update(users)
@@ -232,6 +275,14 @@ router.patch("/profile", requireAuth, async (req: AuthRequest, res) => {
       position: updated.position,
       role: updated.role,
       avatarUrl: updated.avatarUrl,
+      abn: updated.abn,
+      businessAddress: updated.businessAddress,
+      bankName: updated.bankName,
+      accountName: updated.accountName,
+      bsb: updated.bsb,
+      accountNumber: updated.accountNumber,
+      invoiceNotes: updated.invoiceNotes,
+      invoicePrefix: updated.invoicePrefix,
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to update profile" });

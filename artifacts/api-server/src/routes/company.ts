@@ -5,7 +5,7 @@ import { requireAuth, requireAdmin, type AuthRequest } from "../middlewares/auth
 
 const router = Router();
 
-// GET /api/company — get own company info (branding fields only, available to all roles)
+// GET /api/company — get own company info (available to all roles)
 router.get("/", requireAuth, async (req: AuthRequest, res) => {
   try {
     const [company] = await db
@@ -15,6 +15,9 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
         logoUrl: companies.logoUrl,
         primaryColor: companies.primaryColor,
         secondaryColor: companies.secondaryColor,
+        businessAbn: companies.businessAbn,
+        businessEmail: companies.businessEmail,
+        businessAddress: companies.businessAddress,
       })
       .from(companies)
       .where(eq(companies.id, req.user!.companyId))
@@ -34,11 +37,14 @@ router.get("/", requireAuth, async (req: AuthRequest, res) => {
 // PATCH /api/company — update company settings (admin only)
 router.patch("/", requireAdmin, async (req: AuthRequest, res) => {
   try {
-    const { name, primaryColor, secondaryColor, logoUrl } = req.body as {
+    const { name, primaryColor, secondaryColor, logoUrl, businessAbn, businessEmail, businessAddress } = req.body as {
       name?: string;
       primaryColor?: string;
       secondaryColor?: string;
       logoUrl?: string;
+      businessAbn?: string | null;
+      businessEmail?: string | null;
+      businessAddress?: string | null;
     };
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -46,6 +52,9 @@ router.patch("/", requireAdmin, async (req: AuthRequest, res) => {
     if (primaryColor) updates.primaryColor = primaryColor;
     if (secondaryColor) updates.secondaryColor = secondaryColor;
     if (logoUrl !== undefined) updates.logoUrl = logoUrl || null;
+    if (businessAbn !== undefined) updates.businessAbn = businessAbn?.trim() || null;
+    if (businessEmail !== undefined) updates.businessEmail = businessEmail?.trim() || null;
+    if (businessAddress !== undefined) updates.businessAddress = businessAddress?.trim() || null;
 
     const rows = await db
       .update(companies)
@@ -57,6 +66,9 @@ router.patch("/", requireAdmin, async (req: AuthRequest, res) => {
         logoUrl: companies.logoUrl,
         primaryColor: companies.primaryColor,
         secondaryColor: companies.secondaryColor,
+        businessAbn: companies.businessAbn,
+        businessEmail: companies.businessEmail,
+        businessAddress: companies.businessAddress,
       });
 
     res.json(rows[0]);

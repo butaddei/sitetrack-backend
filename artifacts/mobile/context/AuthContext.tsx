@@ -24,6 +24,19 @@ export interface AuthUser {
   plan?: PlanType;
   planStatus?: PlanStatus;
   mustChangePassword?: boolean;
+  // Subcontractor / invoice fields
+  abn?: string | null;
+  businessAddress?: string | null;
+  bankName?: string | null;
+  accountName?: string | null;
+  bsb?: string | null;
+  accountNumber?: string | null;
+  invoiceNotes?: string | null;
+  invoicePrefix?: string | null;
+  // Company invoice branding
+  companyBusinessAbn?: string | null;
+  companyBusinessEmail?: string | null;
+  companyBusinessAddress?: string | null;
 }
 
 interface LoginResponse {

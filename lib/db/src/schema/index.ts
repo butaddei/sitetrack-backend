@@ -28,6 +28,11 @@ export const companies = pgTable("companies", {
   logoUrl: text("logo_url"),
   primaryColor: text("primary_color").notNull().default("#f97316"),
   secondaryColor: text("secondary_color").notNull().default("#0f172a"),
+  // Invoice / business details (used on generated invoices)
+  businessAbn: text("business_abn"),
+  businessEmail: text("business_email"),
+  businessAddress: text("business_address"),
+  // Billing
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   plan: planEnum("plan").notNull().default("free"),
@@ -52,6 +57,15 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").notNull().default(true),
   avatarUrl: text("avatar_url"),
   mustChangePassword: boolean("must_change_password").notNull().default(false),
+  // Subcontractor / invoice fields
+  abn: text("abn"),
+  businessAddress: text("business_address"),
+  bankName: text("bank_name"),
+  accountName: text("account_name"),
+  bsb: text("bsb"),
+  accountNumber: text("account_number"),
+  invoiceNotes: text("invoice_notes"),
+  invoicePrefix: text("invoice_prefix"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -161,9 +175,29 @@ export const employeeNotes = pgTable("employee_notes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const invoices = pgTable("invoices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id")
+    .notNull()
+    .references(() => companies.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  invoiceNumber: text("invoice_number").notNull(),
+  periodStart: text("period_start").notNull(),
+  periodEnd: text("period_end").notNull(),
+  totalMinutes: integer("total_minutes").notNull().default(0),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }).notNull().default("0"),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── Relations ────────────────────────────────────────────────────────────────
+
 export const companiesRelations = relations(companies, ({ many }) => ({
   users: many(users),
   projects: many(projects),
+  invoices: many(invoices),
 }));
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -171,6 +205,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   timeLogs: many(timeLogs),
   employeeNotes: many(employeeNotes),
   assignments: many(projectAssignments),
+  invoices: many(invoices),
 }));
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
@@ -187,6 +222,11 @@ export const projectAssignmentsRelations = relations(projectAssignments, ({ one 
   user: one(users, { fields: [projectAssignments.userId], references: [users.id] }),
 }));
 
+export const invoicesRelations = relations(invoices, ({ one }) => ({
+  company: one(companies, { fields: [invoices.companyId], references: [companies.id] }),
+  user: one(users, { fields: [invoices.userId], references: [users.id] }),
+}));
+
 export type Company = typeof companies.$inferSelect;
 export type User = typeof users.$inferSelect;
 export type Project = typeof projects.$inferSelect;
@@ -195,3 +235,4 @@ export type ProjectPhoto = typeof projectPhotos.$inferSelect;
 export type TimeLog = typeof timeLogs.$inferSelect;
 export type Expense = typeof expenses.$inferSelect;
 export type EmployeeNote = typeof employeeNotes.$inferSelect;
+export type Invoice = typeof invoices.$inferSelect;

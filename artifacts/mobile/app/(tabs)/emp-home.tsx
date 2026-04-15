@@ -207,7 +207,7 @@ export default function EmployeeHomeScreen() {
             {user?.name?.split(" ")[0]}
           </Text>
           <Text style={[styles.headerRole, { color: colors.mutedForeground }]}>
-            Field Worker
+            Subcontractor
           </Text>
         </View>
         <TouchableOpacity

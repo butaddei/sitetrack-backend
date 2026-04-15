@@ -51,6 +51,10 @@ export default function CompanySettingsScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  // Invoice branding fields
+  const [businessAbn, setBusinessAbn] = useState(user?.companyBusinessAbn ?? "");
+  const [businessEmail, setBusinessEmail] = useState(user?.companyBusinessEmail ?? "");
+  const [businessAddress, setBusinessAddress] = useState(user?.companyBusinessAddress ?? "");
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -96,6 +100,9 @@ export default function CompanySettingsScreen() {
         primaryColor: string;
         secondaryColor: string;
         logoUrl?: string | null;
+        businessAbn?: string | null;
+        businessEmail?: string | null;
+        businessAddress?: string | null;
       }>("/company", {
         method: "PATCH",
         body: JSON.stringify({
@@ -103,6 +110,9 @@ export default function CompanySettingsScreen() {
           primaryColor,
           secondaryColor,
           logoUrl: logoUri,
+          businessAbn: businessAbn.trim() || null,
+          businessEmail: businessEmail.trim() || null,
+          businessAddress: businessAddress.trim() || null,
         }),
       });
       updateUser({
@@ -110,6 +120,9 @@ export default function CompanySettingsScreen() {
         primaryColor: updated.primaryColor,
         secondaryColor: updated.secondaryColor,
         logoUrl: updated.logoUrl,
+        companyBusinessAbn: updated.businessAbn,
+        companyBusinessEmail: updated.businessEmail,
+        companyBusinessAddress: updated.businessAddress,
       });
       setSuccess(true);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -271,6 +284,41 @@ export default function CompanySettingsScreen() {
                 );
               })}
             </View>
+          </View>
+
+          {/* Invoice details card */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: colors.primary + "18" }]}>
+                <Feather name="file-text" size={16} color={colors.primary} />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Invoice Details</Text>
+            </View>
+            <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
+              Shown on subcontractor invoices as the client / company information.
+            </Text>
+            <InputField
+              label="Company ABN (optional)"
+              value={businessAbn}
+              onChangeText={(t) => { setBusinessAbn(t); setError(""); setSuccess(false); }}
+              keyboardType="numeric"
+              placeholder="e.g. 12 345 678 901"
+            />
+            <InputField
+              label="Billing Email (optional)"
+              value={businessEmail}
+              onChangeText={(t) => { setBusinessEmail(t); setError(""); setSuccess(false); }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholder="accounts@company.com"
+            />
+            <InputField
+              label="Business Address (optional)"
+              value={businessAddress}
+              onChangeText={(t) => { setBusinessAddress(t); setError(""); setSuccess(false); }}
+              autoCapitalize="words"
+              placeholder="Street, Suburb, State"
+            />
           </View>
 
           {error ? (

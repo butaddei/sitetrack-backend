@@ -34,13 +34,15 @@ pnpm workspace monorepo using TypeScript. PaintPro is a multi-tenant SaaS mobile
 - **Authentication**: JWT-based with role RBAC (Admin / Employee)
 - **Multi-tenant**: Each company is isolated; company branding (colors, logo) applied across app
 - **Admin role**: Dashboard, projects (with financials), employees, timesheets, reports, company settings
-- **Employee role**: Home (assigned jobs), projects, clock-in/out worklog, notes, profile
-- **Role guards**: All 5 admin tab screens redirect employees to emp-home
+- **Employee (Subcontractor) role**: Home, My Jobs, Invoices, Notes, Profile
+- **Role guards**: All admin tab screens redirect employees to emp-home
 - **Avatar upload**: Profile settings with expo-image-picker (stored as base64 dataURL)
 - **Logo upload**: Company settings with expo-image-picker
-- **Auth screens**: Premium dark-gradient login & register with animated entrance, icon-prefixed inputs, trust badges, demo account quick-fill
-- **Billing screen**: Plans & Billing UI (Free/Pro/Business) with usage stats; upgrade buttons show "Coming soon" modal. `STRIPE_ENABLED=false` flag in `billing.tsx` — flip to activate.
+- **Auth screens**: Premium dark-gradient login & register with animated entrance, icon-prefixed inputs, trust badges
+- **Billing screen**: Plans & Billing UI (Free/Pro/Business) with usage stats. `BILLING_ACTIVE=false` in stripeClient.ts — flip to activate.
 - **Color presets**: 12 named color themes in company settings with live preview
+- **Subcontractor invoicing**: Workers can fill in ABN, bank details, invoice prefix in Profile Settings. Invoices tab generates PDF invoices (expo-print + expo-sharing) for custom date periods, with professional HTML template. Past invoices stored in DB.
+- **Company invoice branding**: Admin can set company ABN, billing email, business address in Company Settings — appears on subcontractor invoices as "Bill To" section.
 
 #### Design System
 - **Auth screens**: `LinearGradient` dark navy background, white floating card with 24px radius + shadow

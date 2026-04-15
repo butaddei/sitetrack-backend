@@ -43,6 +43,19 @@ export default function ProfileSettingsScreen() {
   const [profileSuccess, setProfileSuccess] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  // Subcontractor fields (employee-only)
+  const [abn, setAbn] = useState(user?.abn ?? "");
+  const [bizAddress, setBizAddress] = useState(user?.businessAddress ?? "");
+  const [invoicePrefix, setInvoicePrefix] = useState(user?.invoicePrefix ?? "");
+  const [invoiceNotes, setInvoiceNotes] = useState(user?.invoiceNotes ?? "");
+  const [bankName, setBankName] = useState(user?.bankName ?? "");
+  const [accountName, setAccountName] = useState(user?.accountName ?? "");
+  const [bsb, setBsb] = useState(user?.bsb ?? "");
+  const [accountNumber, setAccountNumber] = useState(user?.accountNumber ?? "");
+  const [subLoading, setSubLoading] = useState(false);
+  const [subError, setSubError] = useState("");
+  const [subSuccess, setSubSuccess] = useState(false);
+  const isEmployee = user?.role !== "admin";
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -112,6 +125,35 @@ export default function ProfileSettingsScreen() {
       setProfileError(msg);
     } finally {
       setProfileLoading(false);
+    }
+  }
+
+  async function handleSaveSubcontractor() {
+    setSubLoading(true);
+    setSubError("");
+    setSubSuccess(false);
+    try {
+      const updated = await apiFetch<Partial<typeof user>>("/auth/profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          abn: abn.trim() || null,
+          businessAddress: bizAddress.trim() || null,
+          invoicePrefix: invoicePrefix.trim() || null,
+          invoiceNotes: invoiceNotes.trim() || null,
+          bankName: bankName.trim() || null,
+          accountName: accountName.trim() || null,
+          bsb: bsb.trim() || null,
+          accountNumber: accountNumber.trim() || null,
+        }),
+      });
+      updateUser(updated as any);
+      setSubSuccess(true);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to save details";
+      setSubError(msg);
+    } finally {
+      setSubLoading(false);
     }
   }
 
@@ -196,7 +238,7 @@ export default function ProfileSettingsScreen() {
           ) : null}
           <View style={[styles.roleBadge, { backgroundColor: "rgba(255,255,255,0.15)" }]}>
             <Text style={styles.roleText}>
-              {user?.role === "admin" ? "Administrator" : "Employee"}
+              {user?.role === "admin" ? "Administrator" : "Subcontractor"}
             </Text>
           </View>
         </LinearGradient>
@@ -252,6 +294,99 @@ export default function ProfileSettingsScreen() {
 
             <PrimaryButton label="Save Changes" onPress={handleSaveProfile} loading={profileLoading} />
           </View>
+
+          {/* ── Subcontractor Details (employees only) ── */}
+          {isEmployee ? (
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIcon, { backgroundColor: colors.primary + "18" }]}>
+                  <Feather name="file-text" size={16} color={colors.primary} />
+                </View>
+                <Text style={[styles.cardTitle, { color: colors.foreground }]}>Subcontractor Details</Text>
+              </View>
+              <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
+                Used on invoices you generate. Leave blank if not applicable.
+              </Text>
+              <InputField
+                label="ABN"
+                value={abn}
+                onChangeText={(t) => { setAbn(t); setSubError(""); setSubSuccess(false); }}
+                keyboardType="numeric"
+                placeholder="e.g. 12 345 678 901"
+              />
+              <InputField
+                label="Business Address (optional)"
+                value={bizAddress}
+                onChangeText={(t) => { setBizAddress(t); setSubError(""); setSubSuccess(false); }}
+                autoCapitalize="words"
+                placeholder="Street, Suburb, State"
+              />
+              <InputField
+                label="Invoice Prefix (optional)"
+                value={invoicePrefix}
+                onChangeText={(t) => { setInvoicePrefix(t); setSubError(""); setSubSuccess(false); }}
+                autoCapitalize="characters"
+                placeholder="e.g. INV (default)"
+              />
+              <InputField
+                label="Default Invoice Notes (optional)"
+                value={invoiceNotes}
+                onChangeText={(t) => { setInvoiceNotes(t); setSubError(""); setSubSuccess(false); }}
+                placeholder="e.g. Payment due within 14 days"
+              />
+
+              {/* Banking & Payment in same card */}
+              <View style={[styles.cardDivider, { borderTopColor: colors.border }]} />
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIcon, { backgroundColor: colors.primary + "18" }]}>
+                  <Feather name="credit-card" size={16} color={colors.primary} />
+                </View>
+                <Text style={[styles.cardTitle, { color: colors.foreground }]}>Banking & Payment</Text>
+              </View>
+              <InputField
+                label="Bank Name"
+                value={bankName}
+                onChangeText={(t) => { setBankName(t); setSubError(""); setSubSuccess(false); }}
+                placeholder="e.g. Commonwealth Bank"
+              />
+              <InputField
+                label="Account Name"
+                value={accountName}
+                onChangeText={(t) => { setAccountName(t); setSubError(""); setSubSuccess(false); }}
+                autoCapitalize="words"
+                placeholder="Name on account"
+              />
+              <InputField
+                label="BSB"
+                value={bsb}
+                onChangeText={(t) => { setBsb(t); setSubError(""); setSubSuccess(false); }}
+                keyboardType="numeric"
+                placeholder="e.g. 062-000"
+              />
+              <InputField
+                label="Account Number"
+                value={accountNumber}
+                onChangeText={(t) => { setAccountNumber(t); setSubError(""); setSubSuccess(false); }}
+                keyboardType="numeric"
+                placeholder="e.g. 12345678"
+              />
+
+              {subError ? (
+                <View style={[styles.alert, { backgroundColor: colors.destructive + "12", borderColor: colors.destructive + "30" }]}>
+                  <Feather name="alert-circle" size={14} color={colors.destructive} />
+                  <Text style={[styles.alertText, { color: colors.destructive }]}>{subError}</Text>
+                </View>
+              ) : null}
+              {subSuccess ? (
+                <View style={[styles.alert, { backgroundColor: colors.success + "12", borderColor: colors.success + "30" }]}>
+                  <Feather name="check-circle" size={14} color={colors.success} />
+                  <Text style={[styles.alertText, { color: colors.success }]}>Details saved successfully</Text>
+                </View>
+              ) : null}
+
+              <PrimaryButton label="Save Details" onPress={handleSaveSubcontractor} loading={subLoading} />
+            </View>
+          ) : null}
 
           {/* Change password card */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -317,7 +452,7 @@ export default function ProfileSettingsScreen() {
             {[
               { label: "Email", value: user?.email ?? "" },
               { label: "Company", value: user?.companyName ?? "" },
-              { label: "Role", value: user?.role === "admin" ? "Administrator" : "Employee" },
+              { label: "Role", value: user?.role === "admin" ? "Administrator" : "Subcontractor" },
             ].map((row, i, arr) => (
               <View
                 key={row.label}
@@ -453,6 +588,8 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
   cardIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   cardTitle: { fontSize: 16, fontWeight: "700" },
+  cardSub: { fontSize: 13, lineHeight: 18, marginTop: -8 },
+  cardDivider: { borderTopWidth: 1, marginHorizontal: -4 },
 
   eyeBtn: { position: "absolute", right: 14, bottom: 14 },
 

@@ -148,7 +148,7 @@ export default function EmployeeProfileScreen() {
             </View>
             <View style={styles.idInfo}>
               <Text style={styles.idName}>{user?.name}</Text>
-              <Text style={styles.idPosition}>{user?.position ?? "Field Employee"}</Text>
+              <Text style={styles.idPosition}>{user?.position ?? "Subcontractor"}</Text>
             </View>
             {/* Live status */}
             {activeLog ? (

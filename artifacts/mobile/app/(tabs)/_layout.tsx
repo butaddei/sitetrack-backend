@@ -138,10 +138,18 @@ export default function TabLayout() {
         }
       />
       <Tabs.Screen
+        name="emp-invoices"
+        options={
+          !isAdmin
+            ? { title: "Invoices", tabBarIcon: icon("file-text", "doc.plaintext") }
+            : hide()
+        }
+      />
+      <Tabs.Screen
         name="emp-notes"
         options={
           !isAdmin
-            ? { title: "Notes", tabBarIcon: icon("file-text", "doc.text") }
+            ? { title: "Notes", tabBarIcon: icon("edit-3", "pencil") }
             : hide()
         }
       />
