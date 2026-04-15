@@ -2,7 +2,7 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. PaintPro is a multi-tenant SaaS mobile app for painting business field & project management.
+pnpm workspace monorepo using TypeScript. SiteTrack is a multi-tenant SaaS mobile app for field service / painting business management.
 
 ## Stack
 
@@ -25,7 +25,7 @@ pnpm workspace monorepo using TypeScript. PaintPro is a multi-tenant SaaS mobile
 - **Multi-tenant**: All queries scoped to `companyId` for isolation
 - **Routes**: `auth`, `users`, `projects`, `timesheets`, `expenses`, `notes`, `company`
 
-### PaintPro Manager (mobile)
+### SiteTrack (mobile)
 - **Directory**: `artifacts/mobile/`
 - **Type**: Expo mobile app
 - **Purpose**: Painting/construction business management SaaS
