@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "SiteTrack",
+    "slug": "sitetrack",
+    "version": "1.0.0",
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": true
+    }
+  }
+}
