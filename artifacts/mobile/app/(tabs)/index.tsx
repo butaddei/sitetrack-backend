@@ -119,6 +119,9 @@ export default function DashboardScreen() {
               <Text style={[styles.companyName, { color: colors.foreground }]} numberOfLines={1}>
                 {user?.companyName}
               </Text>
+              <Text style={[styles.companySubtitle, { color: colors.mutedForeground }]}>
+                Business Overview
+              </Text>
             </View>
           </View>
           <TouchableOpacity
@@ -399,6 +402,7 @@ const styles = StyleSheet.create({
   companyTextBlock: { gap: 1, flex: 1 },
   companyLabel: { fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
   companyName: { fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
+  companySubtitle: { fontSize: 12, fontWeight: "400", marginTop: 1 },
   planChip: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 100, borderWidth: 1 },
   planChipText: { fontSize: 11, fontWeight: "700" },
   avatar: {
