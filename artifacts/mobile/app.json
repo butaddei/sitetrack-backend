@@ -4,30 +4,34 @@
     "slug": "sitetrack",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/icon.png",
     "scheme": "sitetrack",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/icon.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#060914"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.sitetrack.app",
+      "bundleIdentifier": "com.butaddei.sitetrack",
       "buildNumber": "1",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "SiteTrack uses your photo library so you can set a profile photo.",
         "NSCameraUsageDescription": "SiteTrack uses your camera so you can take a profile photo.",
-        "NSPhotoLibraryAddUsageDescription": "SiteTrack saves photos to your library."
+        "NSPhotoLibraryAddUsageDescription": "SiteTrack saves photos to your library.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.sitetrack.app"
+      "package": "com.sitetrack.app",
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/icon.png"
     },
     "plugins": [
       [
@@ -49,6 +53,11 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cc190c3c-e02a-4c35-9c64-7f1d7ed403eb"
+      }
     }
   }
 }

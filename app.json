@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "SiteTrack",
@@ -6,7 +5,16 @@
     "version": "1.0.0",
     "icon": "./assets/icon.png",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.butaddei.sitetrack",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cc190c3c-e02a-4c35-9c64-7f1d7ed403eb"
+      }
     }
   }
 }
