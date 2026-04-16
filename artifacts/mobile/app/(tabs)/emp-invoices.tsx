@@ -195,44 +195,42 @@ function buildInvoiceHtml(inv: GeneratedInvoice): string {
   const totalHrs = (inv.totalMinutes / 60).toFixed(2);
   const totalAmt = Number(inv.totalAmount).toFixed(2);
 
-  // ── Payment details block ──
+  // ── Subcontractor letterhead details (top-left) ──
   const hasPayment = bankName || accountName || bsb || accountNum;
-  const paymentBlock = hasPayment ? `
-    <div style="margin-top:32px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <div style="width:4px;height:18px;background:${primary};border-radius:2px"></div>
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#6b7280">Payment Details</span>
-      </div>
-      <div style="background:#f8f9fb;border:1px solid #edf0f4;border-radius:10px;overflow:hidden">
-        <table style="width:100%;border-collapse:collapse">
-          ${bankName    ? `<tr><td style="padding:11px 18px;font-size:12px;font-weight:600;color:#6b7280;width:40%;border-bottom:1px solid #edf0f4">Bank</td><td style="padding:11px 18px;font-size:13px;font-weight:600;color:#111827;border-bottom:1px solid #edf0f4">${bankName}</td></tr>` : ""}
-          ${accountName ? `<tr><td style="padding:11px 18px;font-size:12px;font-weight:600;color:#6b7280;width:40%;border-bottom:1px solid #edf0f4">Account Name</td><td style="padding:11px 18px;font-size:13px;font-weight:600;color:#111827;border-bottom:1px solid #edf0f4">${accountName}</td></tr>` : ""}
-          ${bsb         ? `<tr><td style="padding:11px 18px;font-size:12px;font-weight:600;color:#6b7280;width:40%;border-bottom:${accountNum ? "1px solid #edf0f4" : "none"}">BSB</td><td style="padding:11px 18px;font-size:13px;font-weight:700;color:#111827;letter-spacing:0.5px;border-bottom:${accountNum ? "1px solid #edf0f4" : "none"}">${bsb}</td></tr>` : ""}
-          ${accountNum  ? `<tr><td style="padding:11px 18px;font-size:12px;font-weight:600;color:#6b7280;width:40%">Account Number</td><td style="padding:11px 18px;font-size:13px;font-weight:700;color:#111827;letter-spacing:0.5px">${accountNum}</td></tr>` : ""}
-        </table>
-      </div>
-    </div>` : "";
+
+  const subLetterhead = `
+    <div style="font-size:25px;font-weight:800;color:#111827;letter-spacing:-0.5px;line-height:1.2">${subName}</div>
+    <div style="margin-top:8px;font-size:12px;color:#6b7280;line-height:1.9">
+      ${subEmail  ? `<div>${subEmail}</div>` : ""}
+      ${subPhone  ? `<div>${subPhone}</div>` : ""}
+      ${subAddr   ? `<div>${subAddr}</div>` : ""}
+      ${subAbn    ? `<div style="margin-top:3px;font-weight:700;color:#374151">ABN&nbsp;&nbsp;${subAbn}</div>` : ""}
+    </div>
+    ${hasPayment ? `
+    <div style="margin-top:14px;padding-top:12px;border-top:1px solid #e5e7eb">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.4px;color:#9ca3af;margin-bottom:7px">Payment Details</div>
+      <table style="border-collapse:collapse;font-size:11.5px;color:#374151;line-height:1.85">
+        ${bankName    ? `<tr><td style="color:#9ca3af;padding-right:14px;white-space:nowrap">Bank</td><td style="font-weight:500">${bankName}</td></tr>` : ""}
+        ${accountName ? `<tr><td style="color:#9ca3af;padding-right:14px;white-space:nowrap">Account Name</td><td style="font-weight:500">${accountName}</td></tr>` : ""}
+        ${bsb         ? `<tr><td style="color:#9ca3af;padding-right:14px;white-space:nowrap">BSB</td><td style="font-weight:700;letter-spacing:0.5px">${bsb}</td></tr>` : ""}
+        ${accountNum  ? `<tr><td style="color:#9ca3af;padding-right:14px;white-space:nowrap">Account No.</td><td style="font-weight:700;letter-spacing:0.5px">${accountNum}</td></tr>` : ""}
+      </table>
+    </div>` : ""}
+  `;
+
+  // ── Company meta for Bill To card ──
+  const companyMetaLines = [
+    companyAddr  ? `<div>${companyAddr}</div>` : "",
+    companyAbn   ? `<div style="margin-top:2px;font-weight:700;color:#374151">ABN&nbsp;&nbsp;${companyAbn}</div>` : "",
+    companyEmail ? `<div>${companyEmail}</div>` : "",
+  ].filter(Boolean).join("");
 
   // ── Notes block ──
   const notesBlock = notes ? `
-    <div style="margin-top:24px;background:#fffbf5;border-left:4px solid ${primary};border-radius:0 8px 8px 0;padding:14px 18px">
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${primary}">Notes</span>
-      <p style="margin-top:6px;font-size:13px;color:#4b5563;line-height:1.7">${notes}</p>
+    <div style="margin-top:20px;background:#fffbf5;border-left:4px solid ${primary};border-radius:0 8px 8px 0;padding:12px 16px">
+      <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:${primary}">Notes</span>
+      <p style="margin:5px 0 0;font-size:12.5px;color:#4b5563;line-height:1.7">${notes}</p>
     </div>` : "";
-
-  // ── Subcontractor meta lines ──
-  const subMetaLines = [
-    subEmail  ? `<div>${subEmail}</div>`                 : "",
-    subPhone  ? `<div>${subPhone}</div>`                 : "",
-    subAbn    ? `<div style="margin-top:4px;font-weight:600;color:#111827">ABN: ${subAbn}</div>` : "",
-    subAddr   ? `<div style="color:#9ca3af;font-size:11px;margin-top:3px">${subAddr}</div>` : "",
-  ].filter(Boolean).join("");
-
-  const companyMetaLines = [
-    companyAddr  ? `<div style="color:#9ca3af;font-size:11px;margin-top:3px">${companyAddr}</div>` : "",
-    companyAbn   ? `<div style="margin-top:4px;font-weight:600;color:#111827">ABN: ${companyAbn}</div>` : "",
-    companyEmail ? `<div>${companyEmail}</div>`  : "",
-  ].filter(Boolean).join("");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -250,24 +248,21 @@ function buildInvoiceHtml(inv: GeneratedInvoice): string {
   <div style="height:7px;background:${primary}"></div>
 
   <!-- Main content -->
-  <div style="padding:44px 52px 52px">
+  <div style="padding:40px 52px 48px">
 
-    <!-- ── Header: Company + Invoice identity ── -->
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:40px">
+    <!-- ── Header: Subcontractor identity + Invoice meta ── -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px">
 
-      <!-- Left: Company identity -->
-      <div style="max-width:55%">
-        <div style="font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.5px;line-height:1.2">${companyName}</div>
-        <div style="margin-top:10px;font-size:12px;color:#6b7280;line-height:1.8">
-          ${companyMetaLines}
-        </div>
+      <!-- Left: Subcontractor letterhead -->
+      <div style="max-width:52%">
+        ${subLetterhead}
       </div>
 
       <!-- Right: Invoice heading + meta -->
       <div style="text-align:right">
-        <div style="font-size:38px;font-weight:900;letter-spacing:-2px;color:#111827;line-height:1">${invoiceHeading}</div>
+        <div style="font-size:36px;font-weight:900;letter-spacing:-2px;color:#111827;line-height:1">${invoiceHeading}</div>
         <div style="margin-top:10px;display:inline-block;background:${primary};color:#fff;font-size:13px;font-weight:700;padding:4px 14px;border-radius:20px;letter-spacing:0.3px">${inv.invoiceNumber}</div>
-        <div style="margin-top:14px;font-size:12px;color:#6b7280;line-height:2">
+        <div style="margin-top:13px;font-size:12px;color:#6b7280;line-height:2">
           <div><span style="font-weight:600;color:#374151">Date Issued</span>&nbsp;&nbsp;${issueDate}</div>
           <div><span style="font-weight:600;color:#374151">Period</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${periodLabel}</div>
           <div><span style="font-weight:600;color:#374151">Payment Due</span>&nbsp;&nbsp;${paymentDueLabel}</div>
@@ -276,42 +271,43 @@ function buildInvoiceHtml(inv: GeneratedInvoice): string {
     </div>
 
     <!-- ── Divider ── -->
-    <div style="height:1.5px;background:linear-gradient(to right,${primary},${primary}33);margin-bottom:32px;border-radius:1px"></div>
+    <div style="height:1.5px;background:linear-gradient(to right,${primary},${primary}33);margin-bottom:22px;border-radius:1px"></div>
 
-    <!-- ── FROM / BILL TO ── -->
-    <div style="display:flex;gap:0;margin-bottom:40px;border:1px solid #edf0f4;border-radius:12px;overflow:hidden">
+    <!-- ── FROM / BILL TO (compact) ── -->
+    <div style="display:flex;gap:0;margin-bottom:26px;border:1px solid #edf0f4;border-radius:10px;overflow:hidden">
 
       <!-- FROM: Subcontractor -->
-      <div style="flex:1;padding:22px 26px;border-right:1px solid #edf0f4">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${primary};margin-bottom:10px">From</div>
-        <div style="font-size:17px;font-weight:700;color:#111827;margin-bottom:6px">${subName}</div>
-        <div style="font-size:12px;color:#6b7280;line-height:1.9">${subMetaLines || "&nbsp;"}</div>
+      <div style="flex:1;padding:14px 18px;border-right:1px solid #edf0f4">
+        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:${primary};margin-bottom:5px">From</div>
+        <div style="font-size:14px;font-weight:700;color:#111827;line-height:1.3">${subName}</div>
+        ${subEmail ? `<div style="font-size:11.5px;color:#6b7280;margin-top:2px">${subEmail}</div>` : ""}
+        ${subAbn ? `<div style="font-size:11px;color:#9ca3af;margin-top:2px">ABN ${subAbn}</div>` : ""}
       </div>
 
       <!-- BILL TO: Company -->
-      <div style="flex:1;padding:22px 26px;background:#fafafa">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280;margin-bottom:10px">Bill To</div>
-        <div style="font-size:17px;font-weight:700;color:#111827;margin-bottom:6px">${companyName}</div>
-        <div style="font-size:12px;color:#6b7280;line-height:1.9">${companyMetaLines || "&nbsp;"}</div>
+      <div style="flex:1;padding:14px 18px;background:#fafafa">
+        <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#6b7280;margin-bottom:5px">Bill To</div>
+        <div style="font-size:14px;font-weight:700;color:#111827;line-height:1.3">${companyName}</div>
+        <div style="font-size:11.5px;color:#6b7280;margin-top:3px;line-height:1.75">${companyMetaLines || ""}</div>
       </div>
     </div>
 
     <!-- ── Services table ── -->
-    <div style="margin-bottom:0">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-        <div style="width:4px;height:18px;background:${primary};border-radius:2px"></div>
-        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#6b7280">Services Rendered &mdash; ${periodLabel}</span>
+    <div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="width:4px;height:16px;background:${primary};border-radius:2px"></div>
+        <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:#6b7280">Services Rendered &mdash; ${periodLabel}</span>
       </div>
 
       <div style="border:1px solid #edf0f4;border-radius:10px;overflow:hidden">
         <table style="width:100%;border-collapse:collapse">
           <thead>
             <tr style="background:${primary}">
-              <th style="padding:12px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Date</th>
-              <th style="padding:12px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Project / Description</th>
-              <th style="padding:12px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Time</th>
-              <th style="padding:12px 14px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Hours</th>
-              <th style="padding:12px 14px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Amount (AUD)</th>
+              <th style="padding:11px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Date</th>
+              <th style="padding:11px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Project / Description</th>
+              <th style="padding:11px 14px;text-align:left;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Time</th>
+              <th style="padding:11px 14px;text-align:right;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Hours</th>
+              <th style="padding:11px 14px;text-align:right;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:rgba(255,255,255,0.9)">Amount (AUD)</th>
             </tr>
           </thead>
           <tbody>
@@ -322,31 +318,28 @@ function buildInvoiceHtml(inv: GeneratedInvoice): string {
     </div>
 
     <!-- ── Totals ── -->
-    <div style="display:flex;justify-content:flex-end;margin-top:20px;margin-bottom:8px">
+    <div style="display:flex;justify-content:flex-end;margin-top:18px">
       <div style="min-width:300px;border:1px solid #edf0f4;border-radius:12px;overflow:hidden">
-        <div style="padding:13px 20px;display:flex;justify-content:space-between;border-bottom:1px solid #edf0f4;background:#fafafa">
+        <div style="padding:12px 20px;display:flex;justify-content:space-between;border-bottom:1px solid #edf0f4;background:#fafafa">
           <span style="font-size:13px;color:#6b7280;font-weight:500">Total Hours</span>
           <span style="font-size:13px;color:#374151;font-weight:600">${totalHrs} hrs</span>
         </div>
-        <div style="padding:13px 20px;display:flex;justify-content:space-between;border-bottom:1px solid #edf0f4;background:#fafafa">
+        <div style="padding:12px 20px;display:flex;justify-content:space-between;border-bottom:1px solid #edf0f4;background:#fafafa">
           <span style="font-size:13px;color:#6b7280;font-weight:500">Hourly Rate</span>
           <span style="font-size:13px;color:#374151;font-weight:600">${formatAud(hourlyRate)} / hr</span>
         </div>
-        <div style="padding:18px 20px;display:flex;justify-content:space-between;align-items:center;background:${primary}">
+        <div style="padding:17px 20px;display:flex;justify-content:space-between;align-items:center;background:${primary}">
           <span style="font-size:15px;color:rgba(255,255,255,0.9);font-weight:700;letter-spacing:0.3px">TOTAL DUE</span>
           <span style="font-size:24px;color:#ffffff;font-weight:900;letter-spacing:-0.5px">$${totalAmt}</span>
         </div>
       </div>
     </div>
 
-    <!-- ── Payment details ── -->
-    ${paymentBlock}
-
     <!-- ── Notes ── -->
     ${notesBlock}
 
     <!-- ── Footer ── -->
-    <div style="margin-top:48px;padding-top:20px;border-top:1px solid #edf0f4;display:flex;justify-content:space-between;align-items:center">
+    <div style="margin-top:32px;padding-top:18px;border-top:1px solid #edf0f4;display:flex;justify-content:space-between;align-items:center">
       <div style="font-size:11px;color:#d1d5db">Generated via <strong style="color:#9ca3af">SiteTrack</strong> &middot; ${issueDate}</div>
       <div style="font-size:11px;color:#d1d5db">${inv.invoiceNumber}</div>
     </div>
