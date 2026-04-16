@@ -4,6 +4,7 @@ import { Redirect, useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
+  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -23,11 +24,6 @@ function fmt(n: number) {
   if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}k`;
   return `$${n.toFixed(0)}`;
-}
-
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
 // ─── Status accent colors ─────────────────────────────────────────────────────
@@ -73,12 +69,14 @@ export default function DashboardScreen() {
     return (order[a.status] ?? 9) - (order[b.status] ?? 9);
   });
 
-  const initials = (user?.name ?? "?")
+  const userInitials = (user?.name ?? "?")
     .split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
+
+  const companyInitial = (user?.companyName ?? "C")[0].toUpperCase();
 
   if (isLoading) {
     return (
@@ -100,13 +98,29 @@ export default function DashboardScreen() {
     >
       {/* ─── Header ─────────────────────────────────────────────────────── */}
       <View style={styles.header}>
+        {/* Company identity */}
         <View style={styles.headerLeft}>
-          <Text style={[styles.greetText, { color: colors.mutedForeground }]}>
-            {greeting()}
-          </Text>
-          <Text style={[styles.nameText, { color: colors.foreground }]}>
-            {user?.name?.split(" ")[0]}
-          </Text>
+          <View style={styles.companyRow}>
+            {user?.logoUrl ? (
+              <Image
+                source={{ uri: user.logoUrl }}
+                style={[styles.companyLogo, { borderColor: colors.border }]}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.companyLogo, styles.companyLogoFallback, { backgroundColor: colors.primary }]}>
+                <Text style={styles.companyLogoInitial}>{companyInitial}</Text>
+              </View>
+            )}
+            <View style={styles.companyTextBlock}>
+              <Text style={[styles.companyLabel, { color: colors.mutedForeground }]}>
+                Dashboard
+              </Text>
+              <Text style={[styles.companyName, { color: colors.foreground }]} numberOfLines={1}>
+                {user?.companyName}
+              </Text>
+            </View>
+          </View>
           <TouchableOpacity
             onPress={() => router.push("/billing")}
             activeOpacity={0.75}
@@ -118,12 +132,14 @@ export default function DashboardScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* User avatar — profile settings shortcut */}
         <TouchableOpacity
           style={[styles.avatar, { backgroundColor: colors.primary }]}
           onPress={() => router.push("/profile-settings")}
           activeOpacity={0.8}
         >
-          <Text style={styles.avatarText}>{initials}</Text>
+          <Text style={styles.avatarText}>{userInitials}</Text>
         </TouchableOpacity>
       </View>
 
@@ -354,22 +370,46 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingBottom: 10,
     paddingTop: 12,
   },
-  headerLeft: { gap: 1 },
-  greetText: { fontSize: 13, fontWeight: "500" },
-  nameText: { fontSize: 28, fontWeight: "800", letterSpacing: -0.6, marginTop: 1 },
-  planChip: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 100, borderWidth: 1, marginTop: 6 },
-  planChipText: { fontSize: 11, fontWeight: "700" },
-  avatar: {
+  headerLeft: { gap: 8, flex: 1, marginRight: 12 },
+  companyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  companyLogo: {
     width: 46,
     height: 46,
-    borderRadius: 23,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    flexShrink: 0,
+  },
+  companyLogoFallback: {
     alignItems: "center",
     justifyContent: "center",
+    borderColor: "transparent",
   },
-  avatarText: { color: "#fff", fontWeight: "800", fontSize: 15 },
+  companyLogoInitial: {
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  companyTextBlock: { gap: 1, flex: 1 },
+  companyLabel: { fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
+  companyName: { fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
+  planChip: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 100, borderWidth: 1 },
+  planChipText: { fontSize: 11, fontWeight: "700" },
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+  },
+  avatarText: { color: "#fff", fontWeight: "800", fontSize: 14 },
 
   body: { paddingHorizontal: 16, gap: 14 },
 
