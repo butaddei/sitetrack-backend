@@ -5,7 +5,7 @@ const TOKEN_KEY = "sitetrack_jwt_token";
 export function getApiUrl(): string {
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   if (domain) return `https://${domain}/api`;
-  return "https://SEU-LINK.replit.dev/api";
+  return "https://workspace.butaddei.replit.app/api";
 }
 
 export async function getStoredToken(): Promise<string | null> {
