@@ -29,81 +29,43 @@ interface PlanInfo {
   hasSubscription: boolean;
 }
 
-// ─── Plan definitions ─────────────────────────────────────────────────────────
-interface PlanDef {
-  key: PlanKey;
-  name: string;
-  price: string;
-  period: string;
-  tagline: string;
-  features: { text: string; included: boolean }[];
-  cta: string;
-  highlighted: boolean;
-}
+// ─── Pricing config — edit here to update the paid plan ──────────────────────
+const FREE_PLAN = {
+  name: "Free Plan",
+  price: "$0",
+  period: "forever",
+  tagline: "Perfect for getting started",
+  features: [
+    "Up to 3 active projects",
+    "Up to 3 team members",
+    "Time tracking & clock in/out",
+    "Photo uploads per project",
+    "Expense tracking",
+    "Subcontractor invoices",
+  ],
+};
 
-const PLANS: PlanDef[] = [
-  {
-    key: "free",
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    tagline: "Perfect for getting started",
-    highlighted: false,
-    cta: "Current Plan",
-    features: [
-      { text: "Up to 3 active projects", included: true },
-      { text: "Up to 3 team members", included: true },
-      { text: "Time tracking & clock in/out", included: true },
-      { text: "Photo uploads per project", included: true },
-      { text: "Expense tracking", included: true },
-      { text: "Subcontractor invoices", included: true },
-      { text: "Advanced financial reports", included: false },
-      { text: "Priority support", included: false },
-    ],
-  },
-  {
-    key: "pro",
-    name: "Pro",
-    price: "$49",
-    period: "/ month",
-    tagline: "For growing teams",
-    highlighted: true,
-    cta: "Upgrade to Pro",
-    features: [
-      { text: "Up to 15 active projects", included: true },
-      { text: "Up to 15 team members", included: true },
-      { text: "Time tracking & clock in/out", included: true },
-      { text: "Photo uploads per project", included: true },
-      { text: "Expense tracking", included: true },
-      { text: "Subcontractor invoices", included: true },
-      { text: "Advanced financial reports", included: true },
-      { text: "Priority email support", included: true },
-    ],
-  },
-  {
-    key: "business",
-    name: "Business",
-    price: "$149",
-    period: "/ month",
-    tagline: "Unlimited scale",
-    highlighted: false,
-    cta: "Upgrade to Business",
-    features: [
-      { text: "Unlimited active projects", included: true },
-      { text: "Unlimited team members", included: true },
-      { text: "Time tracking & clock in/out", included: true },
-      { text: "Photo uploads per project", included: true },
-      { text: "Expense tracking", included: true },
-      { text: "Subcontractor invoices", included: true },
-      { text: "Advanced financial reports", included: true },
-      { text: "Priority phone support", included: true },
-    ],
-  },
-];
+const PRO_PLAN = {
+  key: "pro" as PlanKey,
+  name: "Pro Plan",
+  price: "$49",
+  period: "/ month",
+  tagline: "Everything you need to scale",
+  features: [
+    "Unlimited active projects",
+    "Unlimited team members",
+    "Time tracking & clock in/out",
+    "Photo uploads per project",
+    "Expense tracking",
+    "Subcontractor invoices",
+    "Advanced financial reports",
+    "Priority support",
+  ],
+};
 
-// ─── Plan badge colours ───────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 const PLAN_STATUS_COLOR: Record<string, string> = {
-  active: "#16a34a",
+  active:   "#16a34a",
   trialing: "#0ea5e9",
   past_due: "#f59e0b",
   canceled: "#ef4444",
@@ -112,13 +74,7 @@ const PLAN_STATUS_COLOR: Record<string, string> = {
 
 function planStatusLabel(status: string) {
   return (
-    {
-      active: "Active",
-      trialing: "Trial",
-      past_due: "Past Due",
-      canceled: "Canceled",
-      inactive: "Inactive",
-    }[status] ?? status
+    { active: "Active", trialing: "Trial", past_due: "Past Due", canceled: "Canceled", inactive: "Inactive" }[status] ?? status
   );
 }
 
@@ -134,9 +90,9 @@ export default function BillingScreen() {
 
   const isAdmin = user?.role === "admin";
 
-  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
+  const [planInfo, setPlanInfo]       = useState<PlanInfo | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(true);
-  const [upgrading, setUpgrading] = useState<PlanKey | null>(null);
+  const [upgrading, setUpgrading]     = useState(false);
   const [managingPortal, setManagingPortal] = useState(false);
 
   const fetchPlanInfo = useCallback(async () => {
@@ -144,11 +100,10 @@ export default function BillingScreen() {
       const data = await apiFetch<PlanInfo>("/api/stripe/plan");
       setPlanInfo(data);
     } catch {
-      // fallback to user plan from auth context
       setPlanInfo({
-        plan: (user?.plan ?? "free") as PlanKey,
-        planStatus: user?.planStatus ?? "active",
-        stripeEnabled: false,
+        plan:            (user?.plan ?? "free") as PlanKey,
+        planStatus:      user?.planStatus ?? "active",
+        stripeEnabled:   false,
         hasSubscription: false,
       });
     } finally {
@@ -156,18 +111,16 @@ export default function BillingScreen() {
     }
   }, [user]);
 
-  useEffect(() => {
-    fetchPlanInfo();
-  }, [fetchPlanInfo]);
+  useEffect(() => { fetchPlanInfo(); }, [fetchPlanInfo]);
 
-  const currentPlan = planInfo?.plan ?? (user?.plan as PlanKey) ?? "free";
-  const currentStatus = planInfo?.planStatus ?? user?.planStatus ?? "active";
-  const stripeEnabled = planInfo?.stripeEnabled ?? false;
+  const currentPlan    = planInfo?.plan ?? (user?.plan as PlanKey) ?? "free";
+  const currentStatus  = planInfo?.planStatus ?? user?.planStatus ?? "active";
+  const stripeEnabled  = planInfo?.stripeEnabled ?? false;
   const hasSubscription = planInfo?.hasSubscription ?? false;
 
-  const currentPlanDef = PLANS.find((p) => p.key === currentPlan) ?? PLANS[0]!;
+  const currentPlanLabel = currentPlan === "free" ? "Free Plan" : currentPlan === "pro" ? "Pro Plan" : "Business Plan";
 
-  async function handleUpgrade(plan: PlanKey) {
+  async function handleUpgrade() {
     if (!isAdmin) {
       Alert.alert("Admin Required", "Only company admins can manage subscription plans.");
       return;
@@ -180,20 +133,18 @@ export default function BillingScreen() {
       );
       return;
     }
-    setUpgrading(plan);
+    setUpgrading(true);
     try {
       const data = await apiFetch<{ url: string }>("/api/stripe/checkout", {
         method: "POST",
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan: PRO_PLAN.key }),
       });
-      if (data.url) {
-        await Linking.openURL(data.url);
-      }
+      if (data.url) await Linking.openURL(data.url);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to open checkout";
       Alert.alert("Error", msg);
     } finally {
-      setUpgrading(null);
+      setUpgrading(false);
     }
   }
 
@@ -202,9 +153,7 @@ export default function BillingScreen() {
     setManagingPortal(true);
     try {
       const data = await apiFetch<{ url: string }>("/api/stripe/portal", { method: "POST" });
-      if (data.url) {
-        await Linking.openURL(data.url);
-      }
+      if (data.url) await Linking.openURL(data.url);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to open billing portal";
       Alert.alert("Error", msg);
@@ -215,6 +164,7 @@ export default function BillingScreen() {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
+
       {/* ─── Header ─────────────────────────────────────────────────────── */}
       <LinearGradient
         colors={[colors.accent, colors.accent + "d0"]}
@@ -234,12 +184,8 @@ export default function BillingScreen() {
         <View style={styles.currentPlanRow}>
           <View style={styles.currentPlanPill}>
             <View style={[styles.statusDot, { backgroundColor: PLAN_STATUS_COLOR[currentStatus] ?? "#16a34a" }]} />
-            <Text style={styles.currentPlanText}>
-              {currentPlanDef.name} Plan
-            </Text>
-            <Text style={styles.currentPlanStatus}>
-              · {planStatusLabel(currentStatus)}
-            </Text>
+            <Text style={styles.currentPlanText}>{currentPlanLabel}</Text>
+            <Text style={styles.currentPlanStatus}>· {planStatusLabel(currentStatus)}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -253,7 +199,7 @@ export default function BillingScreen() {
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 48 }} />
         ) : (
           <>
-            {/* Early access note */}
+            {/* ── Free early access banner ── */}
             {!stripeEnabled && (
               <View style={[styles.earlyAccessCard, { backgroundColor: colors.primary + "12", borderColor: colors.primary + "30" }]}>
                 <Feather name="gift" size={16} color={colors.primary} />
@@ -264,167 +210,118 @@ export default function BillingScreen() {
               </View>
             )}
 
-            {/* ── Plan cards ── */}
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>CHOOSE YOUR PLAN</Text>
+            {/* ── Free Plan card ── */}
+            <View style={[styles.planCard, { backgroundColor: colors.card, borderColor: colors.primary, borderWidth: 2 }]}>
 
-            {PLANS.map((plan) => {
-              const isCurrent = plan.key === currentPlan;
-              const isHighlighted = plan.highlighted;
-              const isDowngrade = (
-                (currentPlan === "business" && plan.key !== "business") ||
-                (currentPlan === "pro" && plan.key === "free")
-              );
-              const canUpgrade = plan.key !== "free" && !isCurrent && !isDowngrade && isAdmin;
-
-              return (
-                <View
-                  key={plan.key}
-                  style={[
-                    styles.planCard,
-                    {
-                      backgroundColor: colors.card,
-                      borderColor: isCurrent
-                        ? colors.primary
-                        : isHighlighted
-                        ? colors.primary + "40"
-                        : colors.border,
-                      borderWidth: isCurrent ? 2 : 1,
-                    },
-                  ]}
-                >
-                  {/* Most popular badge */}
-                  {isHighlighted && (
-                    <View style={[styles.popularBadge, { backgroundColor: colors.primary }]}>
-                      <Feather name="star" size={10} color="#fff" />
-                      <Text style={styles.popularBadgeText}>Most Popular</Text>
-                    </View>
-                  )}
-
-                  {/* Plan header */}
-                  <View style={styles.planHeader}>
-                    <View style={styles.planNameRow}>
-                      <Text style={[styles.planName, { color: colors.foreground }]}>{plan.name}</Text>
-                      {isCurrent && (
-                        <View style={[styles.currentBadge, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "35" }]}>
-                          <Feather name="check" size={10} color={colors.primary} />
-                          <Text style={[styles.currentBadgeText, { color: colors.primary }]}>Current</Text>
-                        </View>
-                      )}
-                    </View>
-                    <Text style={[styles.planTagline, { color: colors.mutedForeground }]}>{plan.tagline}</Text>
-                    <View style={styles.priceRow}>
-                      <Text style={[styles.priceAmount, { color: colors.foreground }]}>{plan.price}</Text>
-                      <Text style={[styles.pricePeriod, { color: colors.mutedForeground }]}>{plan.period}</Text>
-                    </View>
+              {/* Plan header */}
+              <View style={styles.planHeader}>
+                <View style={styles.planNameRow}>
+                  <Text style={[styles.planName, { color: colors.foreground }]}>{FREE_PLAN.name}</Text>
+                  <View style={[styles.currentBadge, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "35" }]}>
+                    <Feather name="check" size={10} color={colors.primary} />
+                    <Text style={[styles.currentBadgeText, { color: colors.primary }]}>Current</Text>
                   </View>
-
-                  {/* Divider */}
-                  <View style={[styles.planDivider, { backgroundColor: colors.border }]} />
-
-                  {/* Features */}
-                  <View style={styles.featureList}>
-                    {plan.features.map((feat) => (
-                      <View key={feat.text} style={styles.featureRow}>
-                        <View style={[
-                          styles.featureCheck,
-                          { backgroundColor: feat.included ? "#16a34a18" : colors.muted },
-                        ]}>
-                          <Feather
-                            name={feat.included ? "check" : "x"}
-                            size={11}
-                            color={feat.included ? "#16a34a" : colors.mutedForeground}
-                          />
-                        </View>
-                        <Text style={[
-                          styles.featureText,
-                          { color: feat.included ? colors.foreground : colors.mutedForeground },
-                        ]}>
-                          {feat.text}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* CTA button */}
-                  {isCurrent ? (
-                    hasSubscription && isAdmin ? (
-                      <TouchableOpacity
-                        style={[styles.manageBtn, { borderColor: colors.border }]}
-                        onPress={handleManageSubscription}
-                        disabled={managingPortal}
-                        activeOpacity={0.75}
-                      >
-                        {managingPortal ? (
-                          <ActivityIndicator size="small" color={colors.mutedForeground} />
-                        ) : (
-                          <>
-                            <Feather name="external-link" size={14} color={colors.mutedForeground} />
-                            <Text style={[styles.manageBtnText, { color: colors.mutedForeground }]}>
-                              Manage Subscription
-                            </Text>
-                          </>
-                        )}
-                      </TouchableOpacity>
-                    ) : (
-                      <View style={[styles.currentPlanBtn, { backgroundColor: colors.muted }]}>
-                        <Feather name="check-circle" size={14} color={colors.mutedForeground} />
-                        <Text style={[styles.currentPlanBtnText, { color: colors.mutedForeground }]}>
-                          Your Current Plan
-                        </Text>
-                      </View>
-                    )
-                  ) : canUpgrade ? (
-                    <TouchableOpacity
-                      style={[
-                        styles.upgradeBtn,
-                        {
-                          backgroundColor: isHighlighted ? colors.primary : "transparent",
-                          borderColor: colors.primary,
-                          borderWidth: isHighlighted ? 0 : 1.5,
-                          opacity: !stripeEnabled ? 0.65 : 1,
-                        },
-                      ]}
-                      onPress={() => handleUpgrade(plan.key)}
-                      disabled={upgrading === plan.key}
-                      activeOpacity={0.8}
-                    >
-                      {upgrading === plan.key ? (
-                        <ActivityIndicator
-                          size="small"
-                          color={isHighlighted ? "#fff" : colors.primary}
-                        />
-                      ) : (
-                        <>
-                          <Text
-                            style={[
-                              styles.upgradeBtnText,
-                              { color: isHighlighted ? "#fff" : colors.primary },
-                            ]}
-                          >
-                            {stripeEnabled ? plan.cta : "Coming Soon"}
-                          </Text>
-                          {!stripeEnabled && (
-                            <Feather
-                              name="clock"
-                              size={13}
-                              color={isHighlighted ? "#ffffffaa" : colors.primary + "aa"}
-                            />
-                          )}
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  ) : isDowngrade ? null : (
-                    <View style={[styles.currentPlanBtn, { backgroundColor: colors.muted }]}>
-                      <Text style={[styles.currentPlanBtnText, { color: colors.mutedForeground }]}>
-                        Contact Admin to Upgrade
-                      </Text>
-                    </View>
-                  )}
                 </View>
-              );
-            })}
+                <Text style={[styles.planTagline, { color: colors.mutedForeground }]}>{FREE_PLAN.tagline}</Text>
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceAmount, { color: colors.foreground }]}>{FREE_PLAN.price}</Text>
+                  <Text style={[styles.pricePeriod, { color: colors.mutedForeground }]}>{FREE_PLAN.period}</Text>
+                </View>
+              </View>
 
-            {/* ── Fine print ── */}
+              <View style={[styles.planDivider, { backgroundColor: colors.border }]} />
+
+              {/* Features */}
+              <View style={styles.featureList}>
+                {FREE_PLAN.features.map((feat) => (
+                  <View key={feat} style={styles.featureRow}>
+                    <View style={[styles.featureCheck, { backgroundColor: "#16a34a18" }]}>
+                      <Feather name="check" size={11} color="#16a34a" />
+                    </View>
+                    <Text style={[styles.featureText, { color: colors.foreground }]}>{feat}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* CTA */}
+              {hasSubscription && isAdmin ? (
+                <TouchableOpacity
+                  style={[styles.manageBtn, { borderColor: colors.border }]}
+                  onPress={handleManageSubscription}
+                  disabled={managingPortal}
+                  activeOpacity={0.75}
+                >
+                  {managingPortal ? (
+                    <ActivityIndicator size="small" color={colors.mutedForeground} />
+                  ) : (
+                    <>
+                      <Feather name="external-link" size={14} color={colors.mutedForeground} />
+                      <Text style={[styles.manageBtnText, { color: colors.mutedForeground }]}>Manage Subscription</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.currentPlanBtn, { backgroundColor: colors.muted }]}>
+                  <Feather name="check-circle" size={14} color={colors.mutedForeground} />
+                  <Text style={[styles.currentPlanBtnText, { color: colors.mutedForeground }]}>Your Current Plan</Text>
+                </View>
+              )}
+            </View>
+
+            {/* ── Pro Plan card (coming soon) ── */}
+            <View style={[styles.planCard, { backgroundColor: colors.card, borderColor: colors.primary + "40", borderWidth: 1 }]}>
+
+              {/* Coming Soon badge */}
+              <View style={[styles.comingSoonBadge, { backgroundColor: colors.primary + "14", borderColor: colors.primary + "30" }]}>
+                <Feather name="clock" size={10} color={colors.primary} />
+                <Text style={[styles.comingSoonBadgeText, { color: colors.primary }]}>Coming Soon</Text>
+              </View>
+
+              {/* Plan header */}
+              <View style={styles.planHeader}>
+                <Text style={[styles.planName, { color: colors.foreground }]}>{PRO_PLAN.name}</Text>
+                <Text style={[styles.planTagline, { color: colors.mutedForeground }]}>{PRO_PLAN.tagline}</Text>
+                <View style={styles.priceRow}>
+                  <Text style={[styles.priceAmount, { color: colors.foreground }]}>{PRO_PLAN.price}</Text>
+                  <Text style={[styles.pricePeriod, { color: colors.mutedForeground }]}>{PRO_PLAN.period}</Text>
+                </View>
+              </View>
+
+              <View style={[styles.planDivider, { backgroundColor: colors.border }]} />
+
+              {/* Features */}
+              <View style={styles.featureList}>
+                {PRO_PLAN.features.map((feat) => (
+                  <View key={feat} style={styles.featureRow}>
+                    <View style={[styles.featureCheck, { backgroundColor: colors.primary + "14" }]}>
+                      <Feather name="check" size={11} color={colors.primary} />
+                    </View>
+                    <Text style={[styles.featureText, { color: colors.foreground }]}>{feat}</Text>
+                  </View>
+                ))}
+              </View>
+
+              {/* CTA — disabled until Stripe is live */}
+              <TouchableOpacity
+                style={[styles.upgradeBtn, { backgroundColor: colors.primary, opacity: stripeEnabled ? 1 : 0.55 }]}
+                onPress={handleUpgrade}
+                disabled={upgrading || !isAdmin}
+                activeOpacity={0.8}
+              >
+                {upgrading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Text style={[styles.upgradeBtnText, { color: "#fff" }]}>
+                      {stripeEnabled ? `Upgrade to ${PRO_PLAN.name}` : "Coming Soon"}
+                    </Text>
+                    {!stripeEnabled && <Feather name="clock" size={13} color="rgba(255,255,255,0.7)" />}
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* ── Footer note ── */}
             <View style={[styles.footerNote, { borderColor: colors.border }]}>
               <Feather name="shield" size={13} color={colors.mutedForeground} />
               <Text style={[styles.footerNoteText, { color: colors.mutedForeground }]}>
@@ -441,6 +338,7 @@ export default function BillingScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1 },
+
   header: { paddingBottom: 24, paddingHorizontal: 20 },
   headerRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
   backBtn: { width: 36, alignItems: "flex-start" },
@@ -459,7 +357,9 @@ const styles = StyleSheet.create({
   statusDot: { width: 7, height: 7, borderRadius: 4 },
   currentPlanText: { color: "#fff", fontSize: 13, fontWeight: "700" },
   currentPlanStatus: { color: "rgba(255,255,255,0.7)", fontSize: 13, fontWeight: "500" },
+
   content: { padding: 16, gap: 12 },
+
   earlyAccessCard: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -469,26 +369,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   earlyAccessText: { flex: 1, fontSize: 13, lineHeight: 19 },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-    textTransform: "uppercase",
-    marginTop: 4,
-    marginBottom: 2,
-    paddingHorizontal: 2,
-  },
+
   planCard: {
     borderRadius: 16,
     padding: 20,
-    gap: 0,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 2,
   },
-  popularBadge: {
+
+  comingSoonBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
@@ -496,9 +388,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 100,
+    borderWidth: 1,
     marginBottom: 14,
   },
-  popularBadgeText: { color: "#fff", fontSize: 11, fontWeight: "700" },
+  comingSoonBadgeText: { fontSize: 11, fontWeight: "700" },
+
   planHeader: { gap: 4, marginBottom: 16 },
   planNameRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   planName: { fontSize: 20, fontWeight: "800" },
@@ -516,7 +410,9 @@ const styles = StyleSheet.create({
   priceRow: { flexDirection: "row", alignItems: "baseline", gap: 4, marginTop: 6 },
   priceAmount: { fontSize: 32, fontWeight: "900", letterSpacing: -0.5 },
   pricePeriod: { fontSize: 14, fontWeight: "500" },
+
   planDivider: { height: 1, marginVertical: 16 },
+
   featureList: { gap: 10, marginBottom: 20 },
   featureRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   featureCheck: {
@@ -527,6 +423,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   featureText: { fontSize: 13, fontWeight: "500", flex: 1 },
+
   upgradeBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -536,6 +433,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   upgradeBtnText: { fontSize: 15, fontWeight: "700" },
+
   currentPlanBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -545,6 +443,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   currentPlanBtnText: { fontSize: 14, fontWeight: "600" },
+
   manageBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -555,6 +454,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   manageBtnText: { fontSize: 14, fontWeight: "600" },
+
   footerNote: {
     flexDirection: "row",
     alignItems: "flex-start",
