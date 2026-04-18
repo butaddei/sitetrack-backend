@@ -124,16 +124,6 @@ export default function DashboardScreen() {
               </Text>
             </View>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push("/billing")}
-            activeOpacity={0.75}
-            style={[styles.planChip, { backgroundColor: colors.primary + "15", borderColor: colors.primary + "30", flexDirection: "row", alignItems: "center", gap: 4 }]}
-          >
-            <Feather name="zap" size={11} color={colors.primary} />
-            <Text style={[styles.planChipText, { color: colors.primary }]}>
-              {user?.plan === "pro" ? "Pro Plan" : user?.plan === "business" ? "Business Plan" : "Free Early Access"}
-            </Text>
-          </TouchableOpacity>
         </View>
 
         {/* User avatar — profile settings shortcut */}
@@ -403,8 +393,6 @@ const styles = StyleSheet.create({
   companyLabel: { fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
   companyName: { fontSize: 22, fontWeight: "800", letterSpacing: -0.5 },
   companySubtitle: { fontSize: 12, fontWeight: "400", marginTop: 1 },
-  planChip: { alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 100, borderWidth: 1 },
-  planChipText: { fontSize: 11, fontWeight: "700" },
   avatar: {
     width: 42,
     height: 42,
