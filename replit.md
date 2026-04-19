@@ -65,7 +65,7 @@ pnpm workspace monorepo using TypeScript. SiteTrack is a multi-tenant SaaS mobil
 - `context/ThemeContext.tsx` — company primaryColor/secondaryColor from auth user
 - `hooks/useColors.ts` — dynamic palette override from company branding
 - `app/(tabs)/` — all tab screens
-- `app/login.tsx`, `app/register.tsx`, `app/forgot-password.tsx` — auth screens
+- `app/login.tsx`, `app/register.tsx` — auth screens (forgot-password screen removed; re-enable when transactional email is configured via Resend/SendGrid)
 - `app/profile-settings.tsx` — avatar upload, profile edit, password change
 - `app/(tabs)/company-settings.tsx` — logo upload, color preset picker, company name
 - `components/InputField.tsx` — focus-state aware input

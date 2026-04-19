@@ -511,9 +511,6 @@ const styles = StyleSheet.create({
   },
   eyeBtn: { padding: 4 },
 
-  forgotRow: { alignSelf: "flex-end", marginTop: -8 },
-  forgotText: { fontSize: 13, fontWeight: "600" },
-
   // Error
   errorBox: {
     flexDirection: "row",
