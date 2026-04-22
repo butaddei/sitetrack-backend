@@ -43,7 +43,15 @@ export async function apiFetch<T = unknown>(
     }
   }
 
-  const response = await fetch(url, { ...fetchOptions, headers });
+  let response: Response;
+  try {
+    response = await fetch(url, { ...fetchOptions, headers });
+  } catch {
+    throw new ApiError(
+      "Unable to connect to server. Please check your internet connection and try again.",
+      0
+    );
+  }
 
   if (!response.ok) {
     let errorMessage = `Request failed: ${response.status}`;
