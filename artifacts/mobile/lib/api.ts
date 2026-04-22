@@ -22,13 +22,21 @@ export async function clearToken(): Promise<void> {
 
 interface FetchOptions extends RequestInit {
   skipAuth?: boolean;
+  _retryCount?: number;
+}
+
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 3000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function apiFetch<T = unknown>(
   path: string,
   options: FetchOptions = {}
 ): Promise<T> {
-  const { skipAuth, ...fetchOptions } = options;
+  const { skipAuth, _retryCount = 0, ...fetchOptions } = options;
   const url = `${getApiUrl()}${path}`;
 
   const headers = new Headers(fetchOptions.headers ?? {});
@@ -47,14 +55,18 @@ export async function apiFetch<T = unknown>(
   try {
     response = await fetch(url, { ...fetchOptions, headers });
   } catch {
+    if (_retryCount < MAX_RETRIES) {
+      await sleep(RETRY_DELAY_MS);
+      return apiFetch<T>(path, { ...options, _retryCount: _retryCount + 1 });
+    }
     throw new ApiError(
-      "Unable to connect to server. Please check your internet connection and try again.",
+      "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
       0
     );
   }
 
   if (!response.ok) {
-    let errorMessage = `Request failed: ${response.status}`;
+    let errorMessage = `Erro na requisição: ${response.status}`;
     try {
       const data = await response.json();
       errorMessage = data.error ?? data.message ?? errorMessage;
