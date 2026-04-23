@@ -2,10 +2,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TOKEN_KEY = "sitetrack_jwt_token";
 
+const PRODUCTION_API_URL = "https://workspace.butaddei.replit.app/api";
+
 export function getApiUrl(): string {
-  const domain = process.env.EXPO_PUBLIC_DOMAIN;
-  if (domain) return `https://${domain}/api`;
-  return "https://workspace.butaddei.replit.app/api";
+  return PRODUCTION_API_URL;
 }
 
 export async function getStoredToken(): Promise<string | null> {
@@ -37,7 +37,7 @@ export async function apiFetch<T = unknown>(
   options: FetchOptions = {}
 ): Promise<T> {
   const { skipAuth, _retryCount = 0, ...fetchOptions } = options;
-  const url = `${getApiUrl()}${path}`;
+  const url = `${PRODUCTION_API_URL}${path}`;
 
   const headers = new Headers(fetchOptions.headers ?? {});
   if (!headers.has("content-type") && fetchOptions.body) {

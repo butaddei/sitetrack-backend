@@ -16,7 +16,6 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.butaddei.sitetrack",
-      "buildNumber": "2",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "SiteTrack uses your photo library so you can set a profile photo.",
         "NSCameraUsageDescription": "SiteTrack uses your camera so you can take a profile photo.",
