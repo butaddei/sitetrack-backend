@@ -22,4 +22,17 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  if (process.env["NODE_ENV"] === "production") {
+    const PING_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+    const selfPingUrl = "https://workspace.butaddei.replit.app/api/healthz";
+
+    setInterval(() => {
+      fetch(selfPingUrl)
+        .then(() => logger.info("Keep-alive ping OK"))
+        .catch((err) => logger.warn({ err }, "Keep-alive ping failed"));
+    }, PING_INTERVAL_MS);
+
+    logger.info({ url: selfPingUrl, intervalMs: PING_INTERVAL_MS }, "Keep-alive enabled");
+  }
 });
