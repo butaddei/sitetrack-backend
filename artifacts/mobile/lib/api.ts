@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TOKEN_KEY = "sitetrack_jwt_token";
@@ -5,6 +6,9 @@ const TOKEN_KEY = "sitetrack_jwt_token";
 const PRODUCTION_API_URL = "https://workspace.butaddei.replit.app/api";
 
 export function getApiUrl(): string {
+  if (Platform.OS === "web" && typeof window !== "undefined") {
+    return `${window.location.origin}/api`;
+  }
   return PRODUCTION_API_URL;
 }
 
@@ -37,7 +41,8 @@ export async function apiFetch<T = unknown>(
   options: FetchOptions = {}
 ): Promise<T> {
   const { skipAuth, _retryCount = 0, ...fetchOptions } = options;
-  const url = `${PRODUCTION_API_URL}${path}`;
+  const baseUrl = getApiUrl();
+  const url = `${baseUrl}${path}`;
 
   const headers = new Headers(fetchOptions.headers ?? {});
   if (!headers.has("content-type") && fetchOptions.body) {
