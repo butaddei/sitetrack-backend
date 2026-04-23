@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const TOKEN_KEY = "sitetrack_jwt_token";
 
-const PRODUCTION_API_URL = "https://workspace.butaddei.replit.app/api";
+const PRODUCTION_API_URL = "https://workspace--butaddei.replit.app/api";
 
 export function getApiUrl(): string {
   if (Platform.OS === "web" && typeof window !== "undefined") {
