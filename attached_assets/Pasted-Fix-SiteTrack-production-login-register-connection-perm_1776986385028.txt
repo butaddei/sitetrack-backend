@@ -1,0 +1,61 @@
+Fix SiteTrack production login/register connection permanently.
+
+The TestFlight app still shows a server connection error during login/register. Do NOT make UI changes. Diagnose and fix the real production connectivity issue.
+
+Required outcome:
+- TestFlight app must successfully create account and login.
+- No “server connection” error.
+- Backend must remain online and publicly reachable.
+
+Tasks:
+
+1. Identify the exact production API URL the TestFlight build is calling.
+   - Add temporary visible debug text on login/register showing API_BASE_URL.
+   - Also log it in console.
+
+2. Identify the exact live backend URL currently deployed.
+   - Add/verify GET /api/health returns:
+     { "ok": true, "service": "sitetrack-api" }
+
+3. Hardcode the mobile production API URL in:
+   artifacts/mobile/lib/api.ts
+   Do NOT rely on EXPO_PUBLIC_DOMAIN, REPLIT_DEV_DOMAIN, localhost, workspace URLs, or dynamic env for production/TestFlight.
+   Use the final live backend URL only.
+
+4. Verify backend production deployment:
+   - deployment target must be VM / always-on, not autoscale
+   - backend must be published/redeployed with latest code
+   - public URL must work from an external browser:
+     GET /api/health = 200
+
+5. Verify auth endpoints publicly with curl from outside/local shell:
+   - POST /api/auth/register
+   - POST /api/auth/login
+   - GET /api/auth/me with token
+   Report exact status codes and response bodies.
+
+6. Confirm frontend and backend route names match exactly:
+   - login request path
+   - register request path
+   - payload field names
+   Fix mismatches.
+
+7. Add proper network error handling:
+   - fetch failures must show the real failing URL and reason in development/TestFlight debug mode.
+   - generic “server connection error” is not enough.
+
+8. Create a fresh iOS production build after the URL fix.
+   Increment buildNumber.
+   Submit it to the correct App Store Connect app:
+   ascAppId: 6761680712
+
+9. Final report must include:
+   - final hardcoded API URL
+   - result of GET /api/health
+   - result of login test
+   - result of register test
+   - iOS build number created
+   - confirmation that this build was submitted to ascAppId 6761680712
+
+Important:
+Do not say it is fixed unless the live production API URL works publicly and a NEW TestFlight build was created after the fix.

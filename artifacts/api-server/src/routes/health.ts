@@ -7,7 +7,7 @@ router.get("/healthz", (_req, res) => {
 });
 
 router.get("/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, service: "sitetrack-api" });
 });
 
 export default router;

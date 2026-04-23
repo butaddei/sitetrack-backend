@@ -59,23 +59,25 @@ export async function apiFetch<T = unknown>(
   let response: Response;
   try {
     response = await fetch(url, { ...fetchOptions, headers });
-  } catch {
+  } catch (err) {
+    console.error(`[apiFetch] Network error: ${url}`, err);
     if (_retryCount < MAX_RETRIES) {
       await sleep(RETRY_DELAY_MS);
       return apiFetch<T>(path, { ...options, _retryCount: _retryCount + 1 });
     }
     throw new ApiError(
-      "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.",
+      `Não foi possível conectar ao servidor (${url}). Verifique sua conexão e tente novamente.`,
       0
     );
   }
 
   if (!response.ok) {
-    let errorMessage = `Erro na requisição: ${response.status}`;
+    let errorMessage = `Erro na requisição: ${response.status} (${url})`;
     try {
       const data = await response.json();
       errorMessage = data.error ?? data.message ?? errorMessage;
     } catch {}
+    console.error(`[apiFetch] HTTP ${response.status}: ${url}`);
     throw new ApiError(errorMessage, response.status);
   }
 

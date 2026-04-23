@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { getApiUrl } from "@/lib/api";
 
 const { width } = Dimensions.get("window");
 
@@ -389,6 +390,11 @@ function CardContent({
           Create Company Account
         </Text>
       </TouchableOpacity>
+
+      {/* DEBUG: API URL */}
+      <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textAlign: "center", marginTop: 4 }}>
+        API: {getApiUrl()}
+      </Text>
     </View>
   );
 }
