@@ -24,8 +24,8 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
 
   if (process.env["NODE_ENV"] === "production") {
-    const PING_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
-    const selfPingUrl = "https://workspace.butaddei.replit.app/api/healthz";
+    const PING_INTERVAL_MS = 9 * 60 * 1000; // 9 minutes (under 10min autoscale threshold)
+    const selfPingUrl = `http://localhost:${port}/api/healthz`;
 
     setInterval(() => {
       fetch(selfPingUrl)
