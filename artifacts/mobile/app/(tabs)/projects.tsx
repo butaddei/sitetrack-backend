@@ -4,6 +4,7 @@ import { Redirect, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   FlatList,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -315,7 +316,10 @@ function AddProjectModal({
 
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet">
-      <View style={[styles.modal, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView
+        style={[styles.modal, { backgroundColor: colors.background }]}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <View
           style={[
             styles.modalHeader,
@@ -328,7 +332,7 @@ function AddProjectModal({
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>New Project</Text>
           <View style={{ width: 22 }} />
         </View>
-        <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+        <ScrollView style={styles.flex} contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
           <InputField label="Project Name *" value={form.name} onChangeText={(t) => set("name", t)} placeholder="e.g. Harbor View Residence" />
           <InputField label="Address *" value={form.address} onChangeText={(t) => set("address", t)} placeholder="Full street address" />
           <InputField label="Client Name" value={form.clientName} onChangeText={(t) => set("clientName", t)} placeholder="Client or company name" />
@@ -376,13 +380,14 @@ function AddProjectModal({
           ) : null}
           <PrimaryButton label="Create Project" onPress={handleSave} loading={saving} />
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  flex: { flex: 1 },
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",

@@ -244,6 +244,7 @@ export default function ProfileSettingsScreen() {
         </LinearGradient>
 
         <ScrollView
+          style={styles.flex}
           contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 32 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

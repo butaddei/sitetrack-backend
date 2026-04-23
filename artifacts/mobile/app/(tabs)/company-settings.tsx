@@ -179,6 +179,7 @@ export default function CompanySettingsScreen() {
         </LinearGradient>
 
         <ScrollView
+          style={styles.flex}
           contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 32 }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}

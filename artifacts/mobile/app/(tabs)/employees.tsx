@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -407,8 +408,10 @@ function EmployeeFormModal({
   // ── Form view ────────────────────────────────────────────────────────────
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <View style={[styles.modal, { backgroundColor: colors.background }]}>
-
+      <KeyboardAvoidingView
+        style={[styles.modal, { backgroundColor: colors.background }]}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         {/* Modal header */}
         <View style={[styles.modalHeader, { paddingTop: insets.top + 16, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={onClose} hitSlop={10}>
@@ -418,7 +421,7 @@ function EmployeeFormModal({
           <View style={{ width: 22 }} />
         </View>
 
-        <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+        <ScrollView style={styles.flex} contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
 
           {/* Avatar preview (edit mode) */}
           {initial ? (
@@ -498,7 +501,7 @@ function EmployeeFormModal({
             loading={saving}
           />
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -506,6 +509,7 @@ function EmployeeFormModal({
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  flex: { flex: 1 },
 
   // Header
   topBar: {

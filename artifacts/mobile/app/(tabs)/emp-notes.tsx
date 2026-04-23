@@ -6,7 +6,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -15,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
@@ -157,10 +157,7 @@ export default function EmployeeFieldLogScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: topPad + 12, backgroundColor: colors.accent }]}>
         <Text style={styles.headerTitle}>Field Log</Text>
@@ -211,7 +208,7 @@ export default function EmployeeFieldLogScreen() {
         </ScrollView>
       ) : null}
 
-      <ScrollView
+      <KeyboardAwareScrollViewCompat
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scroll, { paddingBottom: botPad + 40 }]}
         keyboardShouldPersistTaps="handled"
@@ -316,8 +313,8 @@ export default function EmployeeFieldLogScreen() {
             </>
           )}
         </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAwareScrollViewCompat>
+    </View>
   );
 }
 

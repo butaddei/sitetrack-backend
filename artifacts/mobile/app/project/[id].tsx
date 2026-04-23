@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   ScrollView,
@@ -718,7 +719,10 @@ function AddExpenseModal({ onClose, onSave }: { onClose: () => void; onSave: (d:
 
   return (
     <Modal visible animationType="slide" presentationStyle="formSheet">
-      <View style={[styles.modal, { backgroundColor: colors.background }]}>
+      <KeyboardAvoidingView
+        style={[styles.modal, { backgroundColor: colors.background }]}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
         <View style={[styles.modalHeader, { paddingTop: insets.top + 16, borderBottomColor: colors.border }]}>
           <TouchableOpacity onPress={onClose} hitSlop={10}>
             <Feather name="x" size={22} color={colors.foreground} />
@@ -726,7 +730,7 @@ function AddExpenseModal({ onClose, onSave }: { onClose: () => void; onSave: (d:
           <Text style={[styles.modalTitle, { color: colors.foreground }]}>Add Expense</Text>
           <View style={{ width: 22 }} />
         </View>
-        <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
           <Text style={[styles.catLabel, { color: colors.mutedForeground }]}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
             {EXPENSE_CATEGORIES.map((c) => (
@@ -777,7 +781,7 @@ function AddExpenseModal({ onClose, onSave }: { onClose: () => void; onSave: (d:
           ) : null}
           <PrimaryButton label="Add Expense" onPress={handleSave} loading={saving} />
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
