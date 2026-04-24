@@ -1,0 +1,3 @@
+# Allow the pre-built server bundle to be committed
+!server/
+node_modules/

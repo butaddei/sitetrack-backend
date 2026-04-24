@@ -1,0 +1,13 @@
+{
+  "name": "sitetrack-api",
+  "version": "1.0.0",
+  "description": "SiteTrack API Server — pre-built standalone bundle",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "echo \"Pre-built bundle — no build step needed\"",
+    "start": "node --enable-source-maps server/index.mjs"
+  }
+}

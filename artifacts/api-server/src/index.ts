@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { runMigrations } from "./migrate";
 
 const rawPort = process.env["PORT"];
 
@@ -15,24 +16,34 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+async function main() {
+  // Auto-create all tables on startup (idempotent, safe to run every boot)
+  await runMigrations();
 
-  logger.info({ port }, "Server listening");
+  app.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
 
-  if (process.env["NODE_ENV"] === "production") {
-    const PING_INTERVAL_MS = 9 * 60 * 1000; // 9 minutes (under 10min autoscale threshold)
-    const selfPingUrl = `http://localhost:${port}/api/healthz`;
+    logger.info({ port }, "Server listening");
 
-    setInterval(() => {
-      fetch(selfPingUrl)
-        .then(() => logger.info("Keep-alive ping OK"))
-        .catch((err) => logger.warn({ err }, "Keep-alive ping failed"));
-    }, PING_INTERVAL_MS);
+    if (process.env["NODE_ENV"] === "production") {
+      const PING_INTERVAL_MS = 9 * 60 * 1000; // 9 minutes (under 10min autoscale threshold)
+      const selfPingUrl = `http://localhost:${port}/api/healthz`;
 
-    logger.info({ url: selfPingUrl, intervalMs: PING_INTERVAL_MS }, "Keep-alive enabled");
-  }
+      setInterval(() => {
+        fetch(selfPingUrl)
+          .then(() => logger.info("Keep-alive ping OK"))
+          .catch((err) => logger.warn({ err }, "Keep-alive ping failed"));
+      }, PING_INTERVAL_MS);
+
+      logger.info({ url: selfPingUrl, intervalMs: PING_INTERVAL_MS }, "Keep-alive enabled");
+    }
+  });
+}
+
+main().catch((err) => {
+  logger.error({ err }, "Fatal startup error");
+  process.exit(1);
 });
