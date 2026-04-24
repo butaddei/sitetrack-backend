@@ -46310,9 +46310,11 @@ if (!process.env.DATABASE_URL) {
     "DATABASE_URL must be set. Did you forget to provision a database?"
   );
 }
+var dbUrl = process.env.DATABASE_URL ?? "";
+var isRemoteDb = !dbUrl.includes("localhost") && !dbUrl.includes("127.0.0.1");
 var pool = new Pool3({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : void 0
+  connectionString: dbUrl,
+  ssl: isRemoteDb ? { rejectUnauthorized: false } : void 0
 });
 var db = drizzle(pool, { schema: schema_exports });
 

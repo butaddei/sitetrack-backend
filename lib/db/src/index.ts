@@ -10,11 +10,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+const dbUrl = process.env.DATABASE_URL ?? "";
+const isRemoteDb =
+  !dbUrl.includes("localhost") && !dbUrl.includes("127.0.0.1");
+
 export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === "production"
-    ? { rejectUnauthorized: false }
-    : undefined,
+  connectionString: dbUrl,
+  ssl: isRemoteDb ? { rejectUnauthorized: false } : undefined,
 });
 export const db = drizzle(pool, { schema });
 
