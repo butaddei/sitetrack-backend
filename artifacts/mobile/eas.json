@@ -9,22 +9,16 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_DOMAIN": "workspace.butaddei.replit.app"
-      }
+      "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "env": {
-        "EXPO_PUBLIC_DOMAIN": "workspace.butaddei.replit.app"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "6761680712"
+        "ascAppId": "6762336843"
       }
     }
   }
