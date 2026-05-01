@@ -66,6 +66,7 @@ export const users = pgTable("users", {
   accountNumber: text("account_number"),
   invoiceNotes: text("invoice_notes"),
   invoicePrefix: text("invoice_prefix"),
+  pushToken: text("push_token"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

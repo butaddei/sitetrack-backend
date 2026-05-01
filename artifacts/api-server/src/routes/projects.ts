@@ -3,6 +3,7 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db, projects, projectAssignments, projectPhotos, users } from "@workspace/db";
 import { requireAuth, requireAdmin, type AuthRequest } from "../middlewares/auth.js";
 import { checkPlanLimit } from "../middlewares/planLimits.js";
+import { sendPushNotifications } from "../lib/push.js";
 
 /** Validates that all provided user IDs belong to the given company. Returns the valid IDs only. */
 async function filterValidEmployeeIds(companyId: string, ids: string[]): Promise<string[]> {
@@ -222,6 +223,20 @@ router.post("/", requireAdmin, checkPlanLimit("projects"), async (req: AuthReque
       await db.insert(projectAssignments).values(
         validEmployeeIds.map((uid) => ({ projectId: project.id, userId: uid }))
       );
+      // Notify assigned employees
+      const empRows = await db
+        .select({ pushToken: users.pushToken })
+        .from(users)
+        .where(inArray(users.id, validEmployeeIds));
+      const tokens = empRows.map((r) => r.pushToken).filter(Boolean) as string[];
+      if (tokens.length > 0) {
+        sendPushNotifications(
+          tokens,
+          "Novo trabalho atribuído",
+          `Foste adicionado ao trabalho "${project.name}" em ${project.address}`,
+          { projectId: project.id },
+        ).catch(() => {});
+      }
     }
 
     res.status(201).json({
@@ -287,15 +302,43 @@ router.patch("/:id", requireAdmin, async (req: AuthRequest, res) => {
       .where(and(eq(projects.id, id), eq(projects.companyId, req.user!.companyId)))
       .returning();
 
+    let newlyAssignedIds: string[] = [];
     if (assignedEmployeeIds !== undefined) {
       const validIds = assignedEmployeeIds.length
         ? await filterValidEmployeeIds(req.user!.companyId, assignedEmployeeIds)
         : [];
+
+      const prevAssignments = await db
+        .select({ userId: projectAssignments.userId })
+        .from(projectAssignments)
+        .where(eq(projectAssignments.projectId, id));
+      const prevIds = new Set(prevAssignments.map((a) => a.userId));
+      newlyAssignedIds = validIds.filter((uid) => !prevIds.has(uid));
+
       await db.delete(projectAssignments).where(eq(projectAssignments.projectId, id));
       if (validIds.length > 0) {
         await db.insert(projectAssignments).values(
           validIds.map((uid: string) => ({ projectId: id, userId: uid }))
         );
+      }
+
+      // Send push notifications to newly assigned employees
+      if (newlyAssignedIds.length > 0) {
+        const employeeRows = await db
+          .select({ pushToken: users.pushToken })
+          .from(users)
+          .where(inArray(users.id, newlyAssignedIds));
+        const tokens = employeeRows.map((r) => r.pushToken).filter(Boolean) as string[];
+        if (tokens.length > 0) {
+          const projectName = updated.name;
+          const projectAddress = updated.address;
+          sendPushNotifications(
+            tokens,
+            "Novo trabalho atribuído",
+            `Foste adicionado ao trabalho "${projectName}" em ${projectAddress}`,
+            { projectId: id },
+          ).catch(() => {});
+        }
       }
     }
 

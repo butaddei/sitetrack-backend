@@ -59,9 +59,15 @@ CREATE TABLE IF NOT EXISTS users (
   account_number TEXT,
   invoice_notes TEXT,
   invoice_prefix TEXT,
+  push_token TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Add push_token column if it doesn't exist (for existing databases)
+DO $$ BEGIN
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS push_token TEXT;
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

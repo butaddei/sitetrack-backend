@@ -21,7 +21,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
-import { getApiUrl } from "@/lib/api";
 
 const { width } = Dimensions.get("window");
 
@@ -252,6 +251,7 @@ export default function LoginScreen() {
                   loading={loading}
                   onLogin={handleLogin}
                   onRegister={() => router.push("/register")}
+                  onForgotPassword={() => router.push("/forgot-password")}
                 />
               </BlurView>
             ) : (
@@ -269,6 +269,7 @@ export default function LoginScreen() {
                   loading={loading}
                   onLogin={handleLogin}
                   onRegister={() => router.push("/register")}
+                  onForgotPassword={() => router.push("/forgot-password")}
                 />
               </View>
             )}
@@ -289,22 +290,23 @@ function CardContent({
   loading,
   onLogin,
   onRegister,
+  onForgotPassword,
 }: any) {
   return (
     <View style={styles.cardInner}>
       <View style={styles.cardHead}>
-        <Text style={[styles.cardTitle, { color: colors.foreground }]}>Welcome back</Text>
+        <Text style={[styles.cardTitle, { color: colors.foreground }]}>Bem-vindo</Text>
         <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
-          Sign in to your SiteTrack account
+          Entra na tua conta SiteTrack
         </Text>
       </View>
 
       <View style={styles.fields}>
         <View>
-          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Email address</Text>
+          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Email</Text>
           <AuthField
             icon="mail"
-            placeholder="you@company.com"
+            placeholder="o.teu@email.com"
             value={email}
             onChangeText={(t: string) => { setEmail(t); setError(""); }}
             keyboardType="email-address"
@@ -312,7 +314,7 @@ function CardContent({
           />
         </View>
         <View>
-          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Password</Text>
+          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Senha</Text>
           <AuthField
             icon="lock"
             placeholder="••••••••"
@@ -365,17 +367,25 @@ function CardContent({
             <ActivityIndicator color="#fff" size="small" />
           ) : (
             <>
-              <Text style={styles.signInBtnText}>Sign In</Text>
+              <Text style={styles.signInBtnText}>Entrar</Text>
               <Feather name="arrow-right" size={18} color="#fff" />
             </>
           )}
         </LinearGradient>
       </TouchableOpacity>
 
+      {/* Forgot password */}
+      <TouchableOpacity onPress={onForgotPassword} hitSlop={12} style={{ alignItems: "center" }}>
+        <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
+          Esqueceste a senha?{" "}
+          <Text style={{ color: colors.primary, fontWeight: "600" }}>Recuperar</Text>
+        </Text>
+      </TouchableOpacity>
+
       {/* Divider */}
       <View style={styles.divider}>
         <View style={[styles.divLine, { backgroundColor: colors.border }]} />
-        <Text style={[styles.divText, { color: colors.mutedForeground }]}>or</Text>
+        <Text style={[styles.divText, { color: colors.mutedForeground }]}>ou</Text>
         <View style={[styles.divLine, { backgroundColor: colors.border }]} />
       </View>
 
@@ -387,14 +397,9 @@ function CardContent({
       >
         <Feather name="briefcase" size={15} color={colors.foreground} />
         <Text style={[styles.createBtnText, { color: colors.foreground }]}>
-          Create Company Account
+          Criar conta de empresa
         </Text>
       </TouchableOpacity>
-
-      {/* DEBUG: API URL */}
-      <Text style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", textAlign: "center", marginTop: 4 }}>
-        API: {getApiUrl()}
-      </Text>
     </View>
   );
 }

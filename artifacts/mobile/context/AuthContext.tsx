@@ -1,6 +1,18 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { Platform } from "react-native";
+import * as Notifications from "expo-notifications";
 import { apiFetch, storeToken, clearToken, getStoredToken, ApiError } from "@/lib/api";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 export type UserRole = "admin" | "employee";
 
@@ -24,7 +36,6 @@ export interface AuthUser {
   plan?: PlanType;
   planStatus?: PlanStatus;
   mustChangePassword?: boolean;
-  // Subcontractor / invoice fields
   abn?: string | null;
   businessAddress?: string | null;
   bankName?: string | null;
@@ -33,7 +44,6 @@ export interface AuthUser {
   accountNumber?: string | null;
   invoiceNotes?: string | null;
   invoicePrefix?: string | null;
-  // Company invoice branding
   companyBusinessAbn?: string | null;
   companyBusinessEmail?: string | null;
   companyBusinessAddress?: string | null;
@@ -61,6 +71,29 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 const USER_KEY = "sitetrack_user_v1";
 
+async function registerPushToken() {
+  if (Platform.OS === "web") return;
+  try {
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    let finalStatus = existing;
+    if (existing !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    if (finalStatus !== "granted") return;
+
+    const tokenData = await Notifications.getExpoPushTokenAsync();
+    const token = tokenData.data;
+
+    await apiFetch("/auth/push-token", {
+      method: "PUT",
+      body: JSON.stringify({ token }),
+    });
+  } catch {
+    // Non-critical — ignore errors
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -77,8 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (stored && token) {
         const parsed: AuthUser = JSON.parse(stored);
         setUser(parsed);
-        // Refresh user data from API in background
         refreshUser(parsed);
+        registerPushToken();
       }
     } catch {
     } finally {
@@ -93,7 +126,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(updated);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
     } catch {
-      // Token expired or invalid — log out
       await logout();
     }
   }
@@ -108,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await storeToken(data.token);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));
       setUser(data.user);
+      registerPushToken();
       return { success: true, user: data.user };
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Login failed. Please try again.";
@@ -130,6 +163,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await storeToken(data.token);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));
       setUser(data.user);
+      registerPushToken();
       return { success: true };
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Registration failed. Please try again.";

@@ -158,6 +158,9 @@ export default function ProjectDetailScreen() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
+  const [showCrewEdit, setShowCrewEdit] = useState(false);
+  const [editingCrewIds, setEditingCrewIds] = useState<string[]>([]);
+  const [savingCrew, setSavingCrew] = useState(false);
 
   if (!project) {
     return (
@@ -367,35 +370,54 @@ export default function ProjectDetailScreen() {
         ) : null}
 
         {/* ── Crew ── */}
-        {assignedEmployees.length > 0 ? (
-          <SectionCard title={`Crew · ${assignedEmployees.length}`}>
-            {assignedEmployees.map((emp, i) => {
-              const initials = emp.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2);
-              return (
-                <View key={emp.id}>
-                  {i > 0 ? <Divider /> : null}
-                  <View style={styles.crewRow}>
-                    <View style={[styles.crewAvatar, { backgroundColor: colors.accent }]}>
-                      <Text style={styles.crewInitials}>{initials}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.crewName, { color: colors.foreground }]}>{emp.name}</Text>
-                      <Text style={[styles.crewSub, { color: colors.mutedForeground }]}>
-                        {emp.position ?? "Employee"}
-                        {isAdmin ? ` · $${emp.hourlyRate}/hr` : ""}
-                      </Text>
-                    </View>
+        <SectionCard
+          title={assignedEmployees.length > 0 ? `Equipa · ${assignedEmployees.length}` : "Equipa"}
+          rightNode={
+            isAdmin ? (
+              <TouchableOpacity
+                onPress={() => {
+                  setEditingCrewIds(project.assignedEmployeeIds ?? []);
+                  setShowCrewEdit(true);
+                }}
+                style={[styles.editCrewBtn, { backgroundColor: colors.primary + "18" }]}
+              >
+                <Feather name="user-plus" size={13} color={colors.primary} />
+                <Text style={[styles.editCrewBtnText, { color: colors.primary }]}>Editar</Text>
+              </TouchableOpacity>
+            ) : undefined
+          }
+        >
+          {assignedEmployees.length === 0 ? (
+            <Text style={[styles.crewSub, { color: colors.mutedForeground }]}>
+              Nenhum funcionário atribuído ainda.
+            </Text>
+          ) : null}
+          {assignedEmployees.map((emp, i) => {
+            const initials = emp.name
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+            return (
+              <View key={emp.id}>
+                {i > 0 ? <Divider /> : null}
+                <View style={styles.crewRow}>
+                  <View style={[styles.crewAvatar, { backgroundColor: colors.accent }]}>
+                    <Text style={styles.crewInitials}>{initials}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.crewName, { color: colors.foreground }]}>{emp.name}</Text>
+                    <Text style={[styles.crewSub, { color: colors.mutedForeground }]}>
+                      {emp.position ?? "Employee"}
+                      {isAdmin ? ` · $${emp.hourlyRate}/hr` : ""}
+                    </Text>
                   </View>
                 </View>
-              );
-            })}
-          </SectionCard>
-        ) : null}
+              </View>
+            );
+          })}
+        </SectionCard>
 
         {/* ── Paint Colors ── */}
         {project.paintColors.length > 0 ? (
@@ -584,6 +606,96 @@ export default function ProjectDetailScreen() {
           </SectionCard>
         ) : null}
       </ScrollView>
+
+      {/* ─── Crew edit modal ─────────────────────────────────────────────── */}
+      <Modal
+        visible={showCrewEdit}
+        animationType="slide"
+        presentationStyle="formSheet"
+        onRequestClose={() => setShowCrewEdit(false)}
+      >
+        <View style={[styles.modal, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { paddingTop: insets.top + 16, borderBottomColor: colors.border }]}>
+            <TouchableOpacity onPress={() => setShowCrewEdit(false)} hitSlop={10}>
+              <Feather name="x" size={22} color={colors.foreground} />
+            </TouchableOpacity>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Editar Equipa</Text>
+            <TouchableOpacity
+              onPress={async () => {
+                setSavingCrew(true);
+                try {
+                  await updateProject(project.id, { assignedEmployeeIds: editingCrewIds });
+                  setShowCrewEdit(false);
+                  await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  showToast("success", "Equipa actualizada");
+                } catch {
+                  showToast("error", "Erro ao actualizar equipa");
+                } finally {
+                  setSavingCrew(false);
+                }
+              }}
+              disabled={savingCrew}
+              hitSlop={10}
+            >
+              {savingCrew ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>Guardar</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+          <ScrollView contentContainerStyle={{ padding: 16, gap: 4 }}>
+            {employees.length === 0 ? (
+              <Text style={{ color: colors.mutedForeground, textAlign: "center", marginTop: 24 }}>
+                Sem funcionários nesta empresa.
+              </Text>
+            ) : null}
+            {employees.map((emp) => {
+              const selected = editingCrewIds.includes(emp.id);
+              const initials = emp.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+              return (
+                <TouchableOpacity
+                  key={emp.id}
+                  style={[
+                    styles.crewPickerRow,
+                    {
+                      backgroundColor: selected ? colors.primary + "12" : colors.card,
+                      borderColor: selected ? colors.primary + "40" : colors.border,
+                    },
+                  ]}
+                  onPress={() => {
+                    setEditingCrewIds((prev) =>
+                      prev.includes(emp.id) ? prev.filter((x) => x !== emp.id) : [...prev, emp.id]
+                    );
+                    Haptics.selectionAsync();
+                  }}
+                >
+                  <View style={[styles.crewAvatar, { backgroundColor: selected ? colors.primary : colors.accent }]}>
+                    <Text style={styles.crewInitials}>{initials}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.crewName, { color: colors.foreground }]}>{emp.name}</Text>
+                    <Text style={[styles.crewSub, { color: colors.mutedForeground }]}>
+                      {emp.position ?? "Employee"} · ${emp.hourlyRate}/hr
+                    </Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.crewCheck,
+                      {
+                        backgroundColor: selected ? colors.primary : "transparent",
+                        borderColor: selected ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    {selected ? <Feather name="check" size={12} color="#fff" /> : null}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      </Modal>
 
       {/* ─── Status picker modal ──────────────────────────────────────────── */}
       <Modal
@@ -876,7 +988,33 @@ const styles = StyleSheet.create({
   barFill: { height: "100%", borderRadius: 3 },
 
   // Crew
-  crewRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  crewRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4 },
+  crewPickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 8,
+  },
+  crewCheck: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editCrewBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+  },
+  editCrewBtnText: { fontSize: 12, fontWeight: "700" },
   crewAvatar: {
     width: 38,
     height: 38,

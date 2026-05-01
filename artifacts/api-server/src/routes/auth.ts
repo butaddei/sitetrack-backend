@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { db, users, companies, passwordResetTokens } from "@workspace/db";
 import { signToken } from "../lib/auth.js";
 import { requireAuth, type AuthRequest } from "../middlewares/auth.js";
+import { sendPasswordResetEmail } from "../lib/mailer.js";
 
 const router = Router();
 
@@ -363,14 +364,11 @@ router.post("/forgot-password", async (req, res) => {
       expiresAt,
     });
 
-    // In a real app, send this token via email.
-    // For the demo, we log it to console so it can be found.
-    console.log(`[forgot-password] Reset token for ${email}: ${token}`);
+    await sendPasswordResetEmail(user.email, user.name, token);
 
     res.json({
       success: true,
       message: "If that email exists, a reset code was sent.",
-      // Only include this in development / demo mode:
       _devToken: process.env.NODE_ENV !== "production" ? token : undefined,
     });
   } catch (err) {
@@ -421,6 +419,24 @@ router.post("/reset-password", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to reset password" });
+  }
+});
+
+// PUT /api/auth/push-token — register Expo push token for authenticated user
+router.put("/push-token", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { token } = req.body as { token: string };
+    if (!token?.trim()) {
+      res.status(400).json({ error: "Token is required" });
+      return;
+    }
+    await db
+      .update(users)
+      .set({ pushToken: token.trim() })
+      .where(eq(users.id, req.user!.userId));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to register push token" });
   }
 });
 
