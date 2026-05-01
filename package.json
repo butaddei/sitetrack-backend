@@ -8,7 +8,7 @@
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "expo": "pnpm --filter @workspace/mobile exec expo",
-    "start": "node server/index.mjs"
+    "start": "node render-deploy/server/index.mjs"
   },
   "private": true,
   "devDependencies": {
