@@ -71601,18 +71601,18 @@ async function sendPasswordResetEmail(toEmail, toName, resetToken) {
   await transport.sendMail({
     from: `"SiteTrack" <${from}>`,
     to: toEmail,
-    subject: "SiteTrack \u2014 C\xF3digo de recupera\xE7\xE3o de senha",
-    text: `Ol\xE1 ${toName},
+    subject: "SiteTrack \u2014 Password Recovery Code",
+    text: `Hi ${toName},
 
-O seu c\xF3digo de recupera\xE7\xE3o de senha \xE9:
+Your password recovery code is:
 
 ${resetToken}
 
-Este c\xF3digo expira em 1 hora.
+This code expires in 1 hour.
 
-Se n\xE3o pediu a recupera\xE7\xE3o de senha, ignore este email.
+If you did not request a password reset, you can safely ignore this email.
 
-Equipa SiteTrack
+SiteTrack Team
 support@sitetrack.online`,
     html: `
 <!DOCTYPE html>
@@ -71627,35 +71627,35 @@ support@sitetrack.online`,
         <tr>
           <td style="background:linear-gradient(135deg,#f97316,#ea580c);padding:32px 32px 24px;text-align:center;">
             <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:800;letter-spacing:-0.5px;">SiteTrack</h1>
-            <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Gest\xE3o de obras e equipas</p>
+            <p style="margin:6px 0 0;color:rgba(255,255,255,0.85);font-size:13px;">Field service & crew management</p>
           </td>
         </tr>
 
         <!-- Body -->
         <tr>
           <td style="padding:32px;">
-            <p style="margin:0 0 8px;color:#111827;font-size:16px;font-weight:600;">Ol\xE1, ${toName} \u{1F44B}</p>
+            <p style="margin:0 0 8px;color:#111827;font-size:16px;font-weight:600;">Hi, ${toName} \u{1F44B}</p>
             <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.6;">
-              Recebemos um pedido de recupera\xE7\xE3o de senha para a tua conta.<br>
-              Usa o c\xF3digo abaixo para definir uma nova senha.
+              We received a request to reset your password.<br>
+              Use the code below to set a new password.
             </p>
 
             <!-- Code box -->
             <div style="background:#f9fafb;border:2px dashed #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
-              <p style="margin:0 0 8px;color:#9ca3af;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">C\xF3digo de recupera\xE7\xE3o</p>
+              <p style="margin:0 0 8px;color:#9ca3af;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Recovery Code</p>
               <span style="font-size:36px;font-weight:900;letter-spacing:10px;color:#111827;">${resetToken}</span>
-              <p style="margin:10px 0 0;color:#9ca3af;font-size:12px;">V\xE1lido por <strong>1 hora</strong></p>
+              <p style="margin:10px 0 0;color:#9ca3af;font-size:12px;">Valid for <strong>1 hour</strong></p>
             </div>
 
             <p style="margin:0 0 24px;color:#6b7280;font-size:13px;line-height:1.6;">
-              Abre a app SiteTrack, vai a "Esqueceste a senha?" e insere este c\xF3digo juntamente com a tua nova senha.
+              Open the SiteTrack app, tap "Forgot your password?" and enter this code along with your new password.
             </p>
 
             <hr style="border:none;border-top:1px solid #f3f4f6;margin:24px 0;">
 
             <p style="margin:0;color:#9ca3af;font-size:12px;line-height:1.6;">
-              Se n\xE3o pediste a recupera\xE7\xE3o de senha, podes ignorar este email em seguran\xE7a.<br>
-              A tua senha n\xE3o ser\xE1 alterada.
+              If you didn't request a password reset, you can safely ignore this email.<br>
+              Your password will not be changed.
             </p>
           </td>
         </tr>
@@ -71664,7 +71664,7 @@ support@sitetrack.online`,
         <tr>
           <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #f3f4f6;">
             <p style="margin:0;color:#9ca3af;font-size:12px;">
-              Equipa SiteTrack &nbsp;\xB7&nbsp;
+              SiteTrack Team &nbsp;\xB7&nbsp;
               <a href="mailto:support@sitetrack.online" style="color:#f97316;text-decoration:none;">support@sitetrack.online</a>
             </p>
           </td>
