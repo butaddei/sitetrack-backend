@@ -4,26 +4,28 @@ import Purchases, { type PurchasesPackage } from "react-native-purchases";
 import { useMutation, useQuery } from "@tanstack/react-query";
 
 // ─── Apple-only SDK key ───────────────────────────────────────────────────────
-// Use the iOS key on all real devices (Apple sandbox in dev, production in prod).
-// On Expo web preview the key still initialises but purchases are unavailable.
+// iOS key (real Apple key) used on device/simulator/TestFlight/App Store.
+// Test key used as fallback on Expo web preview only.
 const IOS_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_API_KEY ?? "";
 const TEST_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_TEST_API_KEY ?? "";
 
 function getRevenueCatApiKey(): string {
-  if (Platform.OS === "web") {
-    // Expo web preview — no real IAP; initialise with test key to avoid crashes
-    return TEST_API_KEY || IOS_API_KEY;
-  }
-  // iOS (simulator dev, TestFlight, App Store) — always use real Apple SDK key
+  if (Platform.OS === "web") return TEST_API_KEY || IOS_API_KEY;
   if (!IOS_API_KEY) throw new Error("EXPO_PUBLIC_REVENUECAT_IOS_API_KEY is not set.");
   return IOS_API_KEY;
 }
 
-// ─── Entitlement identifiers ──────────────────────────────────────────────────
-export const ENTITLEMENTS = {
-  basic: "basic",
-  pro: "pro",
-  business: "business",
+// ─── Entitlement (single entitlement unlocks all 3 plans) ────────────────────
+// RevenueCat offering: "default"
+// All 3 Apple products unlock this same entitlement.
+// Plan tier is then determined by the active Apple Product ID.
+export const SITETRACK_ENTITLEMENT = "sitetrack Pro";
+
+// ─── Apple Product IDs ────────────────────────────────────────────────────────
+export const PRODUCT_IDS = {
+  basic: "com.sitetrack.basic.monthly",
+  pro: "com.sitetrack.pro.monthly",
+  business: "com.sitetrack.business.monthly",
 } as const;
 
 // ─── Plan tier ────────────────────────────────────────────────────────────────
@@ -43,11 +45,25 @@ export const PLAN_LIMITS: Record<PlanTier, { employees: string; projects: string
   business: { employees: "Unlimited employees", projects: "Unlimited projects" },
 };
 
-// ─── Package → plan tier (matched by RevenueCat package identifier) ───────────
+// ─── Map an Apple Product ID to a plan tier ───────────────────────────────────
+function productIdToPlan(productId: string): PlanTier {
+  if (productId === PRODUCT_IDS.business) return "business";
+  if (productId === PRODUCT_IDS.pro) return "pro";
+  if (productId === PRODUCT_IDS.basic) return "basic";
+  return "free";
+}
+
+// ─── Map a RevenueCat package to a plan tier (used in paywall) ───────────────
+// Matches first by Apple Product ID, then by package identifier as fallback.
 export function packageToPlan(pkg: PurchasesPackage): PlanTier {
+  // Primary: match by actual Apple Product ID
+  const plan = productIdToPlan(pkg.product.identifier);
+  if (plan !== "free") return plan;
+  // Fallback: match by package identifier string
   const id = pkg.identifier.toLowerCase();
   if (id.includes("business")) return "business";
   if (id.includes("pro")) return "pro";
+  if (id.includes("basic")) return "basic";
   return "basic";
 }
 
@@ -56,10 +72,10 @@ export function initializeRevenueCat() {
   const apiKey = getRevenueCatApiKey();
   Purchases.setLogLevel(__DEV__ ? Purchases.LOG_LEVEL.DEBUG : Purchases.LOG_LEVEL.ERROR);
   Purchases.configure({ apiKey });
-  if (__DEV__) console.log("[RevenueCat] Configured. Platform:", Platform.OS);
+  if (__DEV__) console.log("[RevenueCat] Configured with key ending:", apiKey.slice(-6), "platform:", Platform.OS);
 }
 
-// ─── Internal hook ────────────────────────────────────────────────────────────
+// ─── Internal subscription context hook ──────────────────────────────────────
 function useSubscriptionContext() {
   const customerInfoQuery = useQuery({
     queryKey: ["revenuecat", "customer-info"],
@@ -88,18 +104,30 @@ function useSubscriptionContext() {
     onSuccess: () => customerInfoQuery.refetch(),
   });
 
-  const active = customerInfoQuery.data?.entitlements.active ?? {};
+  const customerInfo = customerInfoQuery.data;
 
-  const currentPlan: PlanTier =
-    active[ENTITLEMENTS.business] ? "business"
-    : active[ENTITLEMENTS.pro] ? "pro"
-    : active[ENTITLEMENTS.basic] ? "basic"
-    : "free";
+  // ── Subscription check ───────────────────────────────────────────────────
+  // A user is subscribed if the "sitetrack Pro" entitlement is active.
+  // This entitlement is unlocked by any of the 3 Apple products.
+  const isSubscribed = !!customerInfo?.entitlements.active[SITETRACK_ENTITLEMENT];
 
-  const isSubscribed = currentPlan !== "free";
+  // ── Plan tier detection ───────────────────────────────────────────────────
+  // Detect which plan by the active Apple Product ID (most reliable method).
+  // activeSubscriptions is a Set of Apple product identifiers.
+  const activeProductIds = Array.from(customerInfo?.activeSubscriptions ?? []);
+  let currentPlan: PlanTier = "free";
+  for (const productId of activeProductIds) {
+    const plan = productIdToPlan(productId);
+    if (plan !== "free") {
+      currentPlan = plan;
+      break;
+    }
+  }
+  // If entitlement is active but product ID detection failed, default to "basic"
+  if (isSubscribed && currentPlan === "free") currentPlan = "basic";
 
   return {
-    customerInfo: customerInfoQuery.data,
+    customerInfo,
     offerings: offeringsQuery.data,
     currentPlan,
     isSubscribed,
