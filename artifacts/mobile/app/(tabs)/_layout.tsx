@@ -7,6 +7,7 @@ import { Platform, StyleSheet, View, useColorScheme } from "react-native";
 
 import { useAuth } from "@/context/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useSubscription } from "@/lib/revenuecat";
 
 function hide() {
   return { href: null as any };
@@ -14,15 +15,17 @@ function hide() {
 
 export default function TabLayout() {
   const colors = useColors();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { isSubscribed, isLoading: subLoading } = useSubscription();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
   const isWeb = Platform.OS === "web";
 
-  if (isLoading) return null;
+  if (authLoading || subLoading) return null;
   if (!user) return <Redirect href="/login" />;
   if (user.mustChangePassword) return <Redirect href="/set-new-password" />;
+  if (!isSubscribed) return <Redirect href="/paywall" />;
 
   const isAdmin = user.role === "admin";
 

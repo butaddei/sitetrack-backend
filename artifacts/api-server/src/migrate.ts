@@ -15,6 +15,9 @@ DO $$ BEGIN
   CREATE TYPE plan AS ENUM ('free', 'pro', 'business');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+-- Add 'basic' tier (Apple IAP Basic Monthly plan)
+ALTER TYPE plan ADD VALUE IF NOT EXISTS 'basic';
+
 DO $$ BEGIN
   CREATE TYPE plan_status AS ENUM ('active', 'inactive', 'trialing', 'past_due', 'canceled');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
@@ -29,8 +32,6 @@ CREATE TABLE IF NOT EXISTS companies (
   business_abn TEXT,
   business_email TEXT,
   business_address TEXT,
-  stripe_customer_id TEXT,
-  stripe_subscription_id TEXT,
   plan plan NOT NULL DEFAULT 'free',
   plan_status plan_status NOT NULL DEFAULT 'active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

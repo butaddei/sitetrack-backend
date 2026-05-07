@@ -2,7 +2,6 @@ import { Router } from "express";
 import { eq, and, inArray } from "drizzle-orm";
 import { db, projects, projectAssignments, projectPhotos, users } from "@workspace/db";
 import { requireAuth, requireAdmin, type AuthRequest } from "../middlewares/auth.js";
-import { checkPlanLimit } from "../middlewares/planLimits.js";
 import { sendPushNotifications } from "../lib/push.js";
 
 /** Validates that all provided user IDs belong to the given company. Returns the valid IDs only. */
@@ -180,7 +179,7 @@ router.get("/:id", requireAuth, async (req: AuthRequest, res) => {
 });
 
 // POST /api/projects — create project (admin only)
-router.post("/", requireAdmin, checkPlanLimit("projects"), async (req: AuthRequest, res) => {
+router.post("/", requireAdmin, async (req: AuthRequest, res) => {
   try {
     const {
       name, address, clientName, clientPhone, clientEmail, totalValue,

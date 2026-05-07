@@ -3,6 +3,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -13,27 +16,47 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useColors } from "@/hooks/useColors";
+import { useSubscription, PLAN_LABELS, PLAN_LIMITS, type PlanTier } from "@/lib/revenuecat";
 
-// ─── Included features list ───────────────────────────────────────────────────
-const INCLUDED_FEATURES = [
-  "Unlimited active projects",
-  "Unlimited team members",
-  "Time tracking & clock in/out",
-  "Photo uploads per project",
-  "Expense tracking",
-  "Subcontractor invoice generation",
-  "Advanced financial reports",
-  "Company branding & customisation",
-];
+const PRIVACY_URL = "https://sitetrack.app/privacy";
+const TERMS_URL = "https://sitetrack.app/terms";
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+const PLAN_ICON: Record<PlanTier, string> = {
+  free: "slash",
+  basic: "star",
+  pro: "zap",
+  business: "briefcase",
+};
+
+const PLAN_COLOR: Record<PlanTier, string> = {
+  free: "#94a3b8",
+  basic: "#3b82f6",
+  pro: "#f97316",
+  business: "#8b5cf6",
+};
+
 export default function BillingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { currentPlan, isSubscribed, isLoading, restore, isRestoring, refetchCustomerInfo } = useSubscription();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
+
+  const planColor = PLAN_COLOR[currentPlan];
+  const planLabel = PLAN_LABELS[currentPlan];
+  const planLimits = PLAN_LIMITS[currentPlan];
+
+  async function handleRestore() {
+    try {
+      await restore();
+      await refetchCustomerInfo();
+      Alert.alert("Purchases Restored", "Your subscription status has been updated.");
+    } catch {
+      Alert.alert("Restore Failed", "No purchases found for this account.");
+    }
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
@@ -54,59 +77,107 @@ export default function BillingScreen() {
         </View>
       </LinearGradient>
 
-      {/* ─── Body ───────────────────────────────────────────────────────── */}
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: botPad + 48 }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Free Early Access card ── */}
-        <View style={[styles.accessCard, { backgroundColor: colors.card, borderColor: colors.primary + "50" }]}>
-
-          {/* Icon + heading */}
-          <View style={[styles.iconWrap, { backgroundColor: colors.primary + "16" }]}>
-            <Feather name="gift" size={28} color={colors.primary} />
-          </View>
-
-          <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-            Free Early Access
-          </Text>
-          <Text style={[styles.cardBody, { color: colors.mutedForeground }]}>
-            All features are currently available at no charge. Enjoy full access to everything SiteTrack has to offer while we're in early access.
-          </Text>
-
-          {/* Divider */}
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-
-          {/* Feature list */}
-          <Text style={[styles.featuresLabel, { color: colors.mutedForeground }]}>
-            EVERYTHING INCLUDED
-          </Text>
-
-          <View style={styles.featureList}>
-            {INCLUDED_FEATURES.map((feat) => (
-              <View key={feat} style={styles.featureRow}>
-                <View style={[styles.featureCheck, { backgroundColor: "#16a34a18" }]}>
-                  <Feather name="check" size={12} color="#16a34a" />
-                </View>
-                <Text style={[styles.featureText, { color: colors.foreground }]}>{feat}</Text>
+        {isLoading ? (
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 48 }} />
+        ) : (
+          <>
+            {/* ── Current plan card ── */}
+            <View style={[styles.currentCard, { backgroundColor: colors.card, borderColor: planColor + "60" }]}>
+              <View style={[styles.planIconWrap, { backgroundColor: planColor + "18" }]}>
+                <Feather name={PLAN_ICON[currentPlan] as any} size={28} color={planColor} />
               </View>
-            ))}
-          </View>
-        </View>
 
-        {/* ── Footer note ── */}
-        <View style={[styles.footerNote, { borderColor: colors.border }]}>
-          <Feather name="info" size={13} color={colors.mutedForeground} />
-          <Text style={[styles.footerNoteText, { color: colors.mutedForeground }]}>
-            SiteTrack is currently free for all users. We'll notify you before any changes to pricing or access.
-          </Text>
-        </View>
+              <Text style={[styles.currentPlanLabel, { color: colors.mutedForeground }]}>CURRENT PLAN</Text>
+              <Text style={[styles.currentPlanName, { color: planColor }]}>{planLabel}</Text>
+
+              {isSubscribed ? (
+                <>
+                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                  <View style={styles.limitsRow}>
+                    <View style={styles.limitItem}>
+                      <Feather name="users" size={14} color={planColor} />
+                      <Text style={[styles.limitText, { color: colors.foreground }]}>{planLimits.employees}</Text>
+                    </View>
+                    <View style={[styles.limitDivider, { backgroundColor: colors.border }]} />
+                    <View style={styles.limitItem}>
+                      <Feather name="briefcase" size={14} color={planColor} />
+                      <Text style={[styles.limitText, { color: colors.foreground }]}>{planLimits.projects}</Text>
+                    </View>
+                  </View>
+                  <Text style={[styles.manageTip, { color: colors.mutedForeground }]}>
+                    To cancel or change your plan, go to{"\n"}iPhone Settings → Apple ID → Subscriptions.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={[styles.noSubText, { color: colors.mutedForeground }]}>
+                    You don't have an active subscription.{"\n"}Subscribe to unlock full access.
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.upgradeBtn]}
+                    onPress={() => router.push("/paywall")}
+                    activeOpacity={0.8}
+                  >
+                    <LinearGradient
+                      colors={[colors.primary, colors.accent]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.upgradeBtnInner}
+                    >
+                      <Feather name="zap" size={16} color="#fff" />
+                      <Text style={styles.upgradeBtnText}>View Plans</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+
+            {/* ── Restore Purchases ── */}
+            <TouchableOpacity
+              style={[styles.restoreBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={handleRestore}
+              disabled={isRestoring}
+              activeOpacity={0.8}
+            >
+              {isRestoring ? (
+                <ActivityIndicator size="small" color={colors.mutedForeground} />
+              ) : (
+                <>
+                  <Feather name="refresh-cw" size={16} color={colors.mutedForeground} />
+                  <Text style={[styles.restoreBtnText, { color: colors.mutedForeground }]}>Restore Purchases</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* ── Apple compliance ── */}
+            <View style={[styles.disclaimer, { borderColor: colors.border }]}>
+              <Feather name="info" size={13} color={colors.mutedForeground} />
+              <Text style={[styles.disclaimerText, { color: colors.mutedForeground }]}>
+                Subscription automatically renews unless canceled at least 24 hours before the end of the current period. Payment will be charged to your Apple ID account. Manage or cancel anytime in Apple ID Settings.
+              </Text>
+            </View>
+
+            {/* ── Legal links ── */}
+            <View style={styles.legalRow}>
+              <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_URL)}>
+                <Text style={[styles.legalLink, { color: colors.primary }]}>Privacy Policy</Text>
+              </TouchableOpacity>
+              <Text style={[styles.legalSep, { color: colors.mutedForeground }]}>·</Text>
+              <TouchableOpacity onPress={() => Linking.openURL(TERMS_URL)}>
+                <Text style={[styles.legalLink, { color: colors.primary }]}>Terms of Use</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1 },
 
@@ -118,7 +189,7 @@ const styles = StyleSheet.create({
 
   content: { padding: 16, gap: 12 },
 
-  accessCard: {
+  currentCard: {
     borderRadius: 18,
     padding: 24,
     borderWidth: 1.5,
@@ -129,7 +200,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 2,
   },
-  iconWrap: {
+
+  planIconWrap: {
     width: 64,
     height: 64,
     borderRadius: 20,
@@ -137,50 +209,46 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginBottom: 16,
   },
-  cardTitle: {
-    fontSize: 22,
-    fontWeight: "800",
-    letterSpacing: -0.3,
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  cardBody: {
-    fontSize: 14,
-    lineHeight: 22,
-    textAlign: "center",
-    paddingHorizontal: 4,
-  },
+  currentPlanLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase", marginBottom: 6 },
+  currentPlanName: { fontSize: 28, fontWeight: "800", letterSpacing: -0.5, marginBottom: 4 },
 
-  divider: { height: 1, width: "100%", marginVertical: 22 },
+  divider: { height: 1, width: "100%", marginVertical: 18 },
 
-  featuresLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    alignSelf: "flex-start",
-    marginBottom: 14,
-  },
+  limitsRow: { flexDirection: "row", width: "100%", marginBottom: 16 },
+  limitItem: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8, justifyContent: "center" },
+  limitDivider: { width: 1 },
+  limitText: { fontSize: 13, fontWeight: "600" },
 
-  featureList: { gap: 11, width: "100%" },
-  featureRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  featureCheck: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  manageTip: { fontSize: 12, lineHeight: 18, textAlign: "center", marginTop: 4 },
+
+  noSubText: { fontSize: 14, lineHeight: 22, textAlign: "center", marginTop: 8, marginBottom: 18 },
+
+  upgradeBtn: { borderRadius: 12, overflow: "hidden", width: "100%" },
+  upgradeBtnInner: { paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  upgradeBtnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+
+  restoreBtn: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 10,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
   },
-  featureText: { fontSize: 14, fontWeight: "500", flex: 1 },
+  restoreBtnText: { fontSize: 14, fontWeight: "600" },
 
-  footerNote: {
+  disclaimer: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 9,
     padding: 14,
     borderRadius: 10,
     borderWidth: 1,
-    marginTop: 4,
   },
-  footerNoteText: { flex: 1, fontSize: 12, lineHeight: 18 },
+  disclaimerText: { flex: 1, fontSize: 11, lineHeight: 17 },
+
+  legalRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8 },
+  legalLink: { fontSize: 13, fontWeight: "600", textDecorationLine: "underline" },
+  legalSep: { fontSize: 13 },
 });

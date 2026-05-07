@@ -28,14 +28,7 @@ app.use(
 );
 
 app.use(cors({ origin: "*", credentials: false }));
-// Stripe webhook needs raw body for signature verification — skip JSON parsing for that path
-app.use((req, res, next) => {
-  if (req.path === "/api/stripe/webhook") {
-    express.raw({ type: "application/json" })(req, res, next);
-  } else {
-    express.json({ limit: "10mb" })(req, res, next);
-  }
-});
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);

@@ -21,6 +21,9 @@
         "NSCameraUsageDescription": "SiteTrack uses your camera so you can take a profile photo.",
         "NSPhotoLibraryAddUsageDescription": "SiteTrack saves photos to your library.",
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "aps-environment": "production"
       }
     },
     "android": {
@@ -33,6 +36,7 @@
       "favicon": "./assets/icon.png"
     },
     "plugins": [
+      "react-native-purchases",
       [
         "expo-router",
         {
@@ -41,6 +45,14 @@
       ],
       "expo-font",
       "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#f97316",
+          "sounds": []
+        }
+      ],
       [
         "expo-image-picker",
         {
