@@ -109,13 +109,23 @@ export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login, user, isLoading: authLoading } = useAuth();
+  const { login, user, isLoading: authLoading, serverReady } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showReadyBadge, setShowReadyBadge] = useState(false);
+
+  // When server wakes up, briefly flash "Ready" then hide
+  useEffect(() => {
+    if (serverReady) {
+      setShowReadyBadge(true);
+      const t = setTimeout(() => setShowReadyBadge(false), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [serverReady]);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -232,6 +242,32 @@ export default function LoginScreen() {
                 </View>
               ))}
             </View>
+
+            {/* Server status pill */}
+            {(!serverReady || showReadyBadge) && (
+              <View style={[
+                styles.serverPill,
+                {
+                  backgroundColor: serverReady
+                    ? "rgba(34,197,94,0.12)"
+                    : "rgba(255,255,255,0.06)",
+                  borderColor: serverReady
+                    ? "rgba(34,197,94,0.3)"
+                    : "rgba(255,255,255,0.12)",
+                },
+              ]}>
+                {serverReady ? (
+                  <Feather name="check-circle" size={11} color="#22c55e" />
+                ) : (
+                  <ActivityIndicator size={11} color="rgba(255,255,255,0.4)" />
+                )}
+                <Text style={[styles.serverPillText, {
+                  color: serverReady ? "#22c55e" : "rgba(255,255,255,0.4)",
+                }]}>
+                  {serverReady ? "Server ready" : "Connecting to server…"}
+                </Text>
+              </View>
+            )}
           </Animated.View>
 
           {/* ── Auth card ── */}
@@ -249,6 +285,7 @@ export default function LoginScreen() {
                   error={error}
                   setError={setError}
                   loading={loading}
+                  serverReady={serverReady}
                   onLogin={handleLogin}
                   onRegister={() => router.push("/register")}
                   onForgotPassword={() => router.push("/forgot-password")}
@@ -267,6 +304,7 @@ export default function LoginScreen() {
                   error={error}
                   setError={setError}
                   loading={loading}
+                  serverReady={serverReady}
                   onLogin={handleLogin}
                   onRegister={() => router.push("/register")}
                   onForgotPassword={() => router.push("/forgot-password")}
@@ -288,16 +326,19 @@ function CardContent({
   showPass, setShowPass,
   error, setError,
   loading,
+  serverReady,
   onLogin,
   onRegister,
   onForgotPassword,
 }: any) {
+  const isWaitingForServer = loading && !serverReady;
+
   return (
     <View style={styles.cardInner}>
       <View style={styles.cardHead}>
-        <Text style={[styles.cardTitle, { color: colors.foreground }]}>Bem-vindo</Text>
+        <Text style={[styles.cardTitle, { color: colors.foreground }]}>Welcome back</Text>
         <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
-          Entra na tua conta SiteTrack
+          Sign in to your SiteTrack account
         </Text>
       </View>
 
@@ -306,7 +347,7 @@ function CardContent({
           <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Email</Text>
           <AuthField
             icon="mail"
-            placeholder="o.teu@email.com"
+            placeholder="your@email.com"
             value={email}
             onChangeText={(t: string) => { setEmail(t); setError(""); }}
             keyboardType="email-address"
@@ -314,7 +355,7 @@ function CardContent({
           />
         </View>
         <View>
-          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Senha</Text>
+          <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Password</Text>
           <AuthField
             icon="lock"
             placeholder="••••••••"
@@ -367,25 +408,35 @@ function CardContent({
             <ActivityIndicator color="#fff" size="small" />
           ) : (
             <>
-              <Text style={styles.signInBtnText}>Entrar</Text>
+              <Text style={styles.signInBtnText}>Sign In</Text>
               <Feather name="arrow-right" size={18} color="#fff" />
             </>
           )}
         </LinearGradient>
       </TouchableOpacity>
 
+      {/* Server wake-up notice — only shown while waiting */}
+      {isWaitingForServer && (
+        <View style={styles.wakeUpNotice}>
+          <Feather name="cloud" size={13} color={colors.mutedForeground} />
+          <Text style={[styles.wakeUpText, { color: colors.mutedForeground }]}>
+            Server is starting up, please wait up to 30 seconds…
+          </Text>
+        </View>
+      )}
+
       {/* Forgot password */}
       <TouchableOpacity onPress={onForgotPassword} hitSlop={12} style={{ alignItems: "center" }}>
         <Text style={{ fontSize: 13, color: colors.mutedForeground }}>
-          Esqueceste a senha?{" "}
-          <Text style={{ color: colors.primary, fontWeight: "600" }}>Recuperar</Text>
+          Forgot your password?{" "}
+          <Text style={{ color: colors.primary, fontWeight: "600" }}>Reset</Text>
         </Text>
       </TouchableOpacity>
 
       {/* Divider */}
       <View style={styles.divider}>
         <View style={[styles.divLine, { backgroundColor: colors.border }]} />
-        <Text style={[styles.divText, { color: colors.mutedForeground }]}>ou</Text>
+        <Text style={[styles.divText, { color: colors.mutedForeground }]}>or</Text>
         <View style={[styles.divLine, { backgroundColor: colors.border }]} />
       </View>
 
@@ -397,9 +448,24 @@ function CardContent({
       >
         <Feather name="briefcase" size={15} color={colors.foreground} />
         <Text style={[styles.createBtnText, { color: colors.foreground }]}>
-          Criar conta de empresa
+          Create company account
         </Text>
       </TouchableOpacity>
+
+      {/* Legal footer */}
+      <View style={styles.legalFooter}>
+        <TouchableOpacity onPress={() => require("react-native").Linking.openURL("https://sitetrack.online/privacy")}>
+          <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Privacy Policy</Text>
+        </TouchableOpacity>
+        <Text style={[styles.legalDot, { color: colors.mutedForeground }]}>·</Text>
+        <TouchableOpacity onPress={() => require("react-native").Linking.openURL("https://sitetrack.online/terms")}>
+          <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Terms of Use</Text>
+        </TouchableOpacity>
+        <Text style={[styles.legalDot, { color: colors.mutedForeground }]}>·</Text>
+        <TouchableOpacity onPress={() => require("react-native").Linking.openURL("https://sitetrack.online/support")}>
+          <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Support</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -576,4 +642,50 @@ const styles = StyleSheet.create({
   },
   createBtnText: { fontSize: 15, fontWeight: "600" },
 
+  // Server wake-up notice (shown below button while loading + server not ready)
+  wakeUpNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 4,
+    marginTop: -8,
+  },
+  wakeUpText: {
+    fontSize: 12,
+    color: "rgba(0,0,0,0.4)",
+    fontWeight: "500",
+    textAlign: "center",
+    flex: 1,
+    lineHeight: 17,
+  },
+
+  // Server status pill
+  serverPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 100,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  serverPillText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.2,
+  },
+
+  legalFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  legalLink: { fontSize: 11, fontWeight: "500" },
+  legalDot: { fontSize: 11 },
 });

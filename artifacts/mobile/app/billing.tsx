@@ -18,8 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { useSubscription, PLAN_LABELS, PLAN_LIMITS, type PlanTier } from "@/lib/revenuecat";
 
-const PRIVACY_URL = "https://sitetrack.app/privacy";
-const TERMS_URL = "https://sitetrack.app/terms";
+const PRIVACY_URL = "https://sitetrack.online/privacy";
+const TERMS_URL = "https://sitetrack.online/terms";
 
 const PLAN_ICON: Record<PlanTier, string> = {
   free: "slash",

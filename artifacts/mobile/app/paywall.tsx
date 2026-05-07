@@ -20,8 +20,8 @@ import type { PurchasesPackage } from "react-native-purchases";
 import { useColors } from "@/hooks/useColors";
 import { useSubscription, packageToPlan, PLAN_LIMITS, type PlanTier } from "@/lib/revenuecat";
 
-const PRIVACY_URL = "https://sitetrack.app/privacy";
-const TERMS_URL = "https://sitetrack.app/terms";
+const PRIVACY_URL = "https://sitetrack.online/privacy";
+const TERMS_URL = "https://sitetrack.online/terms";
 
 const PLAN_FEATURES: Record<PlanTier, string[]> = {
   free: [],

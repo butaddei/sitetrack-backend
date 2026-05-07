@@ -488,6 +488,21 @@ export default function ProfileSettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Legal links */}
+          <View style={styles.legalRow}>
+            <TouchableOpacity onPress={() => require("react-native").Linking.openURL("https://sitetrack.online/privacy")}>
+              <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Privacy Policy</Text>
+            </TouchableOpacity>
+            <Text style={[styles.legalDot, { color: colors.mutedForeground }]}>·</Text>
+            <TouchableOpacity onPress={() => require("react-native").Linking.openURL("https://sitetrack.online/terms")}>
+              <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Terms of Use</Text>
+            </TouchableOpacity>
+            <Text style={[styles.legalDot, { color: colors.mutedForeground }]}>·</Text>
+            <TouchableOpacity onPress={() => require("react-native").Linking.openURL("https://sitetrack.online/support")}>
+              <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Support</Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Sign out */}
           <TouchableOpacity
             style={[styles.signOutBtn, { backgroundColor: colors.destructive + "10", borderColor: colors.destructive + "25" }]}
@@ -630,6 +645,17 @@ const styles = StyleSheet.create({
   billingRowCenter: { flex: 1 },
   billingRowTitle: { fontSize: 14, fontWeight: "600" },
   billingRowSub: { fontSize: 12, marginTop: 1 },
+
+  legalRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    gap: 6,
+    paddingVertical: 10,
+  },
+  legalLink: { fontSize: 11, fontWeight: "500" },
+  legalDot: { fontSize: 11 },
 
   signOutBtn: {
     flexDirection: "row",
