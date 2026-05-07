@@ -36,7 +36,6 @@
       "favicon": "./assets/icon.png"
     },
     "plugins": [
-      "react-native-purchases",
       [
         "expo-router",
         {
