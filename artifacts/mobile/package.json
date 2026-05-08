@@ -9,7 +9,8 @@
     "serve": "node server/serve.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "android": "expo run:android",
-    "ios": "expo run:ios"
+    "ios": "expo run:ios",
+    "eas-build-post-install": "gem install cocoapods -N || brew install cocoapods || true"
   },
   "dependencies": {
     "@babel/core": "^7.25.2",
