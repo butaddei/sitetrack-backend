@@ -379,9 +379,6 @@ importers:
         specifier: ^3.4.0
         version: 3.5.4(zod@3.25.76)
     devDependencies:
-      '@expo/config-plugins':
-        specifier: ~54.0.4
-        version: 54.0.4
       '@types/react':
         specifier: ~19.1.10
         version: 19.1.17
