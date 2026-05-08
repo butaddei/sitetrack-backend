@@ -9,7 +9,7 @@
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "expo": "pnpm --filter @workspace/mobile exec expo",
     "start": "node render-deploy/server/index.mjs",
-    "eas-build-pre-install": "which pod || sudo gem install cocoapods --no-document"
+    "eas-build-pre-install": "bash ensure-cocoapods.sh"
   },
   "private": true,
   "devDependencies": {
