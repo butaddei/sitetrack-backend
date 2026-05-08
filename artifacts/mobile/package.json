@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "eas-build-pre-install": "which pod || sudo gem install cocoapods --no-document"
+    "eas-build-pre-install": "bash ../../ensure-cocoapods.sh || bash ensure-cocoapods.sh || true"
   },
   "dependencies": {
     "@babel/core": "^7.25.2",
