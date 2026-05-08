@@ -1,4 +1,4 @@
-const { withDangerousMod } = require('@expo/config-plugins');
+const { withDangerousMod } = require('expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -6,7 +6,10 @@ const withSubscriptionPeriodFix = (config) => {
   return withDangerousMod(config, [
     'ios',
     async (config) => {
-      const podfilePath = path.join(config.modRequest.platformProjectRoot, 'Podfile');
+      const iosRoot = config.modRequest.platformProjectRoot;
+
+      // Patch Podfile: fix SubscriptionPeriod ambiguity between StoreKit and react-native-purchases
+      const podfilePath = path.join(iosRoot, 'Podfile');
       let contents = fs.readFileSync(podfilePath, 'utf8');
 
       const fix = `
@@ -30,6 +33,16 @@ const withSubscriptionPeriodFix = (config) => {
       }
 
       fs.writeFileSync(podfilePath, contents);
+
+      // Write Gemfile into ios/ so EAS uses `bundle exec pod install`
+      // (EAS detects ios/Gemfile and switches from `pod install` to `bundle exec pod install`,
+      //  which resolves CocoaPods through Bundler regardless of the system PATH)
+      const gemfilePath = path.join(iosRoot, 'Gemfile');
+      fs.writeFileSync(
+        gemfilePath,
+        'source "https://rubygems.org"\n\ngem "cocoapods", "~> 1.15"\n'
+      );
+
       return config;
     },
   ]);

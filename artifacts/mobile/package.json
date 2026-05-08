@@ -10,7 +10,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "android": "expo run:android",
     "ios": "expo run:ios",
-    "eas-build-post-install": "gem install cocoapods -N || brew install cocoapods || true"
+    "eas-build-post-install": "sudo gem install cocoapods --no-document 2>/dev/null || gem install cocoapods --no-document 2>/dev/null || brew install cocoapods 2>/dev/null || true; POD=$(which pod 2>/dev/null || echo ''); [ -n \"$POD\" ] && [ \"$POD\" != \"/usr/local/bin/pod\" ] && sudo ln -sf \"$POD\" /usr/local/bin/pod 2>/dev/null || true; echo \"CocoaPods: $(pod --version 2>/dev/null || echo NOT FOUND)\""
   },
   "dependencies": {
     "@babel/core": "^7.25.2",
@@ -61,7 +61,6 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
-    "@expo/config-plugins": "~54.0.4",
     "@types/react": "~19.1.10",
     "@types/react-dom": "~19.1.7",
     "typescript": "~5.9.2"
