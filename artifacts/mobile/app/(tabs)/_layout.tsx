@@ -16,7 +16,7 @@ function hide() {
 export default function TabLayout() {
   const colors = useColors();
   const { user, isLoading: authLoading } = useAuth();
-  const { isSubscribed, isLoading: subLoading } = useSubscription();
+  const { isSubscribed, isLoading: subLoading, hasError: subError } = useSubscription();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
   const isIOS = Platform.OS === "ios";
@@ -25,7 +25,10 @@ export default function TabLayout() {
   if (authLoading || subLoading) return null;
   if (!user) return <Redirect href="/login" />;
   if (user.mustChangePassword) return <Redirect href="/set-new-password" />;
-  if (!isSubscribed) return <Redirect href="/paywall" />;
+  // Only enforce paywall when RevenueCat is working correctly.
+  // If both queries errored (e.g. missing API key, network issue), fail open
+  // so users are never permanently locked out by an SDK failure.
+  if (!isSubscribed && !subError) return <Redirect href="/paywall" />;
 
   const isAdmin = user.role === "admin";
 

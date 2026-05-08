@@ -126,12 +126,18 @@ function useSubscriptionContext() {
   // If entitlement is active but product ID detection failed, default to "basic"
   if (isSubscribed && currentPlan === "free") currentPlan = "basic";
 
+  // If both queries errored (e.g. bad/missing API key), expose that so the
+  // gate can fail open instead of trapping the user on the paywall forever.
+  const hasError =
+    !!customerInfoQuery.error && !!offeringsQuery.error;
+
   return {
     customerInfo,
     offerings: offeringsQuery.data,
     currentPlan,
     isSubscribed,
     isLoading: customerInfoQuery.isLoading || offeringsQuery.isLoading,
+    hasError,
     purchase: purchaseMutation.mutateAsync,
     restore: restoreMutation.mutateAsync,
     isPurchasing: purchaseMutation.isPending,
