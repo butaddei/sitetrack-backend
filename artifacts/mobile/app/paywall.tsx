@@ -61,7 +61,7 @@ export default function PaywallScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { offerings, isLoading, purchase, restore, isPurchasing, isRestoring, isSubscribed, hasError } = useSubscription();
+  const { availablePackages, isLoading, purchase, restore, isPurchasing, isRestoring, isSubscribed, hasError } = useSubscription();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -70,10 +70,8 @@ export default function PaywallScreen() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [purchasingId, setPurchasingId] = useState<string | null>(null);
 
-  const packages = offerings?.current?.availablePackages ?? [];
-
-  // Sort: basic → pro → business
-  const sortedPackages = [...packages].sort((a, b) => {
+  // Sort: basic → pro → business (packages resolved from current OR all offerings)
+  const sortedPackages = [...availablePackages].sort((a, b) => {
     const order: PlanTier[] = ["basic", "pro", "business"];
     return order.indexOf(packageToPlan(a)) - order.indexOf(packageToPlan(b));
   });

@@ -86,7 +86,16 @@ function useSubscriptionContext() {
 
   const offeringsQuery = useQuery({
     queryKey: ["revenuecat", "offerings"],
-    queryFn: () => Purchases.getOfferings(),
+    queryFn: async () => {
+      const result = await Purchases.getOfferings();
+      if (__DEV__) {
+        console.log("[RC] offerings.current:", result.current?.identifier ?? "null");
+        console.log("[RC] offerings.all keys:", Object.keys(result.all ?? {}));
+        const allPkgs = Object.values(result.all ?? {}).flatMap(o => o?.availablePackages ?? []);
+        console.log("[RC] total packages across all offerings:", allPkgs.map(p => p.product.identifier));
+      }
+      return result;
+    },
     staleTime: 300_000,
     retry: 2,
   });
@@ -126,17 +135,32 @@ function useSubscriptionContext() {
   // If entitlement is active but product ID detection failed, default to "basic"
   if (isSubscribed && currentPlan === "free") currentPlan = "basic";
 
+  // ── Resolve available packages ────────────────────────────────────────────
+  // Primary: use the "current" (default) offering in RC dashboard.
+  // Fallback: collect packages from ALL offerings — handles the case where the
+  // offering exists but isn't marked as "current" in the RC dashboard.
+  const offeringsData = offeringsQuery.data;
+  const currentPackages = offeringsData?.current?.availablePackages ?? [];
+  const allPackages = currentPackages.length > 0
+    ? currentPackages
+    : Object.values(offeringsData?.all ?? {}).flatMap(o => o?.availablePackages ?? []);
+
+  if (__DEV__ && offeringsQuery.isSuccess) {
+    console.log("[RC] resolved packages:", allPackages.map(p => p.product.identifier));
+  }
+
   // Fail open if RevenueCat isn't working properly:
   // - either query errored (bad/missing key, network, SDK not configured)
-  // - OR offerings loaded but are empty (products not yet set up in dashboard)
+  // - OR offerings loaded (from current AND all) but still empty
   const hasError =
     !!customerInfoQuery.error ||
     !!offeringsQuery.error ||
-    (offeringsQuery.isSuccess && (offeringsQuery.data?.current?.availablePackages?.length ?? 0) === 0);
+    (offeringsQuery.isSuccess && allPackages.length === 0);
 
   return {
     customerInfo,
     offerings: offeringsQuery.data,
+    availablePackages: allPackages,
     currentPlan,
     isSubscribed,
     isLoading: customerInfoQuery.isLoading || offeringsQuery.isLoading,
