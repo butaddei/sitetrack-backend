@@ -109,23 +109,14 @@ export default function LoginScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login, user, isLoading: authLoading, serverReady } = useAuth();
+  const { login, user, isLoading: authLoading } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showReadyBadge, setShowReadyBadge] = useState(false);
-
-  // When server wakes up, briefly flash "Ready" then hide
-  useEffect(() => {
-    if (serverReady) {
-      setShowReadyBadge(true);
-      const t = setTimeout(() => setShowReadyBadge(false), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [serverReady]);
+  const [showReadyBadge] = useState(false);
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -243,28 +234,18 @@ export default function LoginScreen() {
               ))}
             </View>
 
-            {/* Server status pill */}
-            {(!serverReady || showReadyBadge) && (
+            {/* Server status pill — hidden once server responds */}
+            {showReadyBadge && (
               <View style={[
                 styles.serverPill,
                 {
-                  backgroundColor: serverReady
-                    ? "rgba(34,197,94,0.12)"
-                    : "rgba(255,255,255,0.06)",
-                  borderColor: serverReady
-                    ? "rgba(34,197,94,0.3)"
-                    : "rgba(255,255,255,0.12)",
+                  backgroundColor: "rgba(34,197,94,0.12)",
+                  borderColor: "rgba(34,197,94,0.3)",
                 },
               ]}>
-                {serverReady ? (
-                  <Feather name="check-circle" size={11} color="#22c55e" />
-                ) : (
-                  <ActivityIndicator size={11} color="rgba(255,255,255,0.4)" />
-                )}
-                <Text style={[styles.serverPillText, {
-                  color: serverReady ? "#22c55e" : "rgba(255,255,255,0.4)",
-                }]}>
-                  {serverReady ? "Server ready" : "Connecting to server…"}
+                <Feather name="check-circle" size={11} color="#22c55e" />
+                <Text style={[styles.serverPillText, { color: "#22c55e" }]}>
+                  Server ready
                 </Text>
               </View>
             )}
@@ -285,7 +266,7 @@ export default function LoginScreen() {
                   error={error}
                   setError={setError}
                   loading={loading}
-                  serverReady={serverReady}
+                  serverReady={false}
                   onLogin={handleLogin}
                   onRegister={() => router.push("/register")}
                   onForgotPassword={() => router.push("/forgot-password")}
@@ -304,7 +285,7 @@ export default function LoginScreen() {
                   error={error}
                   setError={setError}
                   loading={loading}
-                  serverReady={serverReady}
+                  serverReady={false}
                   onLogin={handleLogin}
                   onRegister={() => router.push("/register")}
                   onForgotPassword={() => router.push("/forgot-password")}

@@ -187,7 +187,7 @@ function ProjectListCard({
   onPress: () => void;
 }) {
   const colors = useColors();
-  const profit = project.totalValue - labor - expenses;
+  const profit = (project.totalValue ?? 0) - labor - expenses;
   const accentColor = PROJ_STATUS_COLOR[project.status] ?? colors.mutedForeground;
 
   return (
@@ -224,7 +224,7 @@ function ProjectListCard({
         <View style={styles.cardStatBlock}>
           <Text style={[styles.cardStatMeta, { color: colors.mutedForeground }]}>Contract Value</Text>
           <Text style={[styles.cardStatValue, { color: colors.foreground }]}>
-            ${project.totalValue.toLocaleString()}
+            ${(project.totalValue ?? 0).toLocaleString()}
           </Text>
         </View>
         <View style={[styles.cardStatDivider, { backgroundColor: colors.border }]} />
@@ -246,7 +246,7 @@ function ProjectListCard({
         <View style={styles.cardStat}>
           <Feather name="calendar" size={12} color={colors.mutedForeground} />
           <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
-            Due {new Date(project.expectedEndDate).toLocaleDateString()}
+            Due {new Date(project.expectedEndDate ?? "").toLocaleDateString()}
           </Text>
         </View>
       </View>

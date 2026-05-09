@@ -30,7 +30,7 @@ export default function ReportsScreen() {
     );
   }
 
-  const totalRevenue = projects.filter((p) => p.status === "completed").reduce((s, p) => s + p.totalValue, 0);
+  const totalRevenue = projects.filter((p) => p.status === "completed").reduce((s, p) => s + (p.totalValue ?? 0), 0);
   const totalLaborCost = projects.reduce((s, p) => s + getProjectLaborCost(p.id), 0);
   const totalExpenses = projects.reduce((s, p) => s + getProjectExpenses(p.id), 0);
   const totalProfit = totalRevenue - totalLaborCost - totalExpenses;
@@ -109,9 +109,9 @@ export default function ReportsScreen() {
           ) : projects.map((proj) => {
             const labor = getProjectLaborCost(proj.id);
             const expAmt = getProjectExpenses(proj.id);
-            const profit = proj.totalValue - labor - expAmt;
+            const profit = (proj.totalValue ?? 0) - labor - expAmt;
             const margin =
-              proj.totalValue > 0 ? ((profit / proj.totalValue) * 100).toFixed(1) : "0";
+              (proj.totalValue ?? 0) > 0 ? ((profit / (proj.totalValue ?? 0)) * 100).toFixed(1) : "0";
             const logs = timeLogs.filter((l) => l.projectId === proj.id && l.totalMinutes);
             const hours = logs.reduce((s, l) => s + (l.totalMinutes ?? 0) / 60, 0);
 
@@ -128,7 +128,7 @@ export default function ReportsScreen() {
                 </View>
                 <View style={[styles.divider, { backgroundColor: colors.border }]} />
                 <View style={styles.financialGrid}>
-                  <FinRow label="Contract Value" value={fmt(proj.totalValue)} color={colors.foreground} />
+                  <FinRow label="Contract Value" value={fmt(proj.totalValue ?? 0)} color={colors.foreground} />
                   <FinRow label="Labor Cost" value={fmt(labor)} color={colors.destructive} />
                   <FinRow label="Other Expenses" value={fmt(expAmt)} color={colors.warning} />
                   <FinRow label="Total Hours" value={`${hours.toFixed(1)}h`} color={colors.foreground} />
@@ -161,7 +161,7 @@ export default function ReportsScreen() {
             </View>
           ) : activeEmployees.map((emp) => {
             const hours = getEmployeeTotalHours(emp.id);
-            const cost = hours * emp.hourlyRate;
+            const cost = hours * Number(emp.hourlyRate ?? 0);
             const projCount = projects.filter((p) => p.assignedEmployeeIds.includes(emp.id)).length;
             const logs = timeLogs.filter((l) => l.employeeId === emp.id && l.totalMinutes);
             const avgHrs = logs.length > 0 ? hours / logs.length : 0;

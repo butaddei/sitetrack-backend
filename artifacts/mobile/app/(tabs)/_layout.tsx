@@ -35,7 +35,7 @@ export default function TabLayout() {
   const icon = (name: string, sfName?: string) =>
     ({ color }: { color: string }) =>
       isIOS && sfName ? (
-        <SymbolView name={sfName} tintColor={color} size={22} />
+        <SymbolView name={sfName as any} tintColor={color} size={22} />
       ) : (
         <Feather name={name as any} size={22} color={color} />
       );

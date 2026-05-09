@@ -129,7 +129,7 @@ export default function WorkLogScreen() {
 
   // Live labor accumulating during active session
   const liveSessionCost = activeLog
-    ? (elapsed / 3600) * (employee?.hourlyRate ?? 0)
+    ? (elapsed / 3600) * Number(employee?.hourlyRate ?? 0)
     : 0;
 
   const activeProject = projects.find((p) => p.id === activeLog?.projectId);
@@ -274,7 +274,7 @@ export default function WorkLogScreen() {
           label="Hourly Rate"
           hours={null}
           cost={null}
-          rate={employee?.hourlyRate}
+          rate={employee?.hourlyRate !== undefined ? Number(employee.hourlyRate) : undefined}
         />
       </View>
 

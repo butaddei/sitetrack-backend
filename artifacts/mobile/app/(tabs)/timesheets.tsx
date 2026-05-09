@@ -457,7 +457,7 @@ function EmployeeSummaryCard({
         <View style={[styles.gridDivider, { backgroundColor: colors.border }]} />
         <PeriodCell period="This Week" hours={weeklyHours} cost={weeklyCost} />
         <View style={[styles.gridDivider, { backgroundColor: colors.border }]} />
-        <PeriodCell period="All Time" hours={totalHours} cost={totalHours * employee.hourlyRate} />
+        <PeriodCell period="All Time" hours={totalHours} cost={totalHours * Number(employee.hourlyRate ?? 0)} />
       </View>
 
       {/* Footer */}
