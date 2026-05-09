@@ -126,10 +126,13 @@ function useSubscriptionContext() {
   // If entitlement is active but product ID detection failed, default to "basic"
   if (isSubscribed && currentPlan === "free") currentPlan = "basic";
 
-  // If both queries errored (e.g. bad/missing API key), expose that so the
-  // gate can fail open instead of trapping the user on the paywall forever.
+  // Fail open if RevenueCat isn't working properly:
+  // - either query errored (bad/missing key, network, SDK not configured)
+  // - OR offerings loaded but are empty (products not yet set up in dashboard)
   const hasError =
-    !!customerInfoQuery.error && !!offeringsQuery.error;
+    !!customerInfoQuery.error ||
+    !!offeringsQuery.error ||
+    (offeringsQuery.isSuccess && (offeringsQuery.data?.current?.availablePackages?.length ?? 0) === 0);
 
   return {
     customerInfo,
