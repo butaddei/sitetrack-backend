@@ -125,8 +125,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const updated = { ...current, ...data };
       setUser(updated);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(updated));
-    } catch {
-      await logout();
+    } catch (err) {
+      // Only log out on explicit 401 (invalid/expired token).
+      // Network errors and timeouts (status 0) keep the cached user so the
+      // app works offline or during a Render cold start.
+      if (err instanceof ApiError && err.status === 401) {
+        await logout();
+      }
     }
   }
 
