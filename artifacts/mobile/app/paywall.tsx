@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { PurchasesPackage } from "react-native-purchases";
 
@@ -59,7 +60,8 @@ export default function PaywallScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { offerings, isLoading, purchase, restore, isPurchasing, isRestoring, isSubscribed } = useSubscription();
+  const queryClient = useQueryClient();
+  const { offerings, isLoading, purchase, restore, isPurchasing, isRestoring, isSubscribed, hasError } = useSubscription();
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
   const botPad = Platform.OS === "web" ? 34 : insets.bottom;
@@ -75,6 +77,12 @@ export default function PaywallScreen() {
     const order: PlanTier[] = ["basic", "pro", "business"];
     return order.indexOf(packageToPlan(a)) - order.indexOf(packageToPlan(b));
   });
+
+  const isEmpty = !isLoading && sortedPackages.length === 0;
+
+  function handleRetry() {
+    queryClient.invalidateQueries({ queryKey: ["revenuecat"] });
+  }
 
   async function handlePurchase(pkg: PurchasesPackage) {
     if (__DEV__) {
@@ -162,6 +170,39 @@ export default function PaywallScreen() {
           <View style={styles.loadingWrap}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Loading plans…</Text>
+          </View>
+        )}
+
+        {/* ── Web / empty state ── */}
+        {isEmpty && Platform.OS === "web" && (
+          <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Feather name="smartphone" size={40} color={colors.primary} style={{ marginBottom: 16 }} />
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>iOS App Required</Text>
+            <Text style={[styles.emptyBody, { color: colors.mutedForeground }]}>
+              Subscriptions are managed through Apple In-App Purchases and are only available on the iOS app.{"\n\n"}
+              Download SiteTrack from the App Store to subscribe.
+            </Text>
+          </View>
+        )}
+
+        {/* ── Native empty / error state ── */}
+        {isEmpty && Platform.OS !== "web" && (
+          <View style={[styles.emptyCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Feather name="alert-circle" size={40} color={colors.mutedForeground} style={{ marginBottom: 16 }} />
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Plans Unavailable</Text>
+            <Text style={[styles.emptyBody, { color: colors.mutedForeground }]}>
+              {hasError
+                ? "Could not connect to the subscription service. Check your internet connection and try again."
+                : "No subscription plans found. Please try again."}
+            </Text>
+            <TouchableOpacity
+              style={[styles.retryBtn, { backgroundColor: colors.primary }]}
+              onPress={handleRetry}
+              activeOpacity={0.8}
+            >
+              <Feather name="refresh-cw" size={14} color="#fff" />
+              <Text style={styles.retryBtnText}>Try Again</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -371,6 +412,26 @@ const styles = StyleSheet.create({
   legalRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 4 },
   legalLink: { fontSize: 13, fontWeight: "600", textDecorationLine: "underline" },
   legalSep: { fontSize: 13 },
+
+  emptyCard: {
+    borderRadius: 18,
+    borderWidth: 1.5,
+    padding: 32,
+    alignItems: "center",
+    marginTop: 16,
+  },
+  emptyTitle: { fontSize: 20, fontWeight: "700", marginBottom: 12, textAlign: "center" },
+  emptyBody: { fontSize: 14, lineHeight: 22, textAlign: "center" },
+  retryBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  retryBtnText: { color: "#fff", fontSize: 14, fontWeight: "700" },
 
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24 },
   modalCard: { borderRadius: 18, padding: 24, width: "100%", maxWidth: 340 },
