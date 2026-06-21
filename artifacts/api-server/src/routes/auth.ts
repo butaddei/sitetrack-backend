@@ -36,9 +36,12 @@ router.post("/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
+    // New companies start with no active subscription.
+    // The admin must purchase via Apple IAP (paywall) before accessing the app.
+    // planStatus is set to 'inactive' until a successful purchase is verified.
     const [company] = await db
       .insert(companies)
-      .values({ name: companyName.trim() })
+      .values({ name: companyName.trim(), plan: "free", planStatus: "inactive" })
       .returning();
 
     const [user] = await db
@@ -78,7 +81,7 @@ router.post("/register", async (req, res) => {
         avatarUrl: user.avatarUrl ?? null,
         hourlyRate: user.hourlyRate,
         plan: company.plan ?? "free",
-        planStatus: company.planStatus ?? "active",
+        planStatus: company.planStatus ?? "inactive",
       },
     });
   } catch (err) {
@@ -149,7 +152,7 @@ router.post("/login", async (req, res) => {
         avatarUrl: user.avatarUrl,
         hourlyRate: user.hourlyRate,
         plan: company?.plan ?? "free",
-        planStatus: company?.planStatus ?? "active",
+        planStatus: company?.planStatus ?? "inactive",
         mustChangePassword: user.mustChangePassword ?? false,
         abn: user.abn ?? null,
         businessAddress: user.businessAddress ?? null,
@@ -419,6 +422,42 @@ router.post("/reset-password", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Failed to reset password" });
+  }
+});
+
+// DELETE /api/auth/account — permanently delete the authenticated user's account
+// Apple Guideline 5.1.1(v): in-app account deletion requirement
+router.delete("/account", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.userId;
+    const companyId = req.user!.companyId;
+    const role = req.user!.role;
+
+    console.log(
+      `[DeleteAccount] Request — userId=${userId} role=${role} companyId=${companyId}`
+    );
+
+    if (role === "admin") {
+      // Admin owns the company account.
+      // Deleting the company cascades to: all users, projects, projectAssignments,
+      // projectPhotos, timeLogs, expenses, employeeNotes, invoices, passwordResetTokens.
+      await db.delete(companies).where(eq(companies.id, companyId));
+      console.log(
+        `[DeleteAccount] Company ${companyId} and all associated data permanently deleted`
+      );
+    } else {
+      // Employee: delete only this user record.
+      // Cascade handles: projectAssignments, timeLogs, employeeNotes, invoices, passwordResetTokens.
+      await db
+        .delete(users)
+        .where(and(eq(users.id, userId), eq(users.companyId, companyId)));
+      console.log(`[DeleteAccount] Employee user ${userId} permanently deleted`);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[DeleteAccount] Error:", err);
+    res.status(500).json({ error: "Failed to delete account" });
   }
 });
 
