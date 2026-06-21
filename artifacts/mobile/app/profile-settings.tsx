@@ -55,6 +55,7 @@ export default function ProfileSettingsScreen() {
   const [subLoading, setSubLoading] = useState(false);
   const [subError, setSubError] = useState("");
   const [subSuccess, setSubSuccess] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const isEmployee = user?.role !== "admin";
 
   const topPad = Platform.OS === "web" ? 67 : insets.top;
@@ -156,6 +157,74 @@ export default function ProfileSettingsScreen() {
       setSubLoading(false);
     }
   }
+
+  // ── Account Deletion (Apple Guideline 5.1.1(v)) ──────────────────────────
+  function handleDeleteAccountTap() {
+    console.log("[DeleteAccount] Delete Account button tapped");
+    Alert.alert(
+      "Delete Account",
+      "Are you sure you want to permanently delete your account? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete Account", style: "destructive", onPress: handleDeleteAccountStep2 },
+      ]
+    );
+  }
+
+  function handleDeleteAccountStep2() {
+    if (Platform.OS === "ios") {
+      Alert.prompt(
+        "Type DELETE to Confirm",
+        'Enter "DELETE" in the field below to permanently delete your account and all associated data.',
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Delete Permanently",
+            style: "destructive",
+            onPress: (text: string | undefined) => {
+              if (text?.trim() === "DELETE") {
+                void handleDeleteAccountExecute();
+              } else {
+                Alert.alert("Incorrect", 'You must type DELETE (all capitals) to confirm.');
+              }
+            },
+          },
+        ],
+        "plain-text",
+        "",
+        "default"
+      );
+    } else {
+      Alert.alert(
+        "Final Confirmation",
+        "All your data — profile, timesheets, invoices, and project records — will be permanently deleted. This cannot be recovered.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Delete Permanently", style: "destructive", onPress: () => { void handleDeleteAccountExecute(); } },
+        ]
+      );
+    }
+  }
+
+  async function handleDeleteAccountExecute() {
+    console.log("[DeleteAccount] Confirmation accepted — sending delete request");
+    setDeleteLoading(true);
+    try {
+      console.log("[DeleteAccount] Backend delete request sent to DELETE /auth/account");
+      await apiFetch("/auth/account", { method: "DELETE" });
+      console.log("[DeleteAccount] Delete success — clearing local session");
+      await logout();
+      console.log("[DeleteAccount] Local session cleared — redirecting to login");
+      router.replace("/login");
+    } catch (err) {
+      const msg = err instanceof ApiError ? err.message : "Failed to delete account. Please try again.";
+      console.error("[DeleteAccount] Error:", msg);
+      Alert.alert("Error", msg);
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   async function handleChangePassword() {
     if (!currentPassword || !newPassword) {
@@ -524,6 +593,32 @@ export default function ProfileSettingsScreen() {
             <Feather name="log-out" size={18} color={colors.destructive} />
             <Text style={[styles.signOutText, { color: colors.destructive }]}>Sign Out</Text>
           </TouchableOpacity>
+
+          {/* ── Delete Account (Apple Guideline 5.1.1(v)) ── */}
+          <View style={[styles.deleteCard, { backgroundColor: colors.card, borderColor: "#ef444430" }]}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIcon, { backgroundColor: "#ef444415" }]}>
+                <Feather name="trash-2" size={16} color="#ef4444" />
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>Account</Text>
+            </View>
+            <Text style={[styles.deleteDescription, { color: colors.mutedForeground }]}>
+              Permanently delete your account and all associated data. This action cannot be undone.
+            </Text>
+            <TouchableOpacity
+              style={[styles.deleteBtn, deleteLoading && { opacity: 0.6 }]}
+              onPress={handleDeleteAccountTap}
+              activeOpacity={0.7}
+              disabled={deleteLoading}
+              accessibilityLabel="Delete Account"
+              accessibilityRole="button"
+            >
+              <Feather name="trash-2" size={16} color="#ef4444" />
+              <Text style={styles.deleteBtnText}>
+                {deleteLoading ? "Deleting…" : "Delete Account"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -668,4 +763,37 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   signOutText: { fontSize: 15, fontWeight: "700" },
+
+  deleteCard: {
+    borderRadius: 20,
+    padding: 20,
+    gap: 14,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  deleteDescription: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: -4,
+  },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#ef444450",
+    backgroundColor: "#ef444408",
+  },
+  deleteBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#ef4444",
+  },
 });
