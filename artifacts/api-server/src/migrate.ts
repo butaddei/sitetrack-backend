@@ -15,11 +15,22 @@ DO $$ BEGIN
   CREATE TYPE plan AS ENUM ('free', 'pro', 'business');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- Add 'basic' tier (Apple IAP Basic Monthly plan)
 ALTER TYPE plan ADD VALUE IF NOT EXISTS 'basic';
 
 DO $$ BEGIN
   CREATE TYPE plan_status AS ENUM ('active', 'inactive', 'trialing', 'past_due', 'canceled');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE note_type AS ENUM ('general', 'issue', 'attention', 'completed');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE expense_status AS ENUM ('pending', 'approved', 'rejected');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE activity_type AS ENUM ('clock_in', 'clock_out', 'photo', 'note');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Tables
@@ -32,6 +43,8 @@ CREATE TABLE IF NOT EXISTS companies (
   business_abn TEXT,
   business_email TEXT,
   business_address TEXT,
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
   plan plan NOT NULL DEFAULT 'free',
   plan_status plan_status NOT NULL DEFAULT 'active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -64,11 +77,6 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Add push_token column if it doesn't exist (for existing databases)
-DO $$ BEGIN
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS push_token TEXT;
-EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -107,6 +115,7 @@ CREATE TABLE IF NOT EXISTS project_photos (
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   uri TEXT NOT NULL,
+  uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -130,7 +139,16 @@ CREATE TABLE IF NOT EXISTS expenses (
   description TEXT NOT NULL,
   amount DECIMAL(12,2) NOT NULL,
   date TEXT NOT NULL,
-  created_by UUID NOT NULL REFERENCES users(id)
+  created_by UUID NOT NULL REFERENCES users(id),
+  supplier TEXT,
+  gst DECIMAL(12,2),
+  receipt_photo TEXT,
+  approval_status expense_status NOT NULL DEFAULT 'pending',
+  rejection_reason TEXT,
+  approved_by UUID REFERENCES users(id),
+  approved_at TIMESTAMPTZ,
+  rejected_by UUID REFERENCES users(id),
+  rejected_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS employee_notes (
@@ -139,6 +157,7 @@ CREATE TABLE IF NOT EXISTS employee_notes (
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
+  note_type note_type NOT NULL DEFAULT 'general',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -154,8 +173,90 @@ CREATE TABLE IF NOT EXISTS invoices (
   total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
   line_items_json TEXT,
   payment_terms TEXT NOT NULL DEFAULT 'on_receipt',
+  worker_extra_notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS activity_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  activity_type activity_type NOT NULL,
+  description TEXT NOT NULL,
+  metadata TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS client_invoices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES users(id),
+  invoice_number TEXT NOT NULL,
+  invoice_date TEXT NOT NULL,
+  due_date TEXT NOT NULL,
+  client_name TEXT NOT NULL DEFAULT '',
+  client_company TEXT NOT NULL DEFAULT '',
+  client_email TEXT NOT NULL DEFAULT '',
+  client_phone TEXT NOT NULL DEFAULT '',
+  client_address TEXT NOT NULL DEFAULT '',
+  project_address TEXT NOT NULL DEFAULT '',
+  description TEXT NOT NULL DEFAULT '',
+  subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+  gst DECIMAL(12,2) NOT NULL DEFAULT 0,
+  total DECIMAL(12,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Idempotent column additions for existing databases
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS business_abn TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS business_email TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS business_address TEXT;
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS push_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS abn TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS business_address TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS account_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bsb TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS account_number TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS invoice_notes TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS invoice_prefix TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE project_photos ADD COLUMN IF NOT EXISTS uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL;
+
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS supplier TEXT;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS gst DECIMAL(12,2);
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS receipt_photo TEXT;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES users(id);
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS rejected_by UUID REFERENCES users(id);
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ;
+
+DO $$ BEGIN
+  ALTER TABLE expenses ADD COLUMN approval_status expense_status NOT NULL DEFAULT 'pending';
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE employee_notes ADD COLUMN note_type note_type NOT NULL DEFAULT 'general';
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS line_items_json TEXT;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_terms TEXT NOT NULL DEFAULT 'on_receipt';
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS worker_extra_notes TEXT;
+
+-- Fix NULL approval_status (set based on submitter role)
+UPDATE expenses
+SET approval_status = CASE
+  WHEN created_by IN (SELECT id FROM users WHERE role = 'admin') THEN 'approved'::expense_status
+  ELSE 'pending'::expense_status
+END
+WHERE approval_status IS NULL;
 `;
 
 export async function runMigrations(): Promise<void> {
