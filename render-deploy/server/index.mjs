@@ -20600,27 +20600,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router11;
+    module.exports = Router13;
     module.exports.Route = Route;
-    function Router11(options) {
-      if (!(this instanceof Router11)) {
-        return new Router11(options);
+    function Router13(options) {
+      if (!(this instanceof Router13)) {
+        return new Router13(options);
       }
       const opts = options || {};
-      function router11(req, res, next) {
-        router11.handle(req, res, next);
+      function router13(req, res, next) {
+        router13.handle(req, res, next);
       }
-      Object.setPrototypeOf(router11, this);
-      router11.caseSensitive = opts.caseSensitive;
-      router11.mergeParams = opts.mergeParams;
-      router11.params = {};
-      router11.strict = opts.strict;
-      router11.stack = [];
-      return router11;
+      Object.setPrototypeOf(router13, this);
+      router13.caseSensitive = opts.caseSensitive;
+      router13.mergeParams = opts.mergeParams;
+      router13.params = {};
+      router13.strict = opts.strict;
+      router13.stack = [];
+      return router13;
     }
-    Router11.prototype = function() {
+    Router13.prototype = function() {
     };
-    Router11.prototype.param = function param(name, fn) {
+    Router13.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20640,7 +20640,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router11.prototype.handle = function handle(req, res, callback) {
+    Router13.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20767,7 +20767,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router11.prototype.use = function use(handler) {
+    Router13.prototype.use = function use(handler) {
       let offset = 0;
       let path = "/";
       if (typeof handler !== "function") {
@@ -20800,7 +20800,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router11.prototype.route = function route(path) {
+    Router13.prototype.route = function route(path) {
       const route2 = new Route(path);
       const layer = new Layer(path, {
         sensitive: this.caseSensitive,
@@ -20815,7 +20815,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router11.prototype[method] = function(path) {
+      Router13.prototype[method] = function(path) {
         const route = this.route(path);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20998,13 +20998,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router11 = require_router();
+    var Router13 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router11 = null;
+      var router13 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -21013,13 +21013,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router11 === null) {
-            router11 = new Router11({
+          if (router13 === null) {
+            router13 = new Router13({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router11;
+          return router13;
         }
       });
     };
@@ -21090,15 +21090,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router11 = this.router;
+      var router13 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router11.use(path, fn2);
+          return router13.use(path, fn2);
         }
         debug(".use app under %s", path);
         fn2.mountpath = path;
         fn2.parent = this;
-        router11.use(path, function mounted_app(req, res, next) {
+        router13.use(path, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23625,7 +23625,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router11 = require_router();
+    var Router13 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23647,8 +23647,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router11.Route;
-    exports.Router = Router11;
+    exports.Route = Router13.Route;
+    exports.Router = Router13;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -62555,12 +62555,12 @@ ${captureLines}` : capture.stack;
 });
 
 // src/app.ts
-var import_express11 = __toESM(require_express2(), 1);
+var import_express13 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 
 // src/routes/index.ts
-var import_express10 = __toESM(require_express2(), 1);
+var import_express12 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -71309,12 +71309,19 @@ function drizzle(...params) {
 // ../../lib/db/src/schema/index.ts
 var schema_exports = {};
 __export(schema_exports, {
+  activityLog: () => activityLog,
+  activityLogRelations: () => activityLogRelations,
+  activityTypeEnum: () => activityTypeEnum,
+  clientInvoices: () => clientInvoices,
+  clientInvoicesRelations: () => clientInvoicesRelations,
   companies: () => companies,
   companiesRelations: () => companiesRelations,
   employeeNotes: () => employeeNotes,
+  expenseStatusEnum: () => expenseStatusEnum,
   expenses: () => expenses,
   invoices: () => invoices,
   invoicesRelations: () => invoicesRelations,
+  noteTypeEnum: () => noteTypeEnum,
   passwordResetTokens: () => passwordResetTokens,
   planEnum: () => planEnum,
   planStatusEnum: () => planStatusEnum,
@@ -71338,17 +71345,18 @@ var projectStatusEnum = pgEnum("project_status", [
 ]);
 var planEnum = pgEnum("plan", ["free", "basic", "pro", "business"]);
 var planStatusEnum = pgEnum("plan_status", ["active", "inactive", "trialing", "past_due", "canceled"]);
+var noteTypeEnum = pgEnum("note_type", ["general", "issue", "attention", "completed"]);
+var expenseStatusEnum = pgEnum("expense_status", ["pending", "approved", "rejected"]);
+var activityTypeEnum = pgEnum("activity_type", ["clock_in", "clock_out", "photo", "note"]);
 var companies = pgTable("companies", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   logoUrl: text("logo_url"),
   primaryColor: text("primary_color").notNull().default("#f97316"),
   secondaryColor: text("secondary_color").notNull().default("#0f172a"),
-  // Invoice / business details (used on generated invoices)
   businessAbn: text("business_abn"),
   businessEmail: text("business_email"),
   businessAddress: text("business_address"),
-  // Billing
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   plan: planEnum("plan").notNull().default("free"),
@@ -71370,7 +71378,6 @@ var users = pgTable("users", {
   isActive: boolean("is_active").notNull().default(true),
   avatarUrl: text("avatar_url"),
   mustChangePassword: boolean("must_change_password").notNull().default(false),
-  // Subcontractor / invoice fields
   abn: text("abn"),
   businessAddress: text("business_address"),
   bankName: text("bank_name"),
@@ -71420,6 +71427,7 @@ var projectPhotos = pgTable("project_photos", {
   companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   uri: text("uri").notNull(),
+  uploadedBy: uuid("uploaded_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var timeLogs = pgTable("time_logs", {
@@ -71441,7 +71449,18 @@ var expenses = pgTable("expenses", {
   description: text("description").notNull(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   date: text("date").notNull(),
-  createdBy: uuid("created_by").notNull().references(() => users.id)
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  // V2 additions
+  supplier: text("supplier"),
+  gst: decimal("gst", { precision: 12, scale: 2 }),
+  receiptPhoto: text("receipt_photo"),
+  approvalStatus: expenseStatusEnum("approval_status").notNull().default("pending"),
+  rejectionReason: text("rejection_reason"),
+  // V3: approval audit trail
+  approvedBy: uuid("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  rejectedBy: uuid("rejected_by").references(() => users.id),
+  rejectedAt: timestamp("rejected_at")
 });
 var employeeNotes = pgTable("employee_notes", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -71449,6 +71468,7 @@ var employeeNotes = pgTable("employee_notes", {
   projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
   userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   text: text("text").notNull(),
+  noteType: noteTypeEnum("note_type").notNull().default("general"),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var invoices = pgTable("invoices", {
@@ -71463,19 +71483,53 @@ var invoices = pgTable("invoices", {
   totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull().default("0"),
   lineItemsJson: text("line_items_json"),
   paymentTerms: text("payment_terms").notNull().default("on_receipt"),
+  workerExtraNotes: text("worker_extra_notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+var activityLog = pgTable("activity_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  activityType: activityTypeEnum("activity_type").notNull(),
+  description: text("description").notNull(),
+  metadata: text("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
+var clientInvoices = pgTable("client_invoices", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  createdBy: uuid("created_by").notNull().references(() => users.id),
+  invoiceNumber: text("invoice_number").notNull(),
+  invoiceDate: text("invoice_date").notNull(),
+  dueDate: text("due_date").notNull(),
+  clientName: text("client_name").notNull().default(""),
+  clientCompany: text("client_company").notNull().default(""),
+  clientEmail: text("client_email").notNull().default(""),
+  clientPhone: text("client_phone").notNull().default(""),
+  clientAddress: text("client_address").notNull().default(""),
+  projectAddress: text("project_address").notNull().default(""),
+  description: text("description").notNull().default(""),
+  subtotal: decimal("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
+  gst: decimal("gst", { precision: 12, scale: 2 }).notNull().default("0"),
+  total: decimal("total", { precision: 12, scale: 2 }).notNull().default("0"),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var companiesRelations = relations(companies, ({ many }) => ({
   users: many(users),
   projects: many(projects),
-  invoices: many(invoices)
+  invoices: many(invoices),
+  activityLog: many(activityLog),
+  clientInvoices: many(clientInvoices)
 }));
 var usersRelations = relations(users, ({ one, many }) => ({
   company: one(companies, { fields: [users.companyId], references: [companies.id] }),
   timeLogs: many(timeLogs),
   employeeNotes: many(employeeNotes),
   assignments: many(projectAssignments),
-  invoices: many(invoices)
+  invoices: many(invoices),
+  activityLog: many(activityLog)
 }));
 var projectsRelations = relations(projects, ({ one, many }) => ({
   company: one(companies, { fields: [projects.companyId], references: [companies.id] }),
@@ -71483,7 +71537,9 @@ var projectsRelations = relations(projects, ({ one, many }) => ({
   photos: many(projectPhotos),
   timeLogs: many(timeLogs),
   expenses: many(expenses),
-  employeeNotes: many(employeeNotes)
+  employeeNotes: many(employeeNotes),
+  activityLog: many(activityLog),
+  clientInvoices: many(clientInvoices)
 }));
 var projectAssignmentsRelations = relations(projectAssignments, ({ one }) => ({
   project: one(projects, { fields: [projectAssignments.projectId], references: [projects.id] }),
@@ -71492,6 +71548,16 @@ var projectAssignmentsRelations = relations(projectAssignments, ({ one }) => ({
 var invoicesRelations = relations(invoices, ({ one }) => ({
   company: one(companies, { fields: [invoices.companyId], references: [companies.id] }),
   user: one(users, { fields: [invoices.userId], references: [users.id] })
+}));
+var activityLogRelations = relations(activityLog, ({ one }) => ({
+  company: one(companies, { fields: [activityLog.companyId], references: [companies.id] }),
+  project: one(projects, { fields: [activityLog.projectId], references: [projects.id] }),
+  user: one(users, { fields: [activityLog.userId], references: [users.id] })
+}));
+var clientInvoicesRelations = relations(clientInvoices, ({ one }) => ({
+  company: one(companies, { fields: [clientInvoices.companyId], references: [companies.id] }),
+  project: one(projects, { fields: [clientInvoices.projectId], references: [projects.id] }),
+  creator: one(users, { fields: [clientInvoices.createdBy], references: [users.id] })
 }));
 
 // ../../lib/db/src/index.ts
@@ -71711,6 +71777,11 @@ router2.post("/login", async (req, res) => {
       role: user.role,
       email: user.email
     });
+    const resolvedPlan = company?.plan ?? "free";
+    const resolvedPlanStatus = company?.planStatus ?? (company?.plan && company.plan !== "free" ? "active" : "inactive");
+    console.log(
+      `[auth/login] userId=${user.id} role=${user.role} companyId=${user.companyId} companyName='${company?.name ?? "unknown"}' db.plan='${company?.plan ?? "null"}' db.planStatus='${company?.planStatus ?? "null"}' resolved.plan='${resolvedPlan}' resolved.planStatus='${resolvedPlanStatus}'`
+    );
     res.json({
       token,
       user: {
@@ -71727,8 +71798,11 @@ router2.post("/login", async (req, res) => {
         position: user.position,
         avatarUrl: user.avatarUrl,
         hourlyRate: user.hourlyRate,
-        plan: company?.plan ?? "free",
-        planStatus: company?.planStatus ?? "inactive",
+        plan: resolvedPlan,
+        // Fallback: if plan is paid → 'active'; if free → 'inactive' (never-subscribed).
+        // Using a paid-plan fallback of 'active' prevents shouldPreserveLocalPlan()
+        // on the mobile client from misreading a stale DB row as a cancellation event.
+        planStatus: resolvedPlanStatus,
         mustChangePassword: user.mustChangePassword ?? false,
         abn: user.abn ?? null,
         businessAddress: user.businessAddress ?? null,
@@ -71756,6 +71830,11 @@ router2.get("/me", requireAuth, async (req, res) => {
       return;
     }
     const [company] = await db.select().from(companies).where(eq(companies.id, user.companyId)).limit(1);
+    const mePlan = company?.plan ?? "free";
+    const mePlanStatus = company?.planStatus ?? "active";
+    console.log(
+      `[auth/me] userId=${user.id} role=${user.role} companyId=${user.companyId} companyName='${company?.name ?? "unknown"}' db.plan='${company?.plan ?? "null"}' db.planStatus='${company?.planStatus ?? "null"}' resolved.plan='${mePlan}' resolved.planStatus='${mePlanStatus}'`
+    );
     res.json({
       id: user.id,
       name: user.name,
@@ -71770,8 +71849,8 @@ router2.get("/me", requireAuth, async (req, res) => {
       position: user.position,
       avatarUrl: user.avatarUrl,
       hourlyRate: user.hourlyRate,
-      plan: company?.plan ?? "free",
-      planStatus: company?.planStatus ?? "active",
+      plan: mePlan,
+      planStatus: mePlanStatus,
       mustChangePassword: user.mustChangePassword ?? false,
       abn: user.abn ?? null,
       businessAddress: user.businessAddress ?? null,
@@ -72773,7 +72852,20 @@ router5.post("/:id/photos", requireAuth, async (req, res) => {
         return;
       }
     }
-    const [photo] = await db.insert(projectPhotos).values({ companyId, projectId: id, uri }).returning();
+    const [photo] = await db.insert(projectPhotos).values({ companyId, projectId: id, uri, uploadedBy: userId }).returning();
+    try {
+      const [actor] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+      await db.insert(activityLog).values({
+        companyId,
+        projectId: id,
+        userId,
+        activityType: "photo",
+        description: `\u{1F4F8} ${actor?.name ?? "Someone"} uploaded a photo`,
+        // uri included so the mobile feed can render a thumbnail without an extra fetch
+        metadata: JSON.stringify({ photoId: photo.id, uri })
+      });
+    } catch {
+    }
     res.status(201).json(photo);
   } catch {
     res.status(500).json({ error: "Failed to add photo" });
@@ -72820,7 +72912,6 @@ router6.get("/", requireAuth, async (req, res) => {
       );
     }
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to fetch time logs" });
   }
 });
@@ -72858,6 +72949,15 @@ router6.post("/clock-in", requireAuth, async (req, res) => {
       date: now.toISOString().split("T")[0],
       notes: ""
     }).returning();
+    const [actor] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+    await db.insert(activityLog).values({
+      companyId,
+      projectId,
+      userId,
+      activityType: "clock_in",
+      description: `\u{1F550} ${actor?.name ?? "Someone"} clocked in`,
+      metadata: JSON.stringify({ timeLogId: log.id, clockIn: now.toISOString() })
+    });
     res.status(201).json({
       id: log.id,
       employeeId: log.userId,
@@ -72869,7 +72969,6 @@ router6.post("/clock-in", requireAuth, async (req, res) => {
       date: log.date
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "Failed to clock in" });
   }
 });
@@ -72894,6 +72993,16 @@ router6.post("/clock-out", requireAuth, async (req, res) => {
     const now = /* @__PURE__ */ new Date();
     const totalMinutes = Math.round((now.getTime() - log.clockIn.getTime()) / 6e4);
     const [updated] = await db.update(timeLogs).set({ clockOut: now, totalMinutes, notes: notes ?? log.notes }).where(and(eq(timeLogs.id, logId), eq(timeLogs.companyId, companyId), eq(timeLogs.userId, log.userId))).returning();
+    const [actor] = await db.select({ name: users.name }).from(users).where(eq(users.id, log.userId)).limit(1);
+    const hours = (totalMinutes / 60).toFixed(2);
+    await db.insert(activityLog).values({
+      companyId,
+      projectId: log.projectId,
+      userId: log.userId,
+      activityType: "clock_out",
+      description: `\u23F9 ${actor?.name ?? "Someone"} clocked out \xB7 ${hours}h`,
+      metadata: JSON.stringify({ timeLogId: log.id, totalMinutes, hours })
+    });
     res.json({
       id: updated.id,
       employeeId: updated.userId,
@@ -72936,45 +73045,81 @@ var timelogs_default = router6;
 // src/routes/expenses.ts
 var import_express7 = __toESM(require_express2(), 1);
 var router7 = (0, import_express7.Router)();
-router7.get("/", requireAdmin, async (req, res) => {
+router7.get("/", requireAuth, async (req, res) => {
   try {
-    const all = await db.select().from(expenses).where(eq(expenses.companyId, req.user.companyId));
+    const { companyId, userId, role } = req.user;
+    let rows;
+    if (role === "admin") {
+      rows = await db.select().from(expenses).where(eq(expenses.companyId, companyId));
+    } else {
+      rows = await db.select().from(expenses).where(and(eq(expenses.companyId, companyId), eq(expenses.createdBy, userId)));
+    }
+    const submitterIds = [...new Set(rows.map((e) => e.createdBy))];
+    const submitterMap = /* @__PURE__ */ new Map();
+    if (submitterIds.length > 0) {
+      const submitters = await db.select({ id: users.id, name: users.name }).from(users).where(eq(users.companyId, companyId));
+      submitters.forEach((u) => submitterMap.set(u.id, u.name));
+    }
     res.json(
-      all.map((e) => ({
+      rows.map((e) => ({
         id: e.id,
         projectId: e.projectId,
         category: e.category,
         description: e.description,
         amount: Number(e.amount),
         date: e.date,
-        createdBy: e.createdBy
+        createdBy: e.createdBy,
+        submitterName: submitterMap.get(e.createdBy) ?? "Unknown",
+        supplier: e.supplier ?? null,
+        gst: e.gst != null ? Number(e.gst) : null,
+        receiptPhoto: e.receiptPhoto ?? null,
+        approvalStatus: e.approvalStatus ?? "pending",
+        rejectionReason: e.rejectionReason ?? null,
+        approvedBy: e.approvedBy ?? null,
+        approvedAt: e.approvedAt?.toISOString() ?? null,
+        rejectedBy: e.rejectedBy ?? null,
+        rejectedAt: e.rejectedAt?.toISOString() ?? null
       }))
     );
   } catch {
     res.status(500).json({ error: "Failed to fetch expenses" });
   }
 });
-router7.post("/", requireAdmin, async (req, res) => {
+router7.post("/", requireAuth, async (req, res) => {
   try {
-    const { projectId, category, description, amount, date: date2 } = req.body;
+    const { projectId, category, description, amount, date: date2, supplier, gst, receiptPhoto } = req.body;
+    const { companyId, userId, role } = req.user;
     if (!projectId || !category || !description || !amount || !date2) {
-      res.status(400).json({ error: "All fields are required" });
+      res.status(400).json({ error: "projectId, category, description, amount and date are required" });
       return;
     }
-    const [project] = await db.select({ id: projects.id }).from(projects).where(and(eq(projects.id, projectId), eq(projects.companyId, req.user.companyId))).limit(1);
+    const [project] = await db.select({ id: projects.id }).from(projects).where(and(eq(projects.id, projectId), eq(projects.companyId, companyId))).limit(1);
     if (!project) {
       res.status(404).json({ error: "Project not found" });
       return;
     }
+    if (role === "employee") {
+      const [assignment] = await db.select().from(projectAssignments).where(and(eq(projectAssignments.projectId, projectId), eq(projectAssignments.userId, userId))).limit(1);
+      if (!assignment) {
+        res.status(403).json({ error: "Not assigned to this project" });
+        return;
+      }
+    }
+    const approvalStatus = role === "admin" ? "approved" : "pending";
     const [expense] = await db.insert(expenses).values({
-      companyId: req.user.companyId,
+      companyId,
       projectId,
       category,
       description,
       amount: String(amount),
       date: date2,
-      createdBy: req.user.userId
+      createdBy: userId,
+      supplier: supplier ?? null,
+      gst: gst != null ? String(gst) : null,
+      receiptPhoto: receiptPhoto ?? null,
+      approvalStatus
     }).returning();
+    const [submitter] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
     res.status(201).json({
       id: expense.id,
       projectId: expense.projectId,
@@ -72982,10 +73127,67 @@ router7.post("/", requireAdmin, async (req, res) => {
       description: expense.description,
       amount: Number(expense.amount),
       date: expense.date,
-      createdBy: expense.createdBy
+      createdBy: expense.createdBy,
+      submitterName: submitter?.name ?? "Unknown",
+      supplier: expense.supplier ?? null,
+      gst: expense.gst != null ? Number(expense.gst) : null,
+      receiptPhoto: expense.receiptPhoto ?? null,
+      approvalStatus: expense.approvalStatus,
+      rejectionReason: expense.rejectionReason ?? null
     });
   } catch {
     res.status(500).json({ error: "Failed to create expense" });
+  }
+});
+router7.patch("/:id/approve", requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, rejectionReason } = req.body;
+    const { companyId } = req.user;
+    if (!["approved", "rejected"].includes(status)) {
+      res.status(400).json({ error: "status must be 'approved' or 'rejected'" });
+      return;
+    }
+    if (status === "rejected" && !rejectionReason?.trim()) {
+      res.status(400).json({ error: "rejectionReason is required when rejecting" });
+      return;
+    }
+    const [existing] = await db.select().from(expenses).where(and(eq(expenses.id, id), eq(expenses.companyId, companyId))).limit(1);
+    if (!existing) {
+      res.status(404).json({ error: "Expense not found" });
+      return;
+    }
+    const now = /* @__PURE__ */ new Date();
+    const [updated] = await db.update(expenses).set({
+      approvalStatus: status,
+      rejectionReason: status === "rejected" ? rejectionReason ?? null : null,
+      approvedBy: status === "approved" ? req.user.userId : null,
+      approvedAt: status === "approved" ? now : null,
+      rejectedBy: status === "rejected" ? req.user.userId : null,
+      rejectedAt: status === "rejected" ? now : null
+    }).where(and(eq(expenses.id, id), eq(expenses.companyId, companyId))).returning();
+    const [approver] = await db.select({ name: users.name }).from(users).where(eq(users.id, req.user.userId)).limit(1);
+    res.json({
+      id: updated.id,
+      projectId: updated.projectId,
+      category: updated.category,
+      description: updated.description,
+      amount: Number(updated.amount),
+      date: updated.date,
+      createdBy: updated.createdBy,
+      supplier: updated.supplier ?? null,
+      gst: updated.gst != null ? Number(updated.gst) : null,
+      receiptPhoto: updated.receiptPhoto ?? null,
+      approvalStatus: updated.approvalStatus,
+      rejectionReason: updated.rejectionReason ?? null,
+      approvedBy: updated.approvedBy ?? null,
+      approvedAt: updated.approvedAt?.toISOString() ?? null,
+      approvedByName: status === "approved" ? approver?.name ?? null : null,
+      rejectedBy: updated.rejectedBy ?? null,
+      rejectedAt: updated.rejectedAt?.toISOString() ?? null
+    });
+  } catch {
+    res.status(500).json({ error: "Failed to update expense" });
   }
 });
 router7.delete("/:id", requireAdmin, async (req, res) => {
@@ -73027,18 +73229,21 @@ router8.get("/", requireAuth, async (req, res) => {
         return;
       }
     }
-    const condition = role === "admin" ? and(eq(employeeNotes.projectId, projectId), eq(employeeNotes.companyId, companyId)) : and(
-      eq(employeeNotes.projectId, projectId),
-      eq(employeeNotes.companyId, companyId),
-      eq(employeeNotes.userId, userId)
-    );
-    const notes = await db.select().from(employeeNotes).where(condition);
+    const notes = await db.select().from(employeeNotes).where(and(eq(employeeNotes.projectId, projectId), eq(employeeNotes.companyId, companyId)));
+    const authorIds = [...new Set(notes.map((n) => n.userId))];
+    const authorMap = /* @__PURE__ */ new Map();
+    if (authorIds.length > 0) {
+      const authorRows = await db.select({ id: users.id, name: users.name }).from(users).where(eq(users.companyId, companyId));
+      authorRows.forEach((u) => authorMap.set(u.id, u.name));
+    }
     res.json(
       notes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((n) => ({
         id: n.id,
         projectId: n.projectId,
         employeeId: n.userId,
+        authorName: authorMap.get(n.userId) ?? "Unknown",
         text: n.text,
+        noteType: n.noteType,
         createdAt: n.createdAt.toISOString()
       }))
     );
@@ -73048,7 +73253,7 @@ router8.get("/", requireAuth, async (req, res) => {
 });
 router8.post("/", requireAuth, async (req, res) => {
   try {
-    const { projectId, text: text2 } = req.body;
+    const { projectId, text: text2, noteType } = req.body;
     const { companyId, userId, role } = req.user;
     if (!projectId || !text2?.trim()) {
       res.status(400).json({ error: "projectId and text are required" });
@@ -73066,12 +73271,30 @@ router8.post("/", requireAuth, async (req, res) => {
         return;
       }
     }
-    const [note] = await db.insert(employeeNotes).values({ companyId, projectId, userId, text: text2.trim() }).returning();
+    const resolvedType = noteType ?? "general";
+    const [note] = await db.insert(employeeNotes).values({ companyId, projectId, userId, text: text2.trim(), noteType: resolvedType }).returning();
+    const typeLabels = {
+      general: "\u{1F4DD} Note",
+      issue: "\u26A0\uFE0F Issue",
+      attention: "\u{1F514} Attention",
+      completed: "\u2705 Completed"
+    };
+    await db.insert(activityLog).values({
+      companyId,
+      projectId,
+      userId,
+      activityType: "note",
+      description: `${typeLabels[resolvedType] ?? "Note"}: ${text2.trim().slice(0, 80)}`,
+      metadata: JSON.stringify({ noteId: note.id, noteType: resolvedType, text: text2.trim() })
+    });
+    const [author] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
     res.status(201).json({
       id: note.id,
       projectId: note.projectId,
       employeeId: note.userId,
+      authorName: author?.name ?? "Unknown",
       text: note.text,
+      noteType: note.noteType,
       createdAt: note.createdAt.toISOString()
     });
   } catch {
@@ -73127,6 +73350,7 @@ router9.get("/my", requireAuth, async (req, res) => {
           totalAmount: inv.totalAmount,
           lineItems,
           paymentTerms: inv.paymentTerms ?? "on_receipt",
+          workerExtraNotes: inv.workerExtraNotes ?? null,
           createdAt: inv.createdAt.toISOString()
         };
       })
@@ -73190,7 +73414,7 @@ router9.get("/preview", requireAuth, async (req, res) => {
 router9.post("/generate", requireAuth, async (req, res) => {
   try {
     const { userId, companyId } = req.user;
-    const { periodStart, periodEnd, paymentTerms: rawTerms } = req.body;
+    const { periodStart, periodEnd, paymentTerms: rawTerms, workerExtraNotes } = req.body;
     if (!periodStart || !periodEnd) {
       res.status(400).json({ error: "periodStart and periodEnd are required" });
       return;
@@ -73240,7 +73464,8 @@ router9.post("/generate", requireAuth, async (req, res) => {
       hourlyRate: String(hourlyRate),
       totalAmount: String(totalAmount),
       lineItemsJson: JSON.stringify(lineItems),
-      paymentTerms
+      paymentTerms,
+      workerExtraNotes: workerExtraNotes?.trim() || null
     }).returning();
     const [company] = await db.select({
       name: companies.name,
@@ -73261,6 +73486,7 @@ router9.post("/generate", requireAuth, async (req, res) => {
       totalAmount: Number(created.totalAmount),
       lineItems,
       paymentTerms: created.paymentTerms,
+      workerExtraNotes: created.workerExtraNotes ?? null,
       createdAt: created.createdAt.toISOString(),
       company: company ?? null,
       user: fullUser ? {
@@ -73283,18 +73509,180 @@ router9.post("/generate", requireAuth, async (req, res) => {
 });
 var invoices_default = router9;
 
-// src/routes/index.ts
+// src/routes/activity.ts
+var import_express10 = __toESM(require_express2(), 1);
 var router10 = (0, import_express10.Router)();
-router10.use(health_default);
-router10.use("/auth", auth_default);
-router10.use("/company", company_default);
-router10.use("/users", users_default);
-router10.use("/projects", projects_default);
-router10.use("/timelogs", timelogs_default);
-router10.use("/expenses", expenses_default);
-router10.use("/notes", notes_default);
-router10.use("/invoices", invoices_default);
-var routes_default = router10;
+router10.get("/", requireAuth, async (req, res) => {
+  try {
+    const { projectId } = req.query;
+    const { companyId, userId, role } = req.user;
+    if (!projectId) {
+      res.status(400).json({ error: "projectId is required" });
+      return;
+    }
+    const [project] = await db.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.companyId, companyId))).limit(1);
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    if (role === "employee") {
+      const [assignment] = await db.select().from(projectAssignments).where(and(eq(projectAssignments.projectId, projectId), eq(projectAssignments.userId, userId))).limit(1);
+      if (!assignment) {
+        res.status(403).json({ error: "Not assigned to this project" });
+        return;
+      }
+    }
+    const entries = await db.select().from(activityLog).where(and(eq(activityLog.projectId, projectId), eq(activityLog.companyId, companyId))).orderBy(desc(activityLog.createdAt)).limit(100);
+    const actorIds = [...new Set(entries.map((e) => e.userId))];
+    const actorMap = /* @__PURE__ */ new Map();
+    if (actorIds.length > 0) {
+      const actors = await db.select({ id: users.id, name: users.name, avatarUrl: users.avatarUrl }).from(users).where(eq(users.companyId, companyId));
+      actors.forEach((u) => actorMap.set(u.id, { name: u.name, avatarUrl: u.avatarUrl ?? null }));
+    }
+    res.json(
+      entries.map((e) => ({
+        id: e.id,
+        projectId: e.projectId,
+        userId: e.userId,
+        actorName: actorMap.get(e.userId)?.name ?? "Unknown",
+        actorAvatar: actorMap.get(e.userId)?.avatarUrl ?? null,
+        activityType: e.activityType,
+        description: e.description,
+        metadata: e.metadata ? JSON.parse(e.metadata) : null,
+        createdAt: e.createdAt.toISOString()
+      }))
+    );
+  } catch {
+    res.status(500).json({ error: "Failed to fetch activity" });
+  }
+});
+var activity_default = router10;
+
+// src/routes/client-invoices.ts
+var import_express11 = __toESM(require_express2(), 1);
+var router11 = (0, import_express11.Router)();
+router11.get("/", requireAdmin, async (req, res) => {
+  try {
+    const { projectId } = req.query;
+    const { companyId } = req.user;
+    if (!projectId) {
+      res.status(400).json({ error: "projectId is required" });
+      return;
+    }
+    const [project] = await db.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.companyId, companyId))).limit(1);
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    const rows = await db.select().from(clientInvoices).where(and(eq(clientInvoices.projectId, projectId), eq(clientInvoices.companyId, companyId)));
+    res.json(rows.map(mapInvoice));
+  } catch {
+    res.status(500).json({ error: "Failed to fetch client invoices" });
+  }
+});
+router11.post("/", requireAdmin, async (req, res) => {
+  try {
+    const {
+      projectId,
+      invoiceNumber,
+      invoiceDate,
+      dueDate,
+      clientName,
+      clientCompany,
+      clientEmail,
+      clientPhone,
+      clientAddress,
+      projectAddress,
+      description,
+      subtotal,
+      gst,
+      total
+    } = req.body;
+    const { companyId, userId } = req.user;
+    if (!projectId || !invoiceNumber || !invoiceDate || !dueDate) {
+      res.status(400).json({ error: "projectId, invoiceNumber, invoiceDate and dueDate are required" });
+      return;
+    }
+    const [project] = await db.select().from(projects).where(and(eq(projects.id, projectId), eq(projects.companyId, companyId))).limit(1);
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    const [inv] = await db.insert(clientInvoices).values({
+      companyId,
+      projectId,
+      createdBy: userId,
+      invoiceNumber,
+      invoiceDate,
+      dueDate,
+      clientName: clientName ?? "",
+      clientCompany: clientCompany ?? "",
+      clientEmail: clientEmail ?? "",
+      clientPhone: clientPhone ?? "",
+      clientAddress: clientAddress ?? "",
+      projectAddress: projectAddress ?? "",
+      description: description ?? "",
+      subtotal: String(subtotal ?? 0),
+      gst: String(gst ?? 0),
+      total: String(total ?? 0)
+    }).returning();
+    res.status(201).json(mapInvoice(inv));
+  } catch {
+    res.status(500).json({ error: "Failed to create client invoice" });
+  }
+});
+router11.delete("/:id", requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { companyId } = req.user;
+    const [existing] = await db.select().from(clientInvoices).where(and(eq(clientInvoices.id, id), eq(clientInvoices.companyId, companyId))).limit(1);
+    if (!existing) {
+      res.status(404).json({ error: "Client invoice not found" });
+      return;
+    }
+    await db.delete(clientInvoices).where(and(eq(clientInvoices.id, id), eq(clientInvoices.companyId, companyId)));
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: "Failed to delete client invoice" });
+  }
+});
+function mapInvoice(inv) {
+  return {
+    id: inv.id,
+    projectId: inv.projectId,
+    createdBy: inv.createdBy,
+    invoiceNumber: inv.invoiceNumber,
+    invoiceDate: inv.invoiceDate,
+    dueDate: inv.dueDate,
+    clientName: inv.clientName,
+    clientCompany: inv.clientCompany,
+    clientEmail: inv.clientEmail,
+    clientPhone: inv.clientPhone,
+    clientAddress: inv.clientAddress,
+    projectAddress: inv.projectAddress,
+    description: inv.description,
+    subtotal: Number(inv.subtotal),
+    gst: Number(inv.gst),
+    total: Number(inv.total),
+    createdAt: inv.createdAt.toISOString()
+  };
+}
+var client_invoices_default = router11;
+
+// src/routes/index.ts
+var router12 = (0, import_express12.Router)();
+router12.use(health_default);
+router12.use("/auth", auth_default);
+router12.use("/company", company_default);
+router12.use("/users", users_default);
+router12.use("/projects", projects_default);
+router12.use("/timelogs", timelogs_default);
+router12.use("/expenses", expenses_default);
+router12.use("/notes", notes_default);
+router12.use("/invoices", invoices_default);
+router12.use("/activity", activity_default);
+router12.use("/client-invoices", client_invoices_default);
+var routes_default = router12;
 
 // src/lib/seed.ts
 async function ensureDemoData() {
@@ -73302,7 +73690,7 @@ async function ensureDemoData() {
 }
 
 // src/app.ts
-var app = (0, import_express11.default)();
+var app = (0, import_express13.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -73323,8 +73711,8 @@ app.use(
   })
 );
 app.use((0, import_cors.default)({ origin: "*", credentials: false }));
-app.use(import_express11.default.json({ limit: "10mb" }));
-app.use(import_express11.default.urlencoded({ extended: true }));
+app.use(import_express13.default.json({ limit: "10mb" }));
+app.use(import_express13.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 ensureDemoData().catch((err) => logger.error({ err }, "Seed failed"));
 var app_default = app;
@@ -73344,11 +73732,22 @@ DO $$ BEGIN
   CREATE TYPE plan AS ENUM ('free', 'pro', 'business');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
--- Add 'basic' tier (Apple IAP Basic Monthly plan)
 ALTER TYPE plan ADD VALUE IF NOT EXISTS 'basic';
 
 DO $$ BEGIN
   CREATE TYPE plan_status AS ENUM ('active', 'inactive', 'trialing', 'past_due', 'canceled');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE note_type AS ENUM ('general', 'issue', 'attention', 'completed');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE expense_status AS ENUM ('pending', 'approved', 'rejected');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE activity_type AS ENUM ('clock_in', 'clock_out', 'photo', 'note');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Tables
@@ -73361,6 +73760,8 @@ CREATE TABLE IF NOT EXISTS companies (
   business_abn TEXT,
   business_email TEXT,
   business_address TEXT,
+  stripe_customer_id TEXT,
+  stripe_subscription_id TEXT,
   plan plan NOT NULL DEFAULT 'free',
   plan_status plan_status NOT NULL DEFAULT 'active',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -73393,11 +73794,6 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Add push_token column if it doesn't exist (for existing databases)
-DO $$ BEGIN
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS push_token TEXT;
-EXCEPTION WHEN OTHERS THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -73436,6 +73832,7 @@ CREATE TABLE IF NOT EXISTS project_photos (
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   uri TEXT NOT NULL,
+  uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -73459,7 +73856,16 @@ CREATE TABLE IF NOT EXISTS expenses (
   description TEXT NOT NULL,
   amount DECIMAL(12,2) NOT NULL,
   date TEXT NOT NULL,
-  created_by UUID NOT NULL REFERENCES users(id)
+  created_by UUID NOT NULL REFERENCES users(id),
+  supplier TEXT,
+  gst DECIMAL(12,2),
+  receipt_photo TEXT,
+  approval_status expense_status NOT NULL DEFAULT 'pending',
+  rejection_reason TEXT,
+  approved_by UUID REFERENCES users(id),
+  approved_at TIMESTAMPTZ,
+  rejected_by UUID REFERENCES users(id),
+  rejected_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS employee_notes (
@@ -73468,6 +73874,7 @@ CREATE TABLE IF NOT EXISTS employee_notes (
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
+  note_type note_type NOT NULL DEFAULT 'general',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -73483,8 +73890,90 @@ CREATE TABLE IF NOT EXISTS invoices (
   total_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
   line_items_json TEXT,
   payment_terms TEXT NOT NULL DEFAULT 'on_receipt',
+  worker_extra_notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE TABLE IF NOT EXISTS activity_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  activity_type activity_type NOT NULL,
+  description TEXT NOT NULL,
+  metadata TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS client_invoices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  created_by UUID NOT NULL REFERENCES users(id),
+  invoice_number TEXT NOT NULL,
+  invoice_date TEXT NOT NULL,
+  due_date TEXT NOT NULL,
+  client_name TEXT NOT NULL DEFAULT '',
+  client_company TEXT NOT NULL DEFAULT '',
+  client_email TEXT NOT NULL DEFAULT '',
+  client_phone TEXT NOT NULL DEFAULT '',
+  client_address TEXT NOT NULL DEFAULT '',
+  project_address TEXT NOT NULL DEFAULT '',
+  description TEXT NOT NULL DEFAULT '',
+  subtotal DECIMAL(12,2) NOT NULL DEFAULT 0,
+  gst DECIMAL(12,2) NOT NULL DEFAULT 0,
+  total DECIMAL(12,2) NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Idempotent column additions for existing databases
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS business_abn TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS business_email TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS business_address TEXT;
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS push_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS abn TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS business_address TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS account_name TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bsb TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS account_number TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS invoice_notes TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS invoice_prefix TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE project_photos ADD COLUMN IF NOT EXISTS uploaded_by UUID REFERENCES users(id) ON DELETE SET NULL;
+
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS supplier TEXT;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS gst DECIMAL(12,2);
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS receipt_photo TEXT;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS approved_by UUID REFERENCES users(id);
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS rejected_by UUID REFERENCES users(id);
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ;
+
+DO $$ BEGIN
+  ALTER TABLE expenses ADD COLUMN approval_status expense_status NOT NULL DEFAULT 'pending';
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE employee_notes ADD COLUMN note_type note_type NOT NULL DEFAULT 'general';
+EXCEPTION WHEN duplicate_column THEN NULL; END $$;
+
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS line_items_json TEXT;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS payment_terms TEXT NOT NULL DEFAULT 'on_receipt';
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS worker_extra_notes TEXT;
+
+-- Fix NULL approval_status (set based on submitter role)
+UPDATE expenses
+SET approval_status = CASE
+  WHEN created_by IN (SELECT id FROM users WHERE role = 'admin') THEN 'approved'::expense_status
+  ELSE 'pending'::expense_status
+END
+WHERE approval_status IS NULL;
 `;
 async function runMigrations() {
   const client = await pool.connect();
