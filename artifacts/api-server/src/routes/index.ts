@@ -8,6 +8,8 @@ import timelogsRouter from "./timelogs.js";
 import expensesRouter from "./expenses.js";
 import notesRouter from "./notes.js";
 import invoicesRouter from "./invoices.js";
+import activityRouter from "./activity.js";
+import clientInvoicesRouter from "./client-invoices.js";
 
 const router: IRouter = Router();
 
@@ -20,5 +22,7 @@ router.use("/timelogs", timelogsRouter);
 router.use("/expenses", expensesRouter);
 router.use("/notes", notesRouter);
 router.use("/invoices", invoicesRouter);
+router.use("/activity", activityRouter);
+router.use("/client-invoices", clientInvoicesRouter);
 
 export default router;
