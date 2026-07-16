@@ -72881,20 +72881,21 @@ router6.get("/", requireAuth, async (req, res) => {
     const { companyId, userId, role } = req.user;
     const condition = role === "admin" ? eq(timeLogs.companyId, companyId) : and(eq(timeLogs.companyId, companyId), eq(timeLogs.userId, userId));
     const logs = await db.select().from(timeLogs).where(condition).orderBy(desc(timeLogs.clockIn));
+    const allUsers = await db.select({ id: users.id, name: users.name, hourlyRate: users.hourlyRate }).from(users).where(eq(users.companyId, companyId));
+    const userMap = new Map(allUsers.map((u) => [u.id, u]));
     if (role === "admin") {
-      const allUsers = await db.select({ id: users.id, hourlyRate: users.hourlyRate }).from(users).where(eq(users.companyId, companyId));
-      const rateMap = new Map(allUsers.map((u) => [u.id, Number(u.hourlyRate)]));
       res.json(
         logs.map((l) => ({
           id: l.id,
           employeeId: l.userId,
+          employeeName: userMap.get(l.userId)?.name ?? null,
           projectId: l.projectId,
           clockIn: l.clockIn.toISOString(),
           clockOut: l.clockOut?.toISOString(),
           totalMinutes: l.totalMinutes,
           notes: l.notes,
           date: l.date,
-          laborCost: l.totalMinutes ? l.totalMinutes / 60 * (rateMap.get(l.userId) ?? 0) : 0
+          laborCost: l.totalMinutes ? l.totalMinutes / 60 * (userMap.get(l.userId)?.hourlyRate ? Number(userMap.get(l.userId).hourlyRate) : 0) : 0
         }))
       );
     } else {
@@ -72902,6 +72903,7 @@ router6.get("/", requireAuth, async (req, res) => {
         logs.map((l) => ({
           id: l.id,
           employeeId: l.userId,
+          employeeName: userMap.get(l.userId)?.name ?? null,
           projectId: l.projectId,
           clockIn: l.clockIn.toISOString(),
           clockOut: l.clockOut?.toISOString(),
