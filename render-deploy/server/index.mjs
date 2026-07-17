@@ -72639,6 +72639,7 @@ router5.get("/:id", requireAuth, async (req, res) => {
       expectedEndDate: project.expectedEndDate,
       assignedEmployeeIds: allAssignments.map((a) => a.userId),
       photos: photos.map((p) => p.uri),
+      photoIds: photos.map((p) => p.id),
       documents: [],
       createdAt: project.createdAt.toISOString()
     };
@@ -72810,6 +72811,7 @@ router5.patch("/:id", requireAdmin, async (req, res) => {
       expectedEndDate: updated.expectedEndDate,
       assignedEmployeeIds: finalAssignments.map((a) => a.userId),
       photos: photos.map((p) => p.uri),
+      photoIds: photos.map((p) => p.id),
       documents: [],
       createdAt: updated.createdAt.toISOString()
     });
@@ -72869,6 +72871,29 @@ router5.post("/:id/photos", requireAuth, async (req, res) => {
     res.status(201).json(photo);
   } catch {
     res.status(500).json({ error: "Failed to add photo" });
+  }
+});
+router5.delete("/:id/photos/:photoId", requireAuth, async (req, res) => {
+  try {
+    const { id, photoId } = req.params;
+    const { companyId, role } = req.user;
+    if (role !== "admin") {
+      res.status(403).json({ error: "Admins only" });
+      return;
+    }
+    const [project] = await db.select({ id: projects.id }).from(projects).where(and(eq(projects.id, id), eq(projects.companyId, companyId))).limit(1);
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    const deleted = await db.delete(projectPhotos).where(and(eq(projectPhotos.id, photoId), eq(projectPhotos.projectId, id), eq(projectPhotos.companyId, companyId))).returning();
+    if (!deleted.length) {
+      res.status(404).json({ error: "Photo not found" });
+      return;
+    }
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "Failed to delete photo" });
   }
 });
 var projects_default = router5;
