@@ -72873,7 +72873,7 @@ router5.post("/:id/photos", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Failed to add photo" });
   }
 });
-router5.get("/:id/photo-ids", requireAuth, async (req, res) => {
+router5.get("/:id/photos", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { companyId } = req.user;
@@ -72882,10 +72882,10 @@ router5.get("/:id/photo-ids", requireAuth, async (req, res) => {
       res.status(404).json({ error: "Project not found" });
       return;
     }
-    const photos = await db.select({ id: projectPhotos.id }).from(projectPhotos).where(and(eq(projectPhotos.projectId, id), eq(projectPhotos.companyId, companyId))).orderBy(projectPhotos.createdAt);
-    res.json(photos.map((p) => p.id));
+    const photos = await db.select({ id: projectPhotos.id, uri: projectPhotos.uri }).from(projectPhotos).where(and(eq(projectPhotos.projectId, id), eq(projectPhotos.companyId, companyId))).orderBy(projectPhotos.createdAt);
+    res.json(photos);
   } catch {
-    res.status(500).json({ error: "Failed to fetch photo IDs" });
+    res.status(500).json({ error: "Failed to fetch photos" });
   }
 });
 router5.delete("/:id/photos/:photoId", requireAuth, async (req, res) => {
