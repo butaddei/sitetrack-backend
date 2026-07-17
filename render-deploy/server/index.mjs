@@ -72873,6 +72873,21 @@ router5.post("/:id/photos", requireAuth, async (req, res) => {
     res.status(500).json({ error: "Failed to add photo" });
   }
 });
+router5.get("/:id/photo-ids", requireAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { companyId } = req.user;
+    const [project] = await db.select({ id: projects.id }).from(projects).where(and(eq(projects.id, id), eq(projects.companyId, companyId))).limit(1);
+    if (!project) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    const photos = await db.select({ id: projectPhotos.id }).from(projectPhotos).where(and(eq(projectPhotos.projectId, id), eq(projectPhotos.companyId, companyId))).orderBy(projectPhotos.createdAt);
+    res.json(photos.map((p) => p.id));
+  } catch {
+    res.status(500).json({ error: "Failed to fetch photo IDs" });
+  }
+});
 router5.delete("/:id/photos/:photoId", requireAuth, async (req, res) => {
   try {
     const { id, photoId } = req.params;
