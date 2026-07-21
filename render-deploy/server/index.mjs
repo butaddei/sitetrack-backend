@@ -72847,13 +72847,6 @@ router5.post("/:id/photos", requireAuth, async (req, res) => {
       res.status(404).json({ error: "Project not found" });
       return;
     }
-    if (role === "employee") {
-      const [assignment] = await db.select().from(projectAssignments).where(and(eq(projectAssignments.projectId, id), eq(projectAssignments.userId, userId))).limit(1);
-      if (!assignment) {
-        res.status(403).json({ error: "You are not assigned to this project" });
-        return;
-      }
-    }
     const [photo] = await db.insert(projectPhotos).values({ companyId, projectId: id, uri, uploadedBy: userId }).returning();
     try {
       const [actor] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
