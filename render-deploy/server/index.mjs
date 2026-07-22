@@ -20600,27 +20600,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router13;
+    module.exports = Router14;
     module.exports.Route = Route;
-    function Router13(options) {
-      if (!(this instanceof Router13)) {
-        return new Router13(options);
+    function Router14(options) {
+      if (!(this instanceof Router14)) {
+        return new Router14(options);
       }
       const opts = options || {};
-      function router13(req, res, next) {
-        router13.handle(req, res, next);
+      function router14(req, res, next) {
+        router14.handle(req, res, next);
       }
-      Object.setPrototypeOf(router13, this);
-      router13.caseSensitive = opts.caseSensitive;
-      router13.mergeParams = opts.mergeParams;
-      router13.params = {};
-      router13.strict = opts.strict;
-      router13.stack = [];
-      return router13;
+      Object.setPrototypeOf(router14, this);
+      router14.caseSensitive = opts.caseSensitive;
+      router14.mergeParams = opts.mergeParams;
+      router14.params = {};
+      router14.strict = opts.strict;
+      router14.stack = [];
+      return router14;
     }
-    Router13.prototype = function() {
+    Router14.prototype = function() {
     };
-    Router13.prototype.param = function param(name, fn) {
+    Router14.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20640,7 +20640,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router13.prototype.handle = function handle(req, res, callback) {
+    Router14.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20767,7 +20767,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router13.prototype.use = function use(handler) {
+    Router14.prototype.use = function use(handler) {
       let offset = 0;
       let path = "/";
       if (typeof handler !== "function") {
@@ -20800,7 +20800,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router13.prototype.route = function route(path) {
+    Router14.prototype.route = function route(path) {
       const route2 = new Route(path);
       const layer = new Layer(path, {
         sensitive: this.caseSensitive,
@@ -20815,7 +20815,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router13.prototype[method] = function(path) {
+      Router14.prototype[method] = function(path) {
         const route = this.route(path);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20998,13 +20998,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router13 = require_router();
+    var Router14 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router13 = null;
+      var router14 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -21013,13 +21013,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router13 === null) {
-            router13 = new Router13({
+          if (router14 === null) {
+            router14 = new Router14({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router13;
+          return router14;
         }
       });
     };
@@ -21090,15 +21090,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router13 = this.router;
+      var router14 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router13.use(path, fn2);
+          return router14.use(path, fn2);
         }
         debug(".use app under %s", path);
         fn2.mountpath = path;
         fn2.parent = this;
-        router13.use(path, function mounted_app(req, res, next) {
+        router14.use(path, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -23625,7 +23625,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router13 = require_router();
+    var Router14 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23647,8 +23647,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router13.Route;
-    exports.Router = Router13;
+    exports.Route = Router14.Route;
+    exports.Router = Router14;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -62555,12 +62555,12 @@ ${captureLines}` : capture.stack;
 });
 
 // src/app.ts
-var import_express13 = __toESM(require_express2(), 1);
+var import_express14 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 
 // src/routes/index.ts
-var import_express12 = __toESM(require_express2(), 1);
+var import_express13 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -71323,16 +71323,23 @@ __export(schema_exports, {
   invoicesRelations: () => invoicesRelations,
   noteTypeEnum: () => noteTypeEnum,
   passwordResetTokens: () => passwordResetTokens,
+  paymentAuditActionEnum: () => paymentAuditActionEnum,
+  paymentAuditLog: () => paymentAuditLog,
+  paymentMethodEnum: () => paymentMethodEnum,
   planEnum: () => planEnum,
   planStatusEnum: () => planStatusEnum,
   projectAssignments: () => projectAssignments,
   projectAssignmentsRelations: () => projectAssignmentsRelations,
+  projectPayments: () => projectPayments,
+  projectPaymentsRelations: () => projectPaymentsRelations,
   projectPhotos: () => projectPhotos,
   projectStatusEnum: () => projectStatusEnum,
   projects: () => projects,
   projectsRelations: () => projectsRelations,
   roleEnum: () => roleEnum,
   timeLogs: () => timeLogs,
+  timesheetAdjustmentLog: () => timesheetAdjustmentLog,
+  timesheetAdjustmentReasonEnum: () => timesheetAdjustmentReasonEnum,
   users: () => users,
   usersRelations: () => usersRelations
 });
@@ -71348,6 +71355,24 @@ var planStatusEnum = pgEnum("plan_status", ["active", "inactive", "trialing", "p
 var noteTypeEnum = pgEnum("note_type", ["general", "issue", "attention", "completed"]);
 var expenseStatusEnum = pgEnum("expense_status", ["pending", "approved", "rejected"]);
 var activityTypeEnum = pgEnum("activity_type", ["clock_in", "clock_out", "photo", "note"]);
+var paymentMethodEnum = pgEnum("payment_method", [
+  "bank_transfer",
+  "cash",
+  "credit_card",
+  "cheque",
+  "other"
+]);
+var paymentAuditActionEnum = pgEnum("payment_audit_action", ["created", "edited", "deleted"]);
+var timesheetAdjustmentReasonEnum = pgEnum("timesheet_adjustment_reason", [
+  "forgot_clock_in",
+  "forgot_clock_out",
+  "battery_died",
+  "incorrect_time",
+  "approved_overtime",
+  "break_correction",
+  "manual_session",
+  "other"
+]);
 var companies = pgTable("companies", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -71439,7 +71464,36 @@ var timeLogs = pgTable("time_logs", {
   clockOut: timestamp("clock_out"),
   totalMinutes: integer("total_minutes"),
   notes: text("notes").notNull().default(""),
-  date: text("date").notNull()
+  date: text("date").notNull(),
+  // V3: admin edit audit trail
+  isManualEntry: boolean("is_manual_entry").notNull().default(false),
+  adjustedBy: uuid("adjusted_by").references(() => users.id, { onDelete: "set null" }),
+  adjustmentReason: timesheetAdjustmentReasonEnum("adjustment_reason"),
+  adjustmentReasonOther: text("adjustment_reason_other"),
+  originalClockIn: timestamp("original_clock_in"),
+  originalClockOut: timestamp("original_clock_out"),
+  originalTotalMinutes: integer("original_total_minutes"),
+  adjustedAt: timestamp("adjusted_at"),
+  deletedAt: timestamp("deleted_at")
+});
+var timesheetAdjustmentLog = pgTable("timesheet_adjustment_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  timeLogId: uuid("time_log_id").notNull(),
+  employeeId: uuid("employee_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  originalClockIn: timestamp("original_clock_in"),
+  originalClockOut: timestamp("original_clock_out"),
+  originalTotalMinutes: integer("original_total_minutes"),
+  newClockIn: timestamp("new_clock_in"),
+  newClockOut: timestamp("new_clock_out"),
+  newTotalMinutes: integer("new_total_minutes"),
+  adjustmentReason: text("adjustment_reason").notNull(),
+  adjustmentReasonOther: text("adjustment_reason_other"),
+  adminId: uuid("admin_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  adminName: text("admin_name").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
 });
 var expenses = pgTable("expenses", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -71450,13 +71504,11 @@ var expenses = pgTable("expenses", {
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   date: text("date").notNull(),
   createdBy: uuid("created_by").notNull().references(() => users.id),
-  // V2 additions
   supplier: text("supplier"),
   gst: decimal("gst", { precision: 12, scale: 2 }),
   receiptPhoto: text("receipt_photo"),
   approvalStatus: expenseStatusEnum("approval_status").notNull().default("pending"),
   rejectionReason: text("rejection_reason"),
-  // V3: approval audit trail
   approvedBy: uuid("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at"),
   rejectedBy: uuid("rejected_by").references(() => users.id),
@@ -71516,12 +71568,44 @@ var clientInvoices = pgTable("client_invoices", {
   total: decimal("total", { precision: 12, scale: 2 }).notNull().default("0"),
   createdAt: timestamp("created_at").notNull().defaultNow()
 });
+var projectPayments = pgTable("project_payments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  paymentDate: text("payment_date").notNull(),
+  paymentMethod: paymentMethodEnum("payment_method").notNull().default("bank_transfer"),
+  referenceNumber: text("reference_number"),
+  notes: text("notes"),
+  receiptPhoto: text("receipt_photo"),
+  linkedInvoiceId: uuid("linked_invoice_id").references(() => clientInvoices.id, { onDelete: "set null" }),
+  createdBy: uuid("created_by").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdByName: text("created_by_name").notNull(),
+  updatedBy: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+  updatedByName: text("updated_by_name"),
+  deletedAt: timestamp("deleted_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+var paymentAuditLog = pgTable("payment_audit_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  companyId: uuid("company_id").notNull().references(() => companies.id, { onDelete: "cascade" }),
+  projectId: uuid("project_id").notNull().references(() => projects.id, { onDelete: "cascade" }),
+  paymentId: uuid("payment_id").notNull(),
+  action: paymentAuditActionEnum("action").notNull(),
+  previousValues: text("previous_values"),
+  newValues: text("new_values"),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  userName: text("user_name").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow()
+});
 var companiesRelations = relations(companies, ({ many }) => ({
   users: many(users),
   projects: many(projects),
   invoices: many(invoices),
   activityLog: many(activityLog),
-  clientInvoices: many(clientInvoices)
+  clientInvoices: many(clientInvoices),
+  projectPayments: many(projectPayments)
 }));
 var usersRelations = relations(users, ({ one, many }) => ({
   company: one(companies, { fields: [users.companyId], references: [companies.id] }),
@@ -71539,7 +71623,8 @@ var projectsRelations = relations(projects, ({ one, many }) => ({
   expenses: many(expenses),
   employeeNotes: many(employeeNotes),
   activityLog: many(activityLog),
-  clientInvoices: many(clientInvoices)
+  clientInvoices: many(clientInvoices),
+  payments: many(projectPayments)
 }));
 var projectAssignmentsRelations = relations(projectAssignments, ({ one }) => ({
   project: one(projects, { fields: [projectAssignments.projectId], references: [projects.id] }),
@@ -71558,6 +71643,11 @@ var clientInvoicesRelations = relations(clientInvoices, ({ one }) => ({
   company: one(companies, { fields: [clientInvoices.companyId], references: [companies.id] }),
   project: one(projects, { fields: [clientInvoices.projectId], references: [projects.id] }),
   creator: one(users, { fields: [clientInvoices.createdBy], references: [users.id] })
+}));
+var projectPaymentsRelations = relations(projectPayments, ({ one }) => ({
+  company: one(companies, { fields: [projectPayments.companyId], references: [companies.id] }),
+  project: one(projects, { fields: [projectPayments.projectId], references: [projects.id] }),
+  creator: one(users, { fields: [projectPayments.createdBy], references: [users.id] })
 }));
 
 // ../../lib/db/src/index.ts
@@ -72912,7 +73002,13 @@ var router6 = (0, import_express6.Router)();
 router6.get("/", requireAuth, async (req, res) => {
   try {
     const { companyId, userId, role } = req.user;
-    const condition = role === "admin" ? eq(timeLogs.companyId, companyId) : and(eq(timeLogs.companyId, companyId), eq(timeLogs.userId, userId));
+    const filterProjectId = typeof req.query.projectId === "string" ? req.query.projectId : null;
+    let condition;
+    if (role === "admin") {
+      condition = filterProjectId ? and(eq(timeLogs.companyId, companyId), eq(timeLogs.projectId, filterProjectId), isNull(timeLogs.deletedAt)) : and(eq(timeLogs.companyId, companyId), isNull(timeLogs.deletedAt));
+    } else {
+      condition = filterProjectId ? and(eq(timeLogs.companyId, companyId), eq(timeLogs.userId, userId), eq(timeLogs.projectId, filterProjectId), isNull(timeLogs.deletedAt)) : and(eq(timeLogs.companyId, companyId), eq(timeLogs.userId, userId), isNull(timeLogs.deletedAt));
+    }
     const logs = await db.select().from(timeLogs).where(condition).orderBy(desc(timeLogs.clockIn));
     const allUsers = await db.select({ id: users.id, name: users.name, hourlyRate: users.hourlyRate }).from(users).where(eq(users.companyId, companyId));
     const userMap = new Map(allUsers.map((u) => [u.id, u]));
@@ -72924,10 +73020,15 @@ router6.get("/", requireAuth, async (req, res) => {
           employeeName: userMap.get(l.userId)?.name ?? null,
           projectId: l.projectId,
           clockIn: l.clockIn.toISOString(),
-          clockOut: l.clockOut?.toISOString(),
+          clockOut: l.clockOut?.toISOString() ?? null,
           totalMinutes: l.totalMinutes,
           notes: l.notes,
           date: l.date,
+          isManualEntry: l.isManualEntry,
+          adjustedBy: l.adjustedBy ?? null,
+          adjustmentReason: l.adjustmentReason ?? null,
+          adjustmentReasonOther: l.adjustmentReasonOther ?? null,
+          adjustedAt: l.adjustedAt?.toISOString() ?? null,
           laborCost: l.totalMinutes ? l.totalMinutes / 60 * (userMap.get(l.userId)?.hourlyRate ? Number(userMap.get(l.userId).hourlyRate) : 0) : 0
         }))
       );
@@ -72939,7 +73040,7 @@ router6.get("/", requireAuth, async (req, res) => {
           employeeName: userMap.get(l.userId)?.name ?? null,
           projectId: l.projectId,
           clockIn: l.clockIn.toISOString(),
-          clockOut: l.clockOut?.toISOString(),
+          clockOut: l.clockOut?.toISOString() ?? null,
           totalMinutes: l.totalMinutes,
           notes: l.notes,
           date: l.date
@@ -73073,6 +73174,214 @@ router6.get("/active", requireAuth, async (req, res) => {
     });
   } catch {
     res.status(500).json({ error: "Failed to fetch active log" });
+  }
+});
+var REASON_LABELS = {
+  forgot_clock_in: "Forgot to clock in",
+  forgot_clock_out: "Forgot to clock out",
+  battery_died: "Phone battery died",
+  incorrect_time: "Incorrect time selected",
+  approved_overtime: "Approved overtime",
+  break_correction: "Break correction",
+  manual_session: "Manual session added",
+  other: "Other"
+};
+function serializeLog(l, userName, hourlyRate) {
+  const base = {
+    id: l.id,
+    employeeId: l.userId,
+    employeeName: userName,
+    projectId: l.projectId,
+    clockIn: l.clockIn.toISOString(),
+    clockOut: l.clockOut?.toISOString() ?? null,
+    totalMinutes: l.totalMinutes,
+    notes: l.notes,
+    date: l.date,
+    isManualEntry: l.isManualEntry,
+    adjustedBy: l.adjustedBy ?? null,
+    adjustmentReason: l.adjustmentReason ?? null,
+    adjustmentReasonOther: l.adjustmentReasonOther ?? null,
+    adjustedAt: l.adjustedAt?.toISOString() ?? null
+  };
+  if (hourlyRate !== void 0) {
+    return {
+      ...base,
+      laborCost: l.totalMinutes ? l.totalMinutes / 60 * hourlyRate : 0
+    };
+  }
+  return base;
+}
+router6.patch("/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { companyId, userId } = req.user;
+    const logId = req.params.id;
+    const [log] = await db.select().from(timeLogs).where(and(eq(timeLogs.id, logId), eq(timeLogs.companyId, companyId), isNull(timeLogs.deletedAt))).limit(1);
+    if (!log) {
+      res.status(404).json({ error: "Time log not found" });
+      return;
+    }
+    if (!log.clockOut) {
+      res.status(400).json({ error: "Cannot edit an active (clocked-in) session" });
+      return;
+    }
+    const { clockIn, clockOut, notes, adjustmentReason, adjustmentReasonOther } = req.body;
+    if (!adjustmentReason) {
+      res.status(400).json({ error: "adjustmentReason is required" });
+      return;
+    }
+    if (adjustmentReason === "other" && !adjustmentReasonOther?.trim()) {
+      res.status(400).json({ error: "adjustmentReasonOther is required when reason is 'other'" });
+      return;
+    }
+    const newClockIn = clockIn ? new Date(clockIn) : log.clockIn;
+    const newClockOut = clockOut ? new Date(clockOut) : log.clockOut;
+    const newTotalMinutes = Math.max(0, Math.round((newClockOut.getTime() - newClockIn.getTime()) / 6e4));
+    const [adminUser] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+    const originalClockIn = log.originalClockIn ?? log.clockIn;
+    const originalClockOut = log.originalClockOut ?? log.clockOut;
+    const originalTotalMinutes = log.originalTotalMinutes ?? log.totalMinutes;
+    const [updated] = await db.update(timeLogs).set({
+      clockIn: newClockIn,
+      clockOut: newClockOut,
+      totalMinutes: newTotalMinutes,
+      notes: notes ?? log.notes,
+      adjustedBy: userId,
+      adjustmentReason,
+      adjustmentReasonOther: adjustmentReasonOther ?? null,
+      originalClockIn,
+      originalClockOut,
+      originalTotalMinutes,
+      adjustedAt: /* @__PURE__ */ new Date()
+    }).where(and(eq(timeLogs.id, logId), eq(timeLogs.companyId, companyId))).returning();
+    await db.insert(timesheetAdjustmentLog).values({
+      companyId,
+      timeLogId: logId,
+      employeeId: log.userId,
+      projectId: log.projectId,
+      action: "edited",
+      originalClockIn,
+      originalClockOut,
+      originalTotalMinutes,
+      newClockIn,
+      newClockOut,
+      newTotalMinutes,
+      adjustmentReason: REASON_LABELS[adjustmentReason] ?? adjustmentReason,
+      adjustmentReasonOther: adjustmentReasonOther ?? null,
+      adminId: userId,
+      adminName: adminUser?.name ?? "Admin"
+    });
+    const [emp] = await db.select({ name: users.name, hourlyRate: users.hourlyRate }).from(users).where(eq(users.id, log.userId)).limit(1);
+    res.json(serializeLog(updated, emp?.name ?? null, Number(emp?.hourlyRate ?? 0)));
+  } catch {
+    res.status(500).json({ error: "Failed to update time log" });
+  }
+});
+router6.post("/manual", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { companyId, userId } = req.user;
+    const { employeeId, projectId, clockIn, clockOut, notes, adjustmentReason, adjustmentReasonOther } = req.body;
+    if (!employeeId || !projectId || !clockIn || !clockOut || !adjustmentReason) {
+      res.status(400).json({ error: "employeeId, projectId, clockIn, clockOut and adjustmentReason are required" });
+      return;
+    }
+    if (adjustmentReason === "other" && !adjustmentReasonOther?.trim()) {
+      res.status(400).json({ error: "adjustmentReasonOther is required when reason is 'other'" });
+      return;
+    }
+    const [emp] = await db.select({ name: users.name, hourlyRate: users.hourlyRate }).from(users).where(and(eq(users.id, employeeId), eq(users.companyId, companyId))).limit(1);
+    if (!emp) {
+      res.status(404).json({ error: "Employee not found" });
+      return;
+    }
+    const [proj] = await db.select({ id: projects.id }).from(projects).where(and(eq(projects.id, projectId), eq(projects.companyId, companyId))).limit(1);
+    if (!proj) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    const ci = new Date(clockIn);
+    const co = new Date(clockOut);
+    const totalMinutes = Math.max(0, Math.round((co.getTime() - ci.getTime()) / 6e4));
+    const [adminUser] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+    const [log] = await db.insert(timeLogs).values({
+      companyId,
+      userId: employeeId,
+      projectId,
+      clockIn: ci,
+      clockOut: co,
+      totalMinutes,
+      notes: notes ?? "",
+      date: ci.toISOString().split("T")[0],
+      isManualEntry: true,
+      adjustedBy: userId,
+      adjustmentReason,
+      adjustmentReasonOther: adjustmentReasonOther ?? null,
+      adjustedAt: /* @__PURE__ */ new Date()
+    }).returning();
+    await db.insert(timesheetAdjustmentLog).values({
+      companyId,
+      timeLogId: log.id,
+      employeeId,
+      projectId,
+      action: "created",
+      originalClockIn: null,
+      originalClockOut: null,
+      originalTotalMinutes: null,
+      newClockIn: ci,
+      newClockOut: co,
+      newTotalMinutes: totalMinutes,
+      adjustmentReason: REASON_LABELS[adjustmentReason] ?? adjustmentReason,
+      adjustmentReasonOther: adjustmentReasonOther ?? null,
+      adminId: userId,
+      adminName: adminUser?.name ?? "Admin"
+    });
+    try {
+      await db.insert(activityLog).values({
+        companyId,
+        projectId,
+        userId,
+        activityType: "clock_in",
+        description: `\u270F\uFE0F Admin adjusted ${emp.name}'s work session.`,
+        metadata: JSON.stringify({ timeLogId: log.id, isManualEntry: true })
+      });
+    } catch {
+    }
+    res.status(201).json(serializeLog(log, emp.name, Number(emp.hourlyRate ?? 0)));
+  } catch {
+    res.status(500).json({ error: "Failed to create manual time log" });
+  }
+});
+router6.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { companyId, userId } = req.user;
+    const logId = req.params.id;
+    const [log] = await db.select().from(timeLogs).where(and(eq(timeLogs.id, logId), eq(timeLogs.companyId, companyId), isNull(timeLogs.deletedAt))).limit(1);
+    if (!log) {
+      res.status(404).json({ error: "Time log not found" });
+      return;
+    }
+    const { adjustmentReason, adjustmentReasonOther } = req.body;
+    const [adminUser] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+    await db.update(timeLogs).set({ deletedAt: /* @__PURE__ */ new Date() }).where(and(eq(timeLogs.id, logId), eq(timeLogs.companyId, companyId)));
+    await db.insert(timesheetAdjustmentLog).values({
+      companyId,
+      timeLogId: logId,
+      employeeId: log.userId,
+      projectId: log.projectId,
+      action: "deleted",
+      originalClockIn: log.clockIn,
+      originalClockOut: log.clockOut,
+      originalTotalMinutes: log.totalMinutes,
+      newClockIn: null,
+      newClockOut: null,
+      newTotalMinutes: null,
+      adjustmentReason: adjustmentReason ? REASON_LABELS[adjustmentReason] ?? adjustmentReason : "Deleted by admin",
+      adjustmentReasonOther: adjustmentReasonOther ?? null,
+      adminId: userId,
+      adminName: adminUser?.name ?? "Admin"
+    });
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "Failed to delete time log" });
   }
 });
 var timelogs_default = router6;
@@ -73704,20 +74013,206 @@ function mapInvoice(inv) {
 }
 var client_invoices_default = router11;
 
+// src/routes/payments.ts
+var import_express12 = __toESM(require_express2(), 1);
+var router12 = (0, import_express12.Router)({ mergeParams: true });
+function fmt(p) {
+  return {
+    id: p.id,
+    projectId: p.projectId,
+    amount: Number(p.amount),
+    paymentDate: p.paymentDate,
+    paymentMethod: p.paymentMethod,
+    referenceNumber: p.referenceNumber ?? null,
+    notes: p.notes ?? null,
+    receiptPhoto: p.receiptPhoto ?? null,
+    linkedInvoiceId: p.linkedInvoiceId ?? null,
+    createdBy: p.createdBy,
+    createdByName: p.createdByName,
+    updatedBy: p.updatedBy ?? null,
+    updatedByName: p.updatedByName ?? null,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString()
+  };
+}
+router12.get("/", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { companyId } = req.user;
+    const projectId = req.params.id;
+    const [proj] = await db.select({ id: projects.id }).from(projects).where(and(eq(projects.id, projectId), eq(projects.companyId, companyId))).limit(1);
+    if (!proj) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    const payments = await db.select().from(projectPayments).where(
+      and(
+        eq(projectPayments.projectId, projectId),
+        eq(projectPayments.companyId, companyId),
+        isNull(projectPayments.deletedAt)
+      )
+    ).orderBy(desc(projectPayments.paymentDate));
+    res.json(payments.map(fmt));
+  } catch {
+    res.status(500).json({ error: "Failed to fetch payments" });
+  }
+});
+router12.post("/", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { companyId, userId } = req.user;
+    const projectId = req.params.id;
+    const [proj] = await db.select({ id: projects.id }).from(projects).where(and(eq(projects.id, projectId), eq(projects.companyId, companyId))).limit(1);
+    if (!proj) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    const { amount, paymentDate, paymentMethod, referenceNumber, notes, receiptPhoto, linkedInvoiceId } = req.body;
+    if (!amount || !paymentDate || !paymentMethod) {
+      res.status(400).json({ error: "amount, paymentDate and paymentMethod are required" });
+      return;
+    }
+    const [actor] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+    const actorName = actor?.name ?? "Admin";
+    const [payment] = await db.insert(projectPayments).values({
+      companyId,
+      projectId,
+      amount: String(amount),
+      paymentDate,
+      paymentMethod,
+      referenceNumber: referenceNumber ?? null,
+      notes: notes ?? null,
+      receiptPhoto: receiptPhoto ?? null,
+      linkedInvoiceId: linkedInvoiceId ?? null,
+      createdBy: userId,
+      createdByName: actorName
+    }).returning();
+    await db.insert(paymentAuditLog).values({
+      companyId,
+      projectId,
+      paymentId: payment.id,
+      action: "created",
+      previousValues: null,
+      newValues: JSON.stringify({ amount, paymentDate, paymentMethod, referenceNumber, notes }),
+      userId,
+      userName: actorName
+    });
+    res.status(201).json(fmt(payment));
+  } catch {
+    res.status(500).json({ error: "Failed to create payment" });
+  }
+});
+router12.patch("/:paymentId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { companyId, userId } = req.user;
+    const { id: projectId, paymentId } = req.params;
+    const [existing] = await db.select().from(projectPayments).where(
+      and(
+        eq(projectPayments.id, paymentId),
+        eq(projectPayments.projectId, projectId),
+        eq(projectPayments.companyId, companyId),
+        isNull(projectPayments.deletedAt)
+      )
+    ).limit(1);
+    if (!existing) {
+      res.status(404).json({ error: "Payment not found" });
+      return;
+    }
+    const { amount, paymentDate, paymentMethod, referenceNumber, notes, receiptPhoto, linkedInvoiceId } = req.body;
+    const [actor] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+    const actorName = actor?.name ?? "Admin";
+    const prevValues = {
+      amount: Number(existing.amount),
+      paymentDate: existing.paymentDate,
+      paymentMethod: existing.paymentMethod,
+      referenceNumber: existing.referenceNumber,
+      notes: existing.notes
+    };
+    const [updated] = await db.update(projectPayments).set({
+      ...amount !== void 0 && { amount: String(amount) },
+      ...paymentDate !== void 0 && { paymentDate },
+      ...paymentMethod !== void 0 && { paymentMethod },
+      ...referenceNumber !== void 0 && { referenceNumber },
+      ...notes !== void 0 && { notes },
+      ...receiptPhoto !== void 0 && { receiptPhoto },
+      ...linkedInvoiceId !== void 0 && { linkedInvoiceId },
+      updatedBy: userId,
+      updatedByName: actorName,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(
+      and(
+        eq(projectPayments.id, paymentId),
+        eq(projectPayments.companyId, companyId)
+      )
+    ).returning();
+    await db.insert(paymentAuditLog).values({
+      companyId,
+      projectId,
+      paymentId,
+      action: "edited",
+      previousValues: JSON.stringify(prevValues),
+      newValues: JSON.stringify(req.body),
+      userId,
+      userName: actorName
+    });
+    res.json(fmt(updated));
+  } catch {
+    res.status(500).json({ error: "Failed to update payment" });
+  }
+});
+router12.delete("/:paymentId", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { companyId, userId } = req.user;
+    const { id: projectId, paymentId } = req.params;
+    const [existing] = await db.select().from(projectPayments).where(
+      and(
+        eq(projectPayments.id, paymentId),
+        eq(projectPayments.projectId, projectId),
+        eq(projectPayments.companyId, companyId),
+        isNull(projectPayments.deletedAt)
+      )
+    ).limit(1);
+    if (!existing) {
+      res.status(404).json({ error: "Payment not found" });
+      return;
+    }
+    const [actor] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+    const actorName = actor?.name ?? "Admin";
+    await db.update(projectPayments).set({ deletedAt: /* @__PURE__ */ new Date() }).where(and(eq(projectPayments.id, paymentId), eq(projectPayments.companyId, companyId)));
+    await db.insert(paymentAuditLog).values({
+      companyId,
+      projectId,
+      paymentId,
+      action: "deleted",
+      previousValues: JSON.stringify({
+        amount: Number(existing.amount),
+        paymentDate: existing.paymentDate,
+        paymentMethod: existing.paymentMethod
+      }),
+      newValues: null,
+      userId,
+      userName: actorName
+    });
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: "Failed to delete payment" });
+  }
+});
+var payments_default = router12;
+
 // src/routes/index.ts
-var router12 = (0, import_express12.Router)();
-router12.use(health_default);
-router12.use("/auth", auth_default);
-router12.use("/company", company_default);
-router12.use("/users", users_default);
-router12.use("/projects", projects_default);
-router12.use("/timelogs", timelogs_default);
-router12.use("/expenses", expenses_default);
-router12.use("/notes", notes_default);
-router12.use("/invoices", invoices_default);
-router12.use("/activity", activity_default);
-router12.use("/client-invoices", client_invoices_default);
-var routes_default = router12;
+var router13 = (0, import_express13.Router)();
+router13.use(health_default);
+router13.use("/auth", auth_default);
+router13.use("/company", company_default);
+router13.use("/users", users_default);
+router13.use("/projects", projects_default);
+router13.use("/projects/:id/payments", payments_default);
+router13.use("/timelogs", timelogs_default);
+router13.use("/expenses", expenses_default);
+router13.use("/notes", notes_default);
+router13.use("/invoices", invoices_default);
+router13.use("/activity", activity_default);
+router13.use("/client-invoices", client_invoices_default);
+var routes_default = router13;
 
 // src/lib/seed.ts
 async function ensureDemoData() {
@@ -73725,7 +74220,7 @@ async function ensureDemoData() {
 }
 
 // src/app.ts
-var app = (0, import_express13.default)();
+var app = (0, import_express14.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -73746,8 +74241,8 @@ app.use(
   })
 );
 app.use((0, import_cors.default)({ origin: "*", credentials: false }));
-app.use(import_express13.default.json({ limit: "10mb" }));
-app.use(import_express13.default.urlencoded({ extended: true }));
+app.use(import_express14.default.json({ limit: "10mb" }));
+app.use(import_express14.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 ensureDemoData().catch((err) => logger.error({ err }, "Seed failed"));
 var app_default = app;
